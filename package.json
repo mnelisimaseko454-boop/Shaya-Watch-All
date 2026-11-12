@@ -1,16 +1,17 @@
 {
-  "name": "shaya-watch-all-profit",
+  "name": "shaya-watch-all",
   "version": "1.0.0",
-  "description": "Shaya Watch - SA + USA Bot with All Profit Plans",
+  "description": "Shaya Watch - SA + USA - Bot + WebApp + YouTube",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
+  "engines": {
+    "node": "20.x"
+  },
   "dependencies": {
     "telegraf": "^4.16.3",
     "better-sqlite3": "^11.8.1",
-    "express": "^4.19.2",
-    "cors": "^2.8.5"
+    "express": "^4.19.2"
   }
 }
-
