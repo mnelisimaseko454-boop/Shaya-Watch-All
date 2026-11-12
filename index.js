@@ -543,27 +543,31 @@ if (BOT_TOKEN) {
     ctx.reply(`📊 STATS\nUsers: ${totalUsers}\nWithdraws Paid: ${totalPaid}\nPending: ${pending}\nVIP Requests: ${vipRequests.filter(v => v.status === 'pending').length}\nRate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}`);
   });
 
-  // ===== VIP WITH TELEGRAM STARS ⭐ =====
-  // API: Mini App asks Bot to send Stars invoice
+  // ===== VIP WITH TELEGRAM STARS ⭐ - FIXED sendInvoice =====
   app.post('/api/vip-stars-invoice', async (req, res) => {
     const { user_id, plan } = req.body;
     let u = await getUser(parseInt(user_id));
     if (!u) return res.json({ error: 'user not found - send /start in bot first' });
-    const stars = VIP_STARS_MAP || 250;
+    const stars = parseInt(VIP_STARS_MAP || 250);
     if (!bot) return res.json({ error: 'Bot not connected' });
     try {
-      // Send invoice in Stars (XTR) - Stars go straight to Bot owner
-      await bot.telegram.sendInvoice(parseInt(user_id), {
-        title: `Shaya Watch ${plan}`,
-        description: `${plan} - 30 Days • ${plan === 'VIP' ? '$0.025' : plan === 'VIP PRO' ? '$0.05' : '$0.10'}/ad • 20/day • $20 Min Withdraw`,
-        payload: `vip_${plan}_${user_id}_${Date.now()}`,
-        provider_token: '',
-        currency: 'XTR',
-        prices: [{ label: `${plan} - 30 Days`, amount: stars }],
-        start_parameter: `vip_${plan}`
-      });
-      console.log(`Stars invoice sent: ${user_id} ${plan} ${stars} ⭐`);
-      res.json({ success: true, stars, plan });
+      const planClean = (plan || 'VIP').trim();
+      const perAdText = planClean === 'VIP' ? '$0.025' : planClean === 'VIP PRO' ? '$0.05' : '$0.10';
+      const payload = `vip_${planClean}_${user_id}_${Date.now()}`;
+
+      // ✅ CORRECT Telegraf format - positional args, NOT object
+      await bot.telegram.sendInvoice(
+        parseInt(user_id),
+        `Shaya Watch ${planClean}`,
+        `${planClean} - 30 Days - ${perAdText}/ad - 20/day - $20 Min Withdraw`,
+        payload,
+        '',
+        'XTR',
+        [{ label: `${planClean} - 30 Days`, amount: stars }],
+        { start_parameter: `vip_${planClean}` }
+      );
+      console.log(`Stars invoice sent: ${user_id} ${planClean} ${stars} ⭐`);
+      res.json({ success: true, stars, plan: planClean });
     } catch (e) {
       console.log('Stars invoice failed', e.message);
       res.json({ error: 'Could not send invoice. Make sure you pressed /start in @ShayaWatchAllBot first. Error: ' + e.message });
@@ -588,7 +592,6 @@ if (BOT_TOKEN) {
     const starsPaid = pay.total_amount;
     const until = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-    // Ensure user exists
     let u = await getUser(user_id);
     if (!u) u = await createUser(user_id, { username: ctx.from.username || '', first_name: ctx.from.first_name || '' });
 
