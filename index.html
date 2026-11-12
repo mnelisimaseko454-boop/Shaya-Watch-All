@@ -33,6 +33,9 @@
   input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#222;color:#fff;margin-top:8px}
   .hidden{display:none}
   .leader{padding:8px 0;border-bottom:1px solid #222;display:flex;justify-content:space-between}
+  .ytbtn{background:#222;color:#fff;border:1px solid #333;padding:8px 12px;border-radius:8px;cursor:pointer}
+  .ytbtn.active{background:#FFD700;color:#000;border:none;font-weight:bold}
+  .usdtbox{background:#0f2a1a;border:1px solid #00ff88;border-radius:12px;padding:12px;margin-top:12px}
 </style>
 </head>
 <body>
@@ -45,12 +48,12 @@
   </div>
 </div>
 
-<!-- HOME -->
 <div id="page-home">
   <div class="card">
     <div style="display:flex;justify-content:space-between"><span>💰 Cash Balance</span><span id="vipBadge">FREE</span></div>
-    <div class="balance" id="balance">R0.00</div>
-    <div class="coins" id="coins">🪙 0 Profit Coins (Value: R0.00) • 1000 Coins = R1</div>
+    <div class="balance" id="balance">Loading...</div>
+    <div class="coins" id="coins">🪙 Loading...</div>
+    <div class="coins" id="usdtValue" style="color:#00ff88">💱 = $0.00 USDT</div>
     <div class="coins" id="statsLine">Ads: 0 | Referrals: 0 | Streak: 0 days</div>
     <button class="bigbtn" id="watchBtn" onclick="watchAd()">▶️ WATCH AD & EARN</button>
     <p style="text-align:center;font-size:12px;color:#aaa;margin-top:8px" id="rateLine">You Earn: R0.02 + 10 Coins per ad</p>
@@ -61,7 +64,21 @@
     <div class="mini" onclick="claimDaily()"><b>🎁 Daily Bonus</b><span>Claim Every Day</span></div>
     <div class="mini" onclick="convertCoins()"><b>🪙 Convert Coins</b><span>Coins → Cash</span></div>
     <div class="mini" onclick="showPage('invite')"><b>👥 Invite</b><span>Earn Per Friend</span></div>
-    <div class="mini" onclick="showPage('withdraw')"><b>💸 Withdraw</b><span>Cash / Coins</span></div>
+    <div class="mini" onclick="showPage('withdraw')"><b>💸 Withdraw</b><span>Cash / USDT</span></div>
+  </div>
+
+  <!-- SA USDT TO RAND CONVERTER - LIVE -->
+  <div class="usdtbox" id="usdtBox">
+    <b>💱 CONVERT USDT → RAND (LIVE)</b>
+    <p style="font-size:12px;color:#aaa;margin-top:4px" id="usdtRateLine">Rate: 1 USDT = R16.62 • Loading live...</p>
+    <input id="usdtInput" type="number" placeholder="Enter USDT e.g. 30" oninput="convertUSDTInput()">
+    <div style="font-size:18px;font-weight:bold;margin-top:8px;color:#00ff88" id="usdtResult">= R0.00</div>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button onclick="setUSDT(1)" style="flex:1;background:#222;color:#fff;border:1px solid #333;padding:8px;border-radius:8px">1 USDT</button>
+      <button onclick="setUSDT(30)" style="flex:1;background:#222;color:#fff;border:1px solid #333;padding:8px;border-radius:8px">$30 USDT</button>
+      <button onclick="setUSDT(0.05)" style="flex:1;background:#222;color:#fff;border:1px solid #333;padding:8px;border-radius:8px">$0.05</button>
+    </div>
+    <p style="font-size:11px;color:#aaa;margin-top:6px" id="usdtExamples">30 USDT = R498.60 • 1 USDT = R16.62 • $0.05 = R0.83</p>
   </div>
 
   <div class="vip">
@@ -72,17 +89,20 @@
   </div>
 
   <div class="card">
-    <b>🎯 TASKS - Earn Extra</b>
-    <div id="tasksList">Loading tasks...</div>
+    <b id="ytTitle">🔥 TRENDING ON YOUTUBE - SA</b>
+    <div style="display:flex;gap:8px;margin:8px 0">
+      <button id="ytTrendingBtn" class="ytbtn active" onclick="loadVideos('trending')">Trending</button>
+      <button id="ytMusicBtn" class="ytbtn" onclick="loadVideos('music')">Music</button>
+      <input id="ytSearch" placeholder="Search Amapiano..." style="flex:1;margin:0">
+      <button onclick="searchVideos()" style="background:#FFD700;border:none;padding:8px 12px;border-radius:8px">🔍</button>
+    </div>
+    <div id="ytList">Loading videos...</div>
   </div>
 
-  <div class="card">
-    <b>🏆 LEADERBOARD - Top Earners</b>
-    <div id="leaderboard">Loading...</div>
-  </div>
+  <div class="card"><b>🎯 TASKS - Earn Extra</b><div id="tasksList">Loading tasks...</div></div>
+  <div class="card"><b>🏆 LEADERBOARD - Top Earners</b><div id="leaderboard">Loading...</div></div>
 </div>
 
-<!-- INVITE -->
 <div id="page-invite" class="hidden">
   <div class="card">
     <h3>👥 INVITE FRIENDS</h3>
@@ -94,20 +114,21 @@
   </div>
 </div>
 
-<!-- WITHDRAW -->
 <div id="page-withdraw" class="hidden">
   <div class="card">
     <h3>💸 WITHDRAW</h3>
-    <p id="withdrawInfo" style="margin:8px 0">Min: R50 Cash OR 50000 Coins</p>
-    <select id="withdrawMethod">
-      <option value="Capitec">Capitec / Bank</option>
-      <option value="Airtime">Airtime</option>
-      <option value="USDT TRC20">USDT TRC20</option>
-      <option value="PayPal">PayPal (USA)</option>
+    <p id="withdrawInfo" style="margin:8px 0">Min: R30 Cash OR $30 USDT</p>
+    <p id="withdrawUSDTInfo" style="font-size:13px;color:#00ff88">Your balance in USDT: $0.00</p>
+    <select id="withdrawMethod" onchange="updateWithdrawInfo()">
+      <option value="Capitec">Capitec / Bank - Min R30 / $0.05</option>
+      <option value="Airtime">Airtime - Min R30 / $0.05</option>
+      <option value="USDT TRC20">USDT TRC20 - Min $30 USDT</option>
+      <option value="PayPal">PayPal (USA) - Min $0.05</option>
     </select>
-    <input id="walletInput" placeholder="Enter Capitec number / Bank / Wallet / PayPal">
+    <input id="walletInput" placeholder="Enter Capitec number / Bank / USDT Wallet / PayPal">
     <button class="bigbtn" onclick="requestWithdraw()">✅ REQUEST WITHDRAWAL</button>
     <p id="withdrawStatus" style="margin-top:8px;color:#0f0"></p>
+    <p style="font-size:11px;color:#aaa;margin-top:8px" id="withdrawHint">SA: R30 = $1.81 USDT • $30 USDT = R498.60</p>
   </div>
 </div>
 
@@ -121,34 +142,116 @@
 let userId = new URLSearchParams(window.location.search).get('start') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
 let user = null;
 let region = 'SA';
+let currentYtType = 'trending';
+let USDT_TO_ZAR = 16.62;
 
 if (window.Telegram?.WebApp) { Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
 
+// --- FIX 3: SAVE TO PHONE ---
+function saveToPhone(){
+  if(!user || !userId) return;
+  try{ localStorage.setItem('shaya_backup_' + userId, JSON.stringify({ balance: user.balance, coins: user.coins, total_ads: user.total_ads, referrals: user.referrals, streak: user.streak, region: user.region, vip_level: user.vip_level, total_earned: user.total_earned, savedAt: Date.now() })); }catch(e){}
+}
+function getPhoneBackup(){ try{ return JSON.parse(localStorage.getItem('shaya_backup_' + userId)); }catch(e){ return null; } }
+
+// --- FIX 3: LOAD WITH INSTANT RESTORE ---
 async function loadUser(){
   if(!userId){ document.getElementById('balance').innerText='Open via Telegram Bot'; return; }
-  const res = await fetch(`/api/user/${userId}`);
-  user = await res.json();
-  if(user.error) return;
-  region = user.region || 'SA';
-  updateUI();
-  loadTasks(); loadLeaderboard();
+  const backup = getPhoneBackup();
+  if(backup){
+    const cur = backup.region === 'USA' ? '$' : 'R';
+    document.getElementById('balance').innerText = `${cur}${backup.balance.toFixed(2)}`;
+    document.getElementById('coins').innerText = `🪙 ${backup.coins} Profit Coins • Restoring...`;
+    region = backup.region || 'SA';
+  }
+  try{
+    const res = await fetch(`/api/user/${userId}`);
+    user = await res.json();
+    if(user.error) return;
+    region = user.region || region || 'SA';
+    if(user.usdtToZar) USDT_TO_ZAR = user.usdtToZar;
+    if(backup && user.balance === 0 && user.coins === 0 && (backup.balance > 0 || backup.coins > 0)){
+      await fetch('/api/sync', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id: parseInt(userId), ...backup})});
+      const res2 = await fetch(`/api/user/${userId}`); user = await res2.json();
+      region = user.region || region;
+      if(user.usdtToZar) USDT_TO_ZAR = user.usdtToZar;
+    }
+    updateUI(); saveToPhone(); refreshRate(); loadTasks(); loadLeaderboard(); loadVideos(currentYtType);
+  }catch(e){ document.getElementById('coins').innerText = 'Offline - showing saved balance'; }
 }
+
 function updateUI(){
   const r = user.rate;
   document.getElementById('balance').innerText = `${user.currency}${user.balance.toFixed(2)}`;
   document.getElementById('coins').innerText = `🪙 ${user.coins} Profit Coins (Value: ${user.currency}${(user.coins/r.coinValue).toFixed(2)}) • 1000 Coins = ${user.currency}1`;
+  const usdtVal = region==='SA' ? (user.balance / USDT_TO_ZAR).toFixed(4) : user.balance.toFixed(4);
+  document.getElementById('usdtValue').innerText = `💱 = $${usdtVal} USDT (1 USDT = R${USDT_TO_ZAR.toFixed(2)} LIVE)`;
   document.getElementById('statsLine').innerText = `Ads: ${user.total_ads} | Referrals: ${user.referrals} | Streak: ${user.streak} days`;
   document.getElementById('vipBadge').innerText = user.vip_level;
   document.getElementById('rateLine').innerText = `You Earn: ${user.currency}${r.perAdCash} + ${r.perAdCoins} Coins per ad`;
   document.getElementById('vipPrices').innerText = region==='SA' ? 'SA: VIP R30 | VIP PRO R100' : 'USA: VIP $5 | VIP PRO $15';
   document.getElementById('inviteReward').innerText = `Reward: ${user.currency}${r.referralCash} + ${r.referralCoins} Coins per friend`;
-  document.getElementById('withdrawInfo').innerText = `Min: ${user.currency}${r.minWithdraw} Cash OR ${r.minCoinsWithdraw} Coins`;
+  document.getElementById('withdrawInfo').innerText = region==='SA' ? 'Min: R30 Cash OR $30 USDT' : 'Min: $0.05 Cash OR $30 USDT';
+  document.getElementById('withdrawUSDTInfo').innerText = `Your balance in USDT: $${usdtVal}`;
+  document.getElementById('usdtRateLine').innerText = `Rate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)} • LIVE`;
+  document.getElementById('usdtExamples').innerText = `30 USDT = R${(30*USDT_TO_ZAR).toFixed(2)} • 1 USDT = R${USDT_TO_ZAR.toFixed(2)} • $0.05 = R${(0.05*USDT_TO_ZAR).toFixed(2)}`;
+  document.getElementById('withdrawHint').innerText = region==='SA' ? `SA: R30 = $${(30/USDT_TO_ZAR).toFixed(2)} USDT • $30 USDT = R${(30*USDT_TO_ZAR).toFixed(2)}` : 'USA: $0.05 Cash • $30 USDT Min for USDT';
   document.getElementById('btnSA').className = region==='SA' ? 'active' : '';
   document.getElementById('btnUSA').className = region==='USA' ? 'active' : '';
-  const link = `https://t.me/ShayaWatchMnelisiBot?start=ref_${userId}`;
-  document.getElementById('inviteLink').innerText = link;
+  document.getElementById('ytTitle').innerText = region==='SA' ? '🔥 TRENDING ON YOUTUBE - SA' : '🔥 TRENDING ON YOUTUBE - USA';
+  document.getElementById('ytSearch').placeholder = region==='SA' ? 'Search Amapiano...' : 'Search Hip Hop...';
+  document.getElementById('inviteLink').innerText = `https://t.me/ShayaWatchAllBot?start=ref_${userId}`;
+  saveToPhone();
 }
-function setRegion(newRegion){ region = newRegion; user.region = newRegion; user.currency = newRegion==='SA'?'R':'$'; updateUI(); }
+
+// --- LIVE RATE - auto refresh every 30 mins ---
+async function refreshRate(){
+  try{
+    const res = await fetch('/api/rate');
+    const d = await res.json();
+    if(d.usdtToZar){
+      USDT_TO_ZAR = d.usdtToZar;
+      document.getElementById('usdtRateLine').innerText = `Rate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)} • LIVE`;
+      document.getElementById('usdtExamples').innerText = `30 USDT = R${(30*USDT_TO_ZAR).toFixed(2)} • 1 USDT = R${USDT_TO_ZAR.toFixed(2)} • $0.05 = R${(0.05*USDT_TO_ZAR).toFixed(2)}`;
+      convertUSDTInput();
+      if(user) updateUI();
+    }
+  }catch(e){}
+}
+setInterval(refreshRate, 30*60*1000);
+
+// --- SA USDT TO RAND CONVERTER - LIVE ---
+async function convertUSDTInput(){
+  const usdt = parseFloat(document.getElementById('usdtInput').value || 0);
+  if(usdt > 0){
+    try{
+      const res = await fetch(`/api/convert-usdt?usdt=${usdt}`);
+      const d = await res.json();
+      document.getElementById('usdtResult').innerText = `= R${d.zar} (Live)`;
+      return;
+    }catch(e){}
+  }
+  document.getElementById('usdtResult').innerText = `= R${(usdt * USDT_TO_ZAR).toFixed(2)}`;
+}
+function setUSDT(v){ document.getElementById('usdtInput').value = v; convertUSDTInput(); }
+function updateWithdrawInfo(){
+  const m = document.getElementById('withdrawMethod').value;
+  if(m.includes('USDT')) document.getElementById('withdrawHint').innerText = `USDT Min: $30 USDT = R${(30*USDT_TO_ZAR).toFixed(2)} in SA • $30 in USA`;
+  else document.getElementById('withdrawHint').innerText = region==='SA' ? `Cash Min: R30 • R30 = $${(30/USDT_TO_ZAR).toFixed(2)} USDT` : 'Cash Min: $0.05';
+}
+
+// --- REGION TOGGLE - SAVES + RELOADS YOUTUBE ---
+async function setRegion(newRegion){
+  region = newRegion;
+  if(user){
+    user.region = newRegion;
+    user.currency = newRegion==='SA'?'R':'$';
+    user.rate = newRegion==='SA' ? {currency:'R', perAdCash:0.02, perAdCoins:10, coinValue:1000, minWithdraw:30, minWithdrawUSDT:30, referralCash:0.50, referralCoins:50} : {currency:'$', perAdCash:0.002, perAdCoins:2, coinValue:1000, minWithdraw:0.05, minWithdrawUSDT:30, referralCash:0.10, referralCoins:10};
+  }
+  updateUI();
+  try{ await fetch('/api/set-region', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id: parseInt(userId), region: newRegion})}); }catch(e){}
+  loadVideos(currentYtType);
+}
 function showPage(p){
   document.getElementById('page-home').classList.toggle('hidden', p!=='home');
   document.getElementById('page-invite').classList.toggle('hidden', p!=='invite');
@@ -158,14 +261,12 @@ async function watchAd(){
   const btn = document.getElementById('watchBtn');
   btn.disabled = true; btn.innerText = '⏳ Watching Ad... 5s';
   document.getElementById('adStatus').innerText = 'Ad playing... please wait';
-  // Simulate ad timer - replace with real ad network later
   setTimeout(async ()=>{
     const res = await fetch('/api/watch', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id: parseInt(userId)})});
     const data = await res.json();
     if(data.success){
-      user = data.user; user.rate = data.user.rate || user.rate;
-      // Re-fetch full user to get rate
       const r2 = await fetch(`/api/user/${userId}`); user = await r2.json();
+      if(user.usdtToZar) USDT_TO_ZAR = user.usdtToZar;
       updateUI();
       document.getElementById('adStatus').innerText = `✅ +${user.currency}${data.earnedCash} + ${data.earnedCoins} Coins added!`;
     } else document.getElementById('adStatus').innerText = data.error;
@@ -192,9 +293,10 @@ async function requestWithdraw(){
   if(!wallet) return alert('Enter your wallet / account first');
   const res = await fetch('/api/withdraw', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({user_id: parseInt(userId), method, wallet})});
   const d = await res.json();
-  document.getElementById('withdrawStatus').innerText = d.success ? '✅ Request sent! Admin will pay within 24h.' : d.error;
+  document.getElementById('withdrawStatus').innerText = d.success ? `✅ Request sent! ${d.usdtAmount ? `USDT: $${d.usdtAmount.toFixed(2)} = R${d.zarAmount.toFixed(2)}` : ''} Admin will pay within 24h.` : d.error;
+  if(d.success) loadUser();
 }
-function buyVip(){ alert('Send payment proof to admin @YourAdminUsername to activate VIP'); }
+function buyVip(){ alert('Send payment proof to admin to activate VIP'); }
 async function loadTasks(){
   const res = await fetch('/api/tasks'); const tasks = await res.json();
   document.getElementById('tasksList').innerHTML = tasks.map(t=>`<div class="task"><span>${t.title}<br><small>+${t.reward_cash} + ${t.reward_coins} Coins</small></span><button onclick="window.open('${t.link}')">Do</button></div>`).join('');
@@ -203,7 +305,30 @@ async function loadLeaderboard(){
   const res = await fetch('/api/leaderboard'); const list = await res.json();
   document.getElementById('leaderboard').innerHTML = list.map((u,i)=>`<div class="leader"><span>${i+1}. ${u.first_name || u.username} (${u.region})</span><span>${u.balance.toFixed(2)} + ${u.coins} Coins</span></div>`).join('');
 }
+function renderVideos(videos){
+  if(!videos.length){ document.getElementById('ytList').innerHTML = 'No videos - Check YOUTUBE_API_KEY in Render'; return; }
+  document.getElementById('ytList').innerHTML = videos.map(v=>`
+    <div style="display:flex;gap:10px;margin:8px 0;background:#222;padding:8px;border-radius:10px" onclick="window.open('${v.url}')">
+      <img src="${v.thumb}" style="width:100px;border-radius:8px">
+      <div><b style="font-size:13px">${v.title.slice(0,60)}</b><br><small>${v.channel} • ${v.views} views</small><br><small style="color:#FFD700">▶️ Watch on YouTube</small></div>
+    </div>`).join('');
+}
+async function loadVideos(type='trending'){
+  currentYtType = type;
+  document.getElementById('ytTrendingBtn').className = type==='trending' ? 'ytbtn active' : 'ytbtn';
+  document.getElementById('ytMusicBtn').className = type==='music' ? 'ytbtn active' : 'ytbtn';
+  document.getElementById('ytList').innerHTML = 'Loading videos...';
+  const res = await fetch(`/api/videos/${type}?region=${region}`);
+  const videos = await res.json();
+  renderVideos(videos);
+}
+async function searchVideos(){
+  const q = document.getElementById('ytSearch').value || (region==='SA' ? 'Amapiano' : 'Hip Hop');
+  const res = await fetch(`/api/videos/search?q=${encodeURIComponent(q)}&region=${region}`);
+  const videos = await res.json();
+  renderVideos(videos);
+}
 loadUser();
 </script>
 </body>
-  </html>
+     </html>
