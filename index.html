@@ -45,11 +45,9 @@
       window.gigaOfferWallSDK = sdk;
       gigaOfferWallSDK = sdk;
       console.log('Giga Offerwall Ready - 9114 ACTIVE');
-      // Check if offers available
       try{ console.log('Has Offers:', sdk.hasOffers()); }catch(e){}
       sdk.on('rewardClaim', async (data) => {
         console.log('Reward claim received:', data);
-        // data = { rewardId, userId, projectId, hash, amount }
         await creditUserReward(data.userId, data.amount);
         try{ await sdk.confirmReward(data.rewardId, data.hash); }catch(e){ console.log('confirmReward failed', e); }
       });
@@ -84,7 +82,7 @@
     }
   }
 
-  // --- Offerwall Controls - All SDK methods you sent ---
+  // --- Offerwall Controls ---
   function openOfferWall(){
     if(window.gigaOfferWallSDK){ window.gigaOfferWallSDK.open(); }
     else { alert('Offerwall still loading... wait 3 sec and try again.'); }
@@ -154,7 +152,6 @@
     }catch(e){ return false; }
   }
 
-  // Wire rewards-button after DOM loads
   document.addEventListener('DOMContentLoaded', function(){
     var btn = document.getElementById('rewards-button');
     if(btn) btn.addEventListener('click', openOfferWall);
@@ -267,7 +264,7 @@
     </div>
     <p style="font-size:11px;color:#aaa;margin-top:6px" id="usdtExamples">20 USDT = R331.80 • 50 USDT = R829.50</p>
   </div>
-  <div class="vip"><h3>👑 VIP PLANS - 30 DAYS</h3><p>Upgrade to earn more + withdraw at $20 (not $50)</p><div id="vipPlansList"></div></div>
+  <div class="vip"><h3>👑 VIP PLANS - 30 DAYS - PAY WITH ⭐ STARS</h3><p>Upgrade to earn more + withdraw at $20 (not $50) • Stars go to Bot</p><div id="vipPlansList"></div></div>
   <div class="card">
     <b id="ytTitle">🔥 TRENDING ON YOUTUBE - SA</b>
     <p style="font-size:11px;color:#00ff88">▶️ Videos play INSIDE this Mini App - no redirect</p>
@@ -297,6 +294,50 @@ let userId = new URLSearchParams(window.location.search).get('start') || (window
 let user = null; let region='SA'; let currentYtType='trending'; let USDT_TO_ZAR=16.59; let currentVideo=null;
 if(window.Telegram?.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
 document.addEventListener('DOMContentLoaded', function(){ var m=document.getElementById('ytModal'); if(m){ m.classList.add('hidden'); m.style.display='none'; } });
+
+// ===== VIP WITH TELEGRAM STARS ⭐ =====
+let selectedVipPlan = '';
+const VIP_STARS = { 'VIP': 250, 'VIP PRO': 500, 'VIP ELITE': 1000 };
+
+function buyVip(plan){
+  selectedVipPlan = plan;
+  const stars = VIP_STARS || 250;
+  const perAd = plan === 'VIP' ? '$0.025/ad' : plan === 'VIP PRO' ? '$0.05/ad' : '$0.10/ad';
+  const html = `
+    <div id="vipStarsModal" style="position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">
+      <div style="background:#1a1a1a;border:1px solid #FFD700;border-radius:16px;padding:18px;width:100%;max-width:400px;text-align:center">
+        <h3 style="color:#FFD700">👑 BUY ${plan}</h3>
+        <div style="font-size:48px;margin:10px 0">⭐</div>
+        <div style="font-size:28px;font-weight:900;color:#FFD700">${stars} Stars</div>
+        <p style="margin:8px 0;font-size:13px;color:#aaa">${perAd} • 20/day • $20 Min • 30 Days</p>
+        <p style="font-size:12px;background:#222;padding:10px;border-radius:10px">1. Tap PAY WITH STARS below<br>2. Bot will send you a Stars invoice in chat<br>3. Pay with Stars in Telegram<br>4. VIP activates AUTOMATICALLY</p>
+        <button onclick="payVipWithStars()" style="background:#FFD700;color:#000;border:none;width:100%;padding:14px;border-radius:12px;font-weight:900;margin-top:10px">⭐ PAY ${stars} STARS</button>
+        <button onclick="document.getElementById('vipStarsModal').remove()" style="background:#333;color:#fff;border:none;width:100%;padding:12px;border-radius:12px;margin-top:8px">Cancel</button>
+      </div>
+    </div>
+  `;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+
+async function payVipWithStars(){
+  const plan = selectedVipPlan;
+  const stars = VIP_STARS || 250;
+  const modal = document.getElementById('vipStarsModal');
+  if(modal) modal.remove();
+  const res = await fetch('/api/vip-stars-invoice', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ user_id: parseInt(userId), plan })
+  });
+  const d = await res.json();
+  if(d.success){
+    alert(`✅ Check your Telegram chat!\nBot sent you an invoice for ${stars} ⭐ for ${plan}.\n\nTap PAY in the chat to pay with Stars.\nYour VIP will activate automatically after payment.`);
+    try{ window.Telegram.WebApp.openTelegramLink('https://t.me/ShayaWatchAllBot'); }catch(e){}
+  } else {
+    alert(d.error || 'Could not create Stars invoice. Make sure you pressed /start in @ShayaWatchAllBot first.');
+  }
+}
+
 function saveToPhone(){ if(!user||!userId) return; try{ localStorage.setItem('shaya_backup_'+userId, JSON.stringify({balance:user.balance, coins:user.coins, total_ads:user.total_ads, referrals:user.referrals, streak:user.streak, region:user.region, vip_level:user.vip_level, total_earned:user.total_earned})); }catch(e){} }
 function getPhoneBackup(){ try{ return JSON.parse(localStorage.getItem('shaya_backup_'+userId)); }catch(e){ return null; } }
 async function loadUser(){
@@ -345,10 +386,9 @@ async function loadVipPlans(){
   try{
     const res=await fetch(`/api/vip-plans?region=${region}`); const plans=await res.json();
     const order=['VIP','VIP PRO','VIP ELITE']; const emojis={'VIP':'👑','VIP PRO':'💎','VIP ELITE':'🔥'};
-    document.getElementById('vipPlansList').innerHTML=order.map(k=>{ const p=plans[k]; const isActive=user&&user.vip_level===k; return `<div class="vipcard ${isActive?'active':''}"><b>${emojis[k]} ${k} ${isActive?'✅ ACTIVE':''}</b><br><small>$${p.perAdUSD}/ad • ${p.dailyLimit}/day • $${p.minWithdrawUSDT} Min • 30 Days</small><br><b>${user?.currency||'R'}${p.price.toFixed(2)} ($${p.priceUSD})</b><br><button onclick="buyVip('${k}')" style="margin-top:6px">${isActive?'✅ YOUR PLAN':'👑 BUY '+k}</button></div>`; }).join('');
+    document.getElementById('vipPlansList').innerHTML=order.map(k=>{ const p=plans[k]; const isActive=user&&user.vip_level===k; return `<div class="vipcard ${isActive?'active':''}"><b>${emojis[k]} ${k} ${isActive?'✅ ACTIVE':''}</b><br><small>$${p.perAdUSD}/ad • ${p.dailyLimit}/day • $${p.minWithdrawUSDT} Min • 30 Days</small><br><b>⭐ ${VIP_STARS[k]} Stars</b><br><small>${user?.currency||'R'}${p.price.toFixed(2)} ($${p.priceUSD}) value</small><br><button onclick="buyVip('${k}')" style="margin-top:6px">${isActive?'✅ YOUR PLAN':'⭐ BUY '+k+' - '+VIP_STARS[k]+' STARS'}</button></div>`; }).join('');
   }catch(e){}
 }
-async function buyVip(plan){ if(!confirm(`Buy ${plan}? Pay then admin activates in 24h.`)) return; const res=await fetch('/api/request-vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId),plan})}); const d=await res.json(); alert(d.success?`✅ Request sent for ${plan} - ${user.currency}${d.price.toFixed(2)}` : d.error); }
 async function refreshRate(){ try{ const res=await fetch('/api/rate'); const d=await res.json(); if(d.usdtToZar){ USDT_TO_ZAR=d.usdtToZar; convertUSDTInput(); if(user) updateUI(); } }catch(e){} }
 setInterval(refreshRate, 30*60*1000);
 async function convertUSDTInput(){ const usdt=parseFloat(document.getElementById('usdtInput').value||0); if(usdt>0){ try{ const res=await fetch(`/api/convert-usdt?usdt=${usdt}`); const d=await res.json(); document.getElementById('usdtResult').innerText=`= R${d.zar} (Live)`; return; }catch(e){} } document.getElementById('usdtResult').innerText=`= R${(usdt*USDT_TO_ZAR).toFixed(2)}`; }
@@ -436,4 +476,4 @@ async function searchVideos(){
 loadUser();
 </script>
 </body>
-</html>
+                                                                                                                                                                      </html>
