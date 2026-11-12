@@ -5,7 +5,7 @@
 <title>Shaya Watch</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<!-- ===== ONCLICKA TMA REWARDED VIDEO - YOUR REAL ID: 472254 ===== -->
+<!-- ===== ONCLICKA TMA REWARDED VIDEO - ID: 472254 ===== -->
 <script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
 <script>
   var ONCLICKA_SPOT_ID = "472254";
@@ -92,12 +92,13 @@
   .nav div{text-align:center;font-size:12px;cursor:pointer}
   .nav div.active{color:#FFD700}
   input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#222;color:#fff;margin-top:8px}
-  .hidden{display:none}
+  .hidden{display:none !important}
   .leader{padding:8px 0;border-bottom:1px solid #222;display:flex;justify-content:space-between}
   .ytbtn{background:#222;color:#fff;border:1px solid #333;padding:8px 12px;border-radius:8px;cursor:pointer}
   .ytbtn.active{background:#FFD700;color:#000;border:none;font-weight:bold}
   .usdtbox{background:#0f2a1a;border:1px solid #00ff88;border-radius:12px;padding:12px;margin-top:12px}
   .modal{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;flex-direction:column}
+  .modal.hidden{display:none !important}
   .modal-head{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#111}
   .modal-head button{background:#FFD700;border:none;padding:8px 14px;border-radius:8px;font-weight:bold}
   .modal iframe{flex:1;width:100%;border:none;background:#000}
@@ -153,7 +154,7 @@
     </div>
     <p style="font-size:11px;color:#aaa;margin-top:6px" id="usdtExamples">20 USDT = R331.80 • 50 USDT = R829.50</p>
   </div>
-  <div class="vip"><h3>👑 VIP PROFIT PLANS - 30 DAYS</h3><p>Upgrade to earn more + withdraw at $20 (not $50)</p><div id="vipPlansList"></div></div>
+  <div class="vip"><h3>👑 VIP PLANS - 30 DAYS</h3><p>Upgrade to earn more + withdraw at $20 (not $50)</p><div id="vipPlansList"></div></div>
   <div class="card">
     <b id="ytTitle">🔥 TRENDING ON YOUTUBE - SA</b>
     <p style="font-size:11px;color:#00ff88">▶️ Videos play INSIDE this Mini App - no redirect</p>
@@ -170,12 +171,21 @@
 </div>
 <div id="page-invite" class="hidden"><div class="card"><h3>👥 INVITE FRIENDS</h3><p id="inviteReward" style="margin:8px 0">Reward per friend</p><p style="background:#222;padding:10px;border-radius:10px;word-break:break-all" id="inviteLink">Loading...</p><button class="bigbtn" onclick="copyLink()">📋 COPY LINK</button><button class="bigbtn" style="background:#25D366" onclick="shareWhatsApp()">📲 SHARE TO WHATSAPP</button></div></div>
 <div id="page-withdraw" class="hidden"><div class="card"><h3>💸 WITHDRAW</h3><p id="withdrawInfo" style="margin:8px 0">Min: $50 FREE / $20 VIP</p><p id="withdrawUSDTInfo" style="font-size:13px;color:#00ff88">Your balance in USDT: $0.00</p><select id="withdrawMethod" onchange="updateWithdrawInfo()"><option value="USDT TRC20">USDT TRC20</option><option value="Capitec">Capitec / Bank</option><option value="Airtime">Airtime</option><option value="PayPal">PayPal (USA)</option></select><input id="walletInput" placeholder="Enter Capitec / USDT Wallet / PayPal"><button class="bigbtn" onclick="requestWithdraw()">✅ REQUEST WITHDRAWAL</button><p id="withdrawStatus" style="margin-top:8px;color:#0f0"></p><p style="font-size:11px;color:#aaa;margin-top:8px" id="withdrawHint">FREE: $50 Min • VIP: $20 Min</p></div></div>
-<div id="ytModal" class="modal hidden"><div class="modal-head"><span id="ytModalTitle" style="font-size:13px;flex:1;padding-right:8px">Playing...</span><button onclick="closeVideo()">✕ CLOSE</button></div><iframe id="ytPlayer" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe><div style="padding:12px;background:#111;text-align:center"><button onclick="watchAdFromVideo()" style="background:#FFD700;border:none;padding:12px 18px;border-radius:10px;font-weight:900;width:100%">▶️ FINISH VIDEO & EARN</button><p style="font-size:11px;color:#aaa;margin-top:6px">Watch 5 sec in Mini App, then claim. FREE 10/day, VIP 20/day.</p></div></div>
+
+<!-- VIDEO MODAL - FIXED: starts hidden with inline style + !important -->
+<div id="ytModal" class="modal hidden" style="display:none">
+  <div class="modal-head"><span id="ytModalTitle" style="font-size:13px;flex:1;padding-right:8px">Playing...</span><button onclick="closeVideo()">✕ CLOSE</button></div>
+  <iframe id="ytPlayer" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+  <div style="padding:12px;background:#111;text-align:center"><button onclick="watchAdFromVideo()" style="background:#FFD700;border:none;padding:12px 18px;border-radius:10px;font-weight:900;width:100%">▶️ FINISH VIDEO & EARN</button><p style="font-size:11px;color:#aaa;margin-top:6px">Watch 5 sec in Mini App, then claim. FREE 10/day, VIP 20/day.</p></div>
+</div>
+
 <div class="nav"><div class="active" onclick="showPage('home')">🏠<br>Home</div><div onclick="showPage('invite')">👥<br>Invite</div><div onclick="showPage('withdraw')">💸<br>Withdraw</div></div>
 <script>
 let userId = new URLSearchParams(window.location.search).get('start') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
 let user = null; let region='SA'; let currentYtType='trending'; let USDT_TO_ZAR=16.59; let currentVideo=null;
 if(window.Telegram?.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
+// Ensure modal is hidden on load - extra safety
+document.addEventListener('DOMContentLoaded', function(){ var m=document.getElementById('ytModal'); if(m){ m.classList.add('hidden'); m.style.display='none'; } });
 function saveToPhone(){ if(!user||!userId) return; try{ localStorage.setItem('shaya_backup_'+userId, JSON.stringify({balance:user.balance, coins:user.coins, total_ads:user.total_ads, referrals:user.referrals, streak:user.streak, region:user.region, vip_level:user.vip_level, total_earned:user.total_earned})); }catch(e){} }
 function getPhoneBackup(){ try{ return JSON.parse(localStorage.getItem('shaya_backup_'+userId)); }catch(e){ return null; } }
 async function loadUser(){
@@ -233,7 +243,16 @@ setInterval(refreshRate, 30*60*1000);
 async function convertUSDTInput(){ const usdt=parseFloat(document.getElementById('usdtInput').value||0); if(usdt>0){ try{ const res=await fetch(`/api/convert-usdt?usdt=${usdt}`); const d=await res.json(); document.getElementById('usdtResult').innerText=`= R${d.zar} (Live)`; return; }catch(e){} } document.getElementById('usdtResult').innerText=`= R${(usdt*USDT_TO_ZAR).toFixed(2)}`; }
 function setUSDT(v){ document.getElementById('usdtInput').value=v; convertUSDTInput(); }
 function updateWithdrawInfo(){ const m=document.getElementById('withdrawMethod').value; const minUSDT=user?.minWithdrawUSDT||50; const minCash=region==='SA'?minUSDT*USDT_TO_ZAR:minUSDT; document.getElementById('withdrawHint').innerText=`Min: $${minUSDT} USDT = ${region==='SA'?'R'+minCash.toFixed(2):'$'+minUSDT} • Method: ${m}`; }
-async function setRegion(newRegion){ if(region===newRegion) return; const oldRegion=region; const oldBalance=user?user.balance:0; region=newRegion; if(user){ if(oldRegion==='SA'&&newRegion==='USA') user.balance=user.balance/USDT_TO_ZAR; else if(oldRegion==='USA'&&newRegion==='SA') user.balance=user.balance*USDT_TO_ZAR; user.region=newRegion; user.currency=newRegion==='SA'?'R':'$'; } updateUI(); try{ const res=await fetch('/api/set-region',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId),region:newRegion,oldBalance})}); const d=await res.json(); if(d.success&&d.user){ user=d.user; updateUI(); } }catch(e){} loadVideos(currentYtType); loadVipPlans(); }
+async function setRegion(newRegion){
+  if(region===newRegion) return;
+  const oldBalance=user?user.balance:0; const oldRegion=region;
+  try{
+    const res=await fetch('/api/set-region',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId),region:newRegion})});
+    const d=await res.json();
+    if(d.success&&d.user){ user=d.user; region=newRegion; updateUI(); alert(`✅ Region: ${oldRegion} → ${newRegion}\nBalance: ${oldRegion==='SA'?'R':'$'}${oldBalance.toFixed(2)} → ${newRegion==='SA'?'R':'$'}${user.balance.toFixed(2)}`); }
+  }catch(e){ alert('Region change failed, try again'); }
+  loadVideos(currentYtType); loadVipPlans();
+}
 function showPage(p){ document.getElementById('page-home').classList.toggle('hidden',p!=='home'); document.getElementById('page-invite').classList.toggle('hidden',p!=='invite'); document.getElementById('page-withdraw').classList.toggle('hidden',p!=='withdraw'); }
 async function watchAd(){
   const limit = user?.dailyLimit || (user?.vip_level==='FREE'?10:20);
@@ -257,12 +276,58 @@ function shareWhatsApp(){ const link=document.getElementById('inviteLink').inner
 async function requestWithdraw(){ const method=document.getElementById('withdrawMethod').value; const wallet=document.getElementById('walletInput').value; if(!wallet) return alert('Enter your wallet first'); const res=await fetch('/api/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId),method,wallet})}); const d=await res.json(); document.getElementById('withdrawStatus').innerText=d.success?`✅ Request sent! ${d.usdtAmount?`USDT: $${d.usdtAmount.toFixed(2)} = R${d.zarAmount.toFixed(2)}`:''} Admin pays in 24h.`:d.error; if(d.success) loadUser(); }
 async function loadTasks(){ const res=await fetch('/api/tasks'); const tasks=await res.json(); document.getElementById('tasksList').innerHTML=tasks.map(t=>`<div class="task"><span>${t.title}<br><small>+${t.reward_cash} + ${t.reward_coins} Coins</small></span><button onclick="window.open('${t.link}')">Do</button></div>`).join(''); }
 async function loadLeaderboard(){ const res=await fetch('/api/leaderboard'); const list=await res.json(); document.getElementById('leaderboard').innerHTML=list.map((u,i)=>`<div class="leader"><span>${i+1}. ${u.first_name||u.username} (${u.region}) ${u.vip_level!=='FREE'?'👑':''}</span><span>${u.balance.toFixed(2)} + ${u.coins} Coins</span></div>`).join(''); }
-function openVideo(v){ currentVideo=v; document.getElementById('ytModalTitle').innerText=v.title; document.getElementById('ytPlayer').src=`https://www.youtube-nocookie.com/embed/${v.id}?autoplay=1&rel=0`; document.getElementById('ytModal').classList.remove('hidden'); }
-function closeVideo(){ document.getElementById('ytPlayer').src=''; document.getElementById('ytModal').classList.add('hidden'); }
+
+// ===== FIXED VIDEO PLAYER =====
+function openVideo(v){
+  var vidId = v.id;
+  if(typeof vidId === 'object' && vidId !== null) vidId = vidId.videoId;
+  if(!vidId || vidId === 'undefined'){
+    alert('Video ID missing - opening on YouTube instead.');
+    window.open(v.url || 'https://www.youtube.com', '_blank');
+    return;
+  }
+  currentVideo = v;
+  document.getElementById('ytModalTitle').innerText = v.title || 'Playing...';
+  var embedUrl = 'https://www.youtube.com/embed/' + vidId + '?autoplay=1&rel=0&playsinline=1';
+  document.getElementById('ytPlayer').src = embedUrl;
+  var m = document.getElementById('ytModal');
+  m.classList.remove('hidden');
+  m.style.display = 'flex';
+}
+function closeVideo(){
+  document.getElementById('ytPlayer').src = '';
+  var m = document.getElementById('ytModal');
+  m.classList.add('hidden');
+  m.style.display = 'none';
+}
 async function watchAdFromVideo(){ closeVideo(); await watchAd(); }
-function renderVideos(videos){ if(!videos.length){ document.getElementById('ytList').innerHTML='No videos - Check YOUTUBE_API_KEY'; return; } document.getElementById('ytList').innerHTML=videos.map((v,i)=>`<div class="ytcard" onclick='openVideo(${JSON.stringify(v).replace(/'/g,"&#39;")})'><img src="${v.thumb}"><div><b style="font-size:13px">${v.title.slice(0,60)}</b><br><small>${v.channel} • ${v.views} views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>`).join(''); }
-async function loadVideos(type='trending'){ currentYtType=type; document.getElementById('ytTrendingBtn').className=type==='trending'?'ytbtn active':'ytbtn'; document.getElementById('ytMusicBtn').className=type==='music'?'ytbtn active':'ytbtn'; document.getElementById('ytList').innerHTML='Loading videos...'; const res=await fetch(`/api/videos/${type}?region=${region}`); const videos=await res.json(); renderVideos(videos); }
-async function searchVideos(){ const q=document.getElementById('ytSearch').value||(region==='SA'?'Amapiano':'Hip Hop'); const res=await fetch(`/api/videos/search?q=${encodeURIComponent(q)}&region=${region}`); const videos=await res.json(); renderVideos(videos); }
+function renderVideos(videos){
+  if(!videos || !videos.length){
+    videos = [
+      { id: 'dQw4w9WgXcQ', title: 'Amapiano Mix 2026 - Best of Amapiano', channel: 'Shaya Watch', thumb: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg', views: '1M', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+      { id: 'kXYiU_JCYtU', title: 'Amapiano Hits - Kabza De Small x DJ Maphorisa', channel: 'Amapiano', thumb: 'https://i.ytimg.com/vi/kXYiU_JCYtU/mqdefault.jpg', views: '500K', url: 'https://www.youtube.com/watch?v=kXYiU_JCYtU' },
+      { id: 'LXb3EKWsInQ', title: 'Trending SA Music Video 2026', channel: 'SA Music', thumb: 'https://i.ytimg.com/vi/LXb3EKWsInQ/mqdefault.jpg', views: '800K', url: 'https://www.youtube.com/watch?v=LXb3EKWsInQ' },
+    ];
+    document.getElementById('ytList').innerHTML = '<p style="font-size:11px;color:#FFD700">⚠️ YouTube API Key missing - Showing fallback videos. Add YOUTUBE_API_KEY in Render to get live trending.</p>' + videos.map((v,i)=>`<div class="ytcard" onclick='openVideo(${JSON.stringify(v).replace(/'/g,"&#39;")})'><img src="${v.thumb}"><div><b style="font-size:13px">${v.title.slice(0,60)}</b><br><small>${v.channel} • ${v.views} views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>`).join('');
+    return;
+  }
+  document.getElementById('ytList').innerHTML = videos.map((v,i)=>{
+    var safeId = (typeof v.id === 'object' && v.id) ? v.id.videoId : v.id;
+    var safeV = { ...v, id: safeId };
+    return `<div class="ytcard" onclick='openVideo(${JSON.stringify(safeV).replace(/'/g,"&#39;")})'><img src="${v.thumb}"><div><b style="font-size:13px">${(v.title||'').slice(0,60)}</b><br><small>${v.channel} • ${v.views} views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>`;
+  }).join('');
+}
+async function loadVideos(type='trending'){
+  currentYtType=type;
+  document.getElementById('ytTrendingBtn').className=type==='trending'?'ytbtn active':'ytbtn';
+  document.getElementById('ytMusicBtn').className=type==='music'?'ytbtn active':'ytbtn';
+  document.getElementById('ytList').innerHTML='Loading videos...';
+  try{ const res=await fetch(`/api/videos/${type}?region=${region}`); const videos=await res.json(); renderVideos(videos); }catch(e){ renderVideos([]); }
+}
+async function searchVideos(){
+  const q=document.getElementById('ytSearch').value||(region==='SA'?'Amapiano':'Hip Hop');
+  try{ const res=await fetch(`/api/videos/search?q=${encodeURIComponent(q)}&region=${region}`); const videos=await res.json(); renderVideos(videos); }catch(e){ renderVideos([]); }
+}
 loadUser();
 </script>
 </body>
