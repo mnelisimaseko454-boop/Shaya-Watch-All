@@ -171,7 +171,7 @@ bot.start(async (ctx)=>{
   const user = ctx.from; const args = ctx.message.text.split(' ')[1];
   await getUser(user.id, user.username, user.first_name);
   if(args && args.startsWith('ref_')){ const refId = parseInt(args.replace('ref_','')); if(refId && refId!==user.id) await updateUser(user.id, { referred_by: refId }); }
-  ctx.reply(`🔥 SHAYA WATCH - PROFIT PLANS\n\n🇿🇦 SA + 🇺🇸 USA\n💱 LIVE: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}\n🆓 FREE: $0.01/ad | 10/day | $50 Min\n👑 VIP $10: $0.025/ad | 20/day | $20 Min\n💎 PRO $25: $0.05/ad | 20/day | $20 Min\n🔥 ELITE $50: $0.10/ad | 20/day | $20 Min\n\nTap below 👇`, Markup.inlineKeyboard([
+  ctx.reply(`🔥 SHAYA WATCH - EARN PLANS\n\n🇿🇦 SA + 🇺🇸 USA\n💱 LIVE: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}\n🆓 FREE: $0.01/ad | 10/day | $50 Min\n👑 VIP $10: $0.025/ad | 20/day | $20 Min\n💎 PRO $25: $0.05/ad | 20/day | $20 Min\n🔥 ELITE $50: $0.10/ad | 20/day | $20 Min\n\nTap below 👇`, Markup.inlineKeyboard([
     [Markup.button.webApp('🚀 OPEN SHAYA APP', `${WEBAPP_URL}?start=${user.id}`)],
     [Markup.button.callback('🇿🇦 SA MODE', 'set_SA'), Markup.button.callback('🇺🇸 USA MODE', 'set_USA')],
     [Markup.button.callback('👥 Referral Link', 'invite')],
