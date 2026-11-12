@@ -1,12 +1,16 @@
 {
   "name": "shaya-watch-all",
   "version": "1.0.0",
-  "description": "Shaya Watch - SA + USA - Bot + WebApp + YouTube + USDT to Rand",
+  "description": "Shaya Watch - Profitable Telegram Mini App - Giga + OnclickA + Supabase",
   "main": "index.js",
-  "scripts": { "start": "node index.js" },
-  "engines": { "node": "22.x" },
+  "scripts": {
+    "start": "node index.js"
+  },
   "dependencies": {
-    "telegraf": "^4.16.3",
-    "express": "^4.19.2"
+    "express": "^4.18.2",
+    "telegraf": "^4.16.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
