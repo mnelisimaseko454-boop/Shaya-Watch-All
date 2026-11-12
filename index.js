@@ -1,25 +1,24 @@
 // index.js - Shaya Watch - SA + USA - Bot + WebApp
 // Bot: @ShayaWatchAllBot | WebApp: https://shaya-watch-all.onrender.com
 const { Telegraf, Markup } = require('telegraf');
-const Database = require('better-sqlite3');
+const { DatabaseSync } = require('node:sqlite');
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
 
 const TOKEN = process.env.BOT_TOKEN || "PUT_YOUR_TOKEN_FROM_BOTFATHER";
-const ADMIN_ID = 1159481047; // Your ID - Mnelisi Maseko
+const ADMIN_ID = 1159481047;
 const BOT_USERNAME = "ShayaWatchAllBot";
 const WEBAPP_URL = "https://shaya-watch-all.onrender.com";
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || "";
 
 // --- USDT TO RAND - AUTO LIVE RATE ---
-let USDT_TO_ZAR = 16.62; // fallback if both APIs down
+let USDT_TO_ZAR = 16.62;
 let LAST_RATE_UPDATE = 0;
 let ZAR_TO_USDT = 1 / USDT_TO_ZAR;
 
 async function updateUsdtRate(){
   try{
-    // API 1: Free, no key - USD -> ZAR (USDT = USD)
     const res = await fetch('https://open.er-api.com/v6/latest/USD');
     const data = await res.json();
     if(data?.rates?.ZAR){
@@ -33,7 +32,6 @@ async function updateUsdtRate(){
   }catch(e){
     console.log('ER-API failed, trying Binance fallback...', e.message);
     try{
-      // API 2: Binance fallback - USDTZAR ticker
       const res2 = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=USDTZAR');
       const data2 = await res2.json();
       if(data2?.price){
@@ -46,7 +44,6 @@ async function updateUsdtRate(){
     }catch(e2){ console.log('Binance failed too, using fallback', USDT_TO_ZAR); }
   }
 }
-// Update on start + every 30 mins
 updateUsdtRate();
 setInterval(updateUsdtRate, 30*60*1000);
 
@@ -55,14 +52,17 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// --- PERSISTENT DB - FIX 3: survives refresh + redeploy ---
+// --- PERSISTENT DB - FIX 3 + FIX FOR ERR_DLOPEN_FAILED ---
+// Uses Node built-in SQLite - no native build needed
 const DB_PATH = process.env.DATABASE_PATH || (fs.existsSync('/data') ? '/data/shaya.db' : 'shaya.db');
 console.log('Using DB at:', DB_PATH);
-const db = new Database(DB_PATH);
-db.pragma('journal_mode = WAL');
-db.pragma('synchronous = NORMAL');
+// Make sure /data exists if Render Disk is attached
+try{ if(DB_PATH.startsWith('/data')) fs.mkdirSync('/data', {recursive:true}); }catch(e){}
+const db = new DatabaseSync(DB_PATH);
+try{ db.exec('PRAGMA journal_mode = WAL'); }catch(e){}
+try{ db.exec('PRAGMA synchronous = NORMAL'); }catch(e){}
 
-db.prepare(`CREATE TABLE IF NOT EXISTS users (
+db.exec(`CREATE TABLE IF NOT EXISTS users (
   user_id INTEGER PRIMARY KEY,
   username TEXT, first_name TEXT,
   region TEXT DEFAULT 'SA', currency TEXT DEFAULT 'R',
@@ -73,19 +73,19 @@ db.prepare(`CREATE TABLE IF NOT EXISTS users (
   streak INTEGER DEFAULT 0, referred_by INTEGER DEFAULT NULL,
   wallet TEXT DEFAULT NULL, total_earned REAL DEFAULT 0,
   updated_at TEXT DEFAULT NULL
-)`).run();
+)`);
 
-db.prepare(`CREATE TABLE IF NOT EXISTS tasks (
+db.exec(`CREATE TABLE IF NOT EXISTS tasks (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   title TEXT, reward_cash REAL, reward_coins INTEGER, link TEXT
-)`).run();
+)`);
 
-db.prepare(`CREATE TABLE IF NOT EXISTS withdrawals (
+db.exec(`CREATE TABLE IF NOT EXISTS withdrawals (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER, amount REAL, coins INTEGER,
   method TEXT, wallet TEXT, status TEXT DEFAULT 'PENDING', created_at TEXT,
   usdt_amount REAL DEFAULT 0, zar_amount REAL DEFAULT 0
-)`).run();
+)`);
 
 if (db.prepare('SELECT COUNT(*) as c FROM tasks').get().c === 0) {
   db.prepare(`INSERT INTO tasks (title, reward_cash, reward_coins, link) VALUES
@@ -103,21 +103,19 @@ function getUser(id, username, firstName) {
   return u;
 }
 
-// --- RATES - WITHDRAWAL MINIMUMS ---
 const RATES = {
   SA: { currency:'R', perAdCash:0.02, perAdCoins:10, coinValue:1000,
-    minWithdraw:30, minWithdrawUSDT:30, // R30 cash OR $30 USDT
+    minWithdraw:30, minWithdrawUSDT:30,
     referralCash:0.50, referralCoins:50, referralNeedAds:10,
     vipPrice:30, vipPerAdCash:0.04, vipPerAdCoins:20,
     vipProPrice:100, vipProPerAdCash:0.08, vipProPerAdCoins:40 },
   USA: { currency:'$', perAdCash:0.002, perAdCoins:2, coinValue:1000,
-    minWithdraw:0.05, minWithdrawUSDT:30, // $0.05 cash OR $30 USDT
+    minWithdraw:0.05, minWithdrawUSDT:30,
     referralCash:0.10, referralCoins:10, referralNeedAds:5,
     vipPrice:5, vipPerAdCash:0.004, vipPerAdCoins:4,
     vipProPrice:15, vipProPerAdCash:0.008, vipProPerAdCoins:8 }
 };
 
-// --- YOUTUBE HELPER - REGION AWARE ---
 async function getYouTubeVideos(type='trending', query='', region='SA') {
   if (!YOUTUBE_API_KEY) return [];
   const regionCode = region === 'USA' ? 'US' : 'ZA';
@@ -133,19 +131,16 @@ async function getYouTubeVideos(type='trending', query='', region='SA') {
   } catch(e){ return []; }
 }
 
-// --- API FOR WEB APP ---
 app.get('/api/user/:id', (req,res)=>{
   const u = db.prepare('SELECT * FROM users WHERE user_id=?').get(req.params.id);
   if(!u) return res.json({error:'not found'});
   res.json({ ...u, rate: RATES[u.region], usdtToZar: USDT_TO_ZAR, zarToUsdt: ZAR_TO_USDT, lastRateUpdate: LAST_RATE_UPDATE });
 });
 
-// --- LIVE RATE API ---
 app.get('/api/rate', (req,res)=>{
   res.json({ usdtToZar: USDT_TO_ZAR, zarToUsdt: ZAR_TO_USDT, lastUpdate: new Date(LAST_RATE_UPDATE).toISOString(), source: 'open.er-api.com + Binance fallback' });
 });
 
-// --- SA CONVERT USDT TO RAND - LIVE ---
 app.get('/api/convert-usdt', async (req,res)=>{
   if(Date.now() - LAST_RATE_UPDATE > 30*60*1000) await updateUsdtRate();
   const usdt = parseFloat(req.query.usdt || 0);
@@ -208,14 +203,12 @@ app.post('/api/convert', (req,res)=>{
   res.json({ success:true, converted:val });
 });
 
-// --- WITHDRAW WITH USDT TO RAND LOGIC ---
 app.post('/api/withdraw', (req,res)=>{
   const { user_id, method, wallet } = req.body;
   let u = db.prepare('SELECT * FROM users WHERE user_id=?').get(user_id);
   if(!u) return res.json({error:'user not found'});
   const r = RATES[u.region];
   const isUSDT = method.includes('USDT');
-
   if(isUSDT){
     let usdtBalance = u.region === 'SA' ? u.balance * ZAR_TO_USDT : u.balance;
     if(usdtBalance < r.minWithdrawUSDT) return res.json({error:`Need $${r.minWithdrawUSDT} USDT minimum. SA: R${(r.minWithdrawUSDT*USDT_TO_ZAR).toFixed(2)} | USA: $${r.minWithdrawUSDT}. Your USDT: $${usdtBalance.toFixed(2)}`});
@@ -238,7 +231,6 @@ app.post('/api/withdraw', (req,res)=>{
 app.get('/api/tasks', (req,res)=>{ res.json(db.prepare('SELECT * FROM tasks').all()); });
 app.get('/api/leaderboard', (req,res)=>{ res.json(db.prepare('SELECT username, first_name, balance, coins, total_ads, region FROM users ORDER BY total_earned DESC LIMIT 10').all()); });
 
-// --- FIX 3: SYNC FROM FRONTEND BACKUP ---
 app.post('/api/sync', (req,res)=>{
   const { user_id, balance, coins, total_ads, referrals, streak, region, vip_level } = req.body;
   let u = db.prepare('SELECT * FROM users WHERE user_id=?').get(user_id);
@@ -261,12 +253,10 @@ app.post('/api/set-region', (req,res)=>{
 
 app.get('/ping', (req,res)=> res.send('OK'));
 
-// --- YOUTUBE API ---
 app.get('/api/videos/trending', async (req,res)=>{ res.json(await getYouTubeVideos('trending','',req.query.region||'SA')); });
 app.get('/api/videos/music', async (req,res)=>{ res.json(await getYouTubeVideos('music','',req.query.region||'SA')); });
 app.get('/api/videos/search', async (req,res)=>{ res.json(await getYouTubeVideos('search',req.query.q||'Amapiano',req.query.region||'SA')); });
 
-// --- BOT ---
 bot.start((ctx)=>{
   const user = ctx.from;
   const args = ctx.message.text.split(' ')[1];
@@ -342,7 +332,6 @@ bot.command('approve', (ctx)=>{
   ctx.reply(`✅ Withdrawal #${id} marked PAID`);
 });
 
-// --- START ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, ()=> console.log(`🌐 WebApp on port ${PORT} | DB: ${DB_PATH}`));
 bot.launch();
