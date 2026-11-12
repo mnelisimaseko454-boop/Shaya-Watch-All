@@ -1,6 +1,6 @@
 // ===== SHAYA WATCH - FULL BACKEND - index.js =====
-// Uses: Express + Telegram Bot + Supabase (with memory fallback if Supabase not set)
-// IDs: Giga Ad 9114 + Giga Offerwall 9114 + OnclickA 472254
+// Giga Ad 9114 + Giga Offerwall 9114 + OnclickA 472254
+// VIP with Telegram Stars ⭐ - 250 / 500 / 1000 Stars - Auto-Activate
 
 const express = require('express');
 const path = require('path');
@@ -31,8 +31,8 @@ try {
   }
 } catch (e) { console.log('Supabase init failed, using memory', e.message); }
 
-// ===== MEMORY STORAGE (fallback + cache) =====
-const users = new Map(); // user_id -> user object
+// ===== MEMORY STORAGE =====
+const users = new Map();
 const withdrawals = [];
 const vipRequests = [];
 const offerwallRewards = [];
@@ -47,6 +47,9 @@ const tasksList = [
 let USDT_TO_ZAR = 16.59;
 let lastRateFetch = 0;
 
+// VIP STARS - 1 USD = 50 Stars
+const VIP_STARS_MAP = { 'VIP': 250, 'VIP PRO': 500, 'VIP ELITE': 1000 };
+
 async function refreshRate() {
   const now = Date.now();
   if (now - lastRateFetch < 30 * 60 * 1000) return USDT_TO_ZAR;
@@ -54,7 +57,6 @@ async function refreshRate() {
     const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
     const d = await res.json();
     if (d && d.rates && d.rates.ZAR) {
-      // USDT ~ USD, use ZAR rate
       USDT_TO_ZAR = parseFloat(d.rates.ZAR);
       lastRateFetch = now;
       console.log('Rate updated: 1 USDT = R' + USDT_TO_ZAR);
@@ -73,17 +75,17 @@ function getVipPlans(region) {
     'VIP': {
       name: 'VIP', priceUSD: 5, price: isSA ? 5 * USDT_TO_ZAR : 5,
       currency: cur, perAdUSD: 0.025, perAdCash: isSA ? 0.025 * USDT_TO_ZAR : 0.025,
-      perAdCoins: 10, dailyLimit: 20, minWithdrawUSDT: 20, days: 30
+      perAdCoins: 10, dailyLimit: 20, minWithdrawUSDT: 20, days: 30, stars: 250
     },
     'VIP PRO': {
       name: 'VIP PRO', priceUSD: 10, price: isSA ? 10 * USDT_TO_ZAR : 10,
       currency: cur, perAdUSD: 0.05, perAdCash: isSA ? 0.05 * USDT_TO_ZAR : 0.05,
-      perAdCoins: 20, dailyLimit: 20, minWithdrawUSDT: 20, days: 30
+      perAdCoins: 20, dailyLimit: 20, minWithdrawUSDT: 20, days: 30, stars: 500
     },
     'VIP ELITE': {
       name: 'VIP ELITE', priceUSD: 20, price: isSA ? 20 * USDT_TO_ZAR : 20,
       currency: cur, perAdUSD: 0.10, perAdCash: isSA ? 0.10 * USDT_TO_ZAR : 0.10,
-      perAdCoins: 40, dailyLimit: 20, minWithdrawUSDT: 20, days: 30
+      perAdCoins: 40, dailyLimit: 20, minWithdrawUSDT: 20, days: 30, stars: 1000
     }
   };
 }
@@ -123,9 +125,7 @@ async function sbInsert(table, row) {
 // ===== USER LOGIC =====
 async function getUser(user_id) {
   user_id = parseInt(user_id);
-  // Try memory first
   if (users.has(user_id)) return users.get(user_id);
-  // Try Supabase
   const sb = await sbGetUser(user_id);
   if (sb) {
     const mapped = {
@@ -162,12 +162,10 @@ async function createUser(user_id, data = {}) {
     vip_level: u.vip_level, vip_until: u.vip_until, total_earned: u.total_earned,
     referred_by: u.referred_by
   });
-  // Referral bonus
   if (data.referred_by && parseInt(data.referred_by) !== user_id) {
     const refId = parseInt(data.referred_by);
     let ref = await getUser(refId);
     if (!ref) ref = await createUser(refId, {});
-    // SA: $0.50 + 50 coins, USA: $0.10 + 10 coins
     const isSA = ref.region === 'SA';
     const bonusCash = isSA ? 0.50 * USDT_TO_ZAR : 0.10;
     const bonusCoins = isSA ? 50 : 10;
@@ -199,12 +197,10 @@ async function updateUser(user_id, patch) {
 }
 
 function formatUserForFrontend(u) {
-  // Reset daily counter if new day
   if (u.dailyDate !== todayStr()) {
     u.dailyAds = 0;
     u.dailyDate = todayStr();
   }
-  // Check VIP expiry
   if (u.vip_level !== 'FREE' && u.vip_until) {
     const until = new Date(u.vip_until);
     if (until < new Date()) {
@@ -228,33 +224,23 @@ function formatUserForFrontend(u) {
 }
 
 // ===== API ROUTES =====
-
-// Health
 app.get('/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-
-// Rate
 app.get('/api/rate', async (req, res) => {
   const rate = await refreshRate();
   res.json({ usdtToZar: rate, usdt: 1, zar: rate });
 });
-
-// Convert USDT
 app.get('/api/convert-usdt', async (req, res) => {
   const usdt = parseFloat(req.query.usdt || 0);
   const rate = await refreshRate();
   res.json({ usdt, zar: (usdt * rate).toFixed(2), rate });
 });
-
-// Get user
 app.get('/api/user/:id', async (req, res) => {
   const id = parseInt(req.params.id);
   let u = await getUser(id);
   if (!u) return res.json({ error: 'user not found - send /start in bot first' });
   res.json(formatUserForFrontend(u));
 });
-
-// Sync from phone backup (if server lost data)
 app.post('/api/sync', async (req, res) => {
   const { user_id, balance, coins, total_ads, referrals, streak, region, vip_level, total_earned } = req.body;
   let u = await getUser(parseInt(user_id));
@@ -271,41 +257,31 @@ app.post('/api/sync', async (req, res) => {
   const updated = await updateUser(parseInt(user_id), patch);
   res.json({ success: true, user: formatUserForFrontend(updated) });
 });
-
-// Set region - FIXED: converts balance correctly, only once
 app.post('/api/set-region', async (req, res) => {
   const { user_id, region } = req.body;
   if (!['SA', 'USA'].includes(region)) return res.json({ error: 'Invalid region' });
   let u = await getUser(parseInt(user_id));
   if (!u) return res.json({ error: 'user not found' });
   if (u.region === region) return res.json({ success: true, user: formatUserForFrontend(u), message: 'Already ' + region });
-
   const rate = await refreshRate();
   const oldRegion = u.region;
   const oldBalance = u.balance;
   let newBalance = oldBalance;
-
-  // SA (R) -> USA ($) : divide by rate
-  // USA ($) -> SA (R) : multiply by rate
   if (oldRegion === 'SA' && region === 'USA') {
     newBalance = oldBalance / rate;
   } else if (oldRegion === 'USA' && region === 'SA') {
     newBalance = oldBalance * rate;
   }
-
   const updated = await updateUser(parseInt(user_id), {
     region, currency: region === 'USA' ? '$' : 'R', balance: parseFloat(newBalance.toFixed(2))
   });
-  console.log(`Region: ${user_id} ${oldRegion} R${oldBalance} -> ${region} ${updated.currency}${newBalance.toFixed(2)}`);
+  console.log(`Region: ${user_id} ${oldRegion} ${oldBalance} -> ${region} ${updated.currency}${newBalance.toFixed(2)}`);
   res.json({ success: true, user: formatUserForFrontend(updated) });
 });
-
-// Watch Ad - earns per VIP
 app.post('/api/watch', async (req, res) => {
   const { user_id } = req.body;
   let u = await getUser(parseInt(user_id));
   if (!u) return res.json({ error: 'user not found' });
-  // Reset daily if new day
   if (u.dailyDate !== todayStr()) { u.dailyAds = 0; u.dailyDate = todayStr(); }
   const perAd = getPerAd(u);
   if ((u.dailyAds || 0) >= perAd.dailyLimit) {
@@ -331,8 +307,6 @@ app.post('/api/watch', async (req, res) => {
     balance: updated.balance
   });
 });
-
-// Daily bonus
 app.post('/api/daily', async (req, res) => {
   const { user_id } = req.body;
   let u = await getUser(parseInt(user_id));
@@ -350,8 +324,6 @@ app.post('/api/daily', async (req, res) => {
   });
   res.json({ success: true, bonusCash: parseFloat(bonusCash.toFixed(2)), bonusCoins, streak: newStreak, balance: updated.balance });
 });
-
-// Convert coins -> cash (1000 coins = $1)
 app.post('/api/convert', async (req, res) => {
   const { user_id } = req.body;
   let u = await getUser(parseInt(user_id));
@@ -368,8 +340,6 @@ app.post('/api/convert', async (req, res) => {
   });
   res.json({ success: true, converted: parseFloat(cashValue.toFixed(2)), coinsUsed: thousands * 1000, remainingCoins, balance: updated.balance });
 });
-
-// Withdraw
 app.post('/api/withdraw', async (req, res) => {
   const { user_id, method, wallet } = req.body;
   let u = await getUser(parseInt(user_id));
@@ -393,9 +363,7 @@ app.post('/api/withdraw', async (req, res) => {
   };
   withdrawals.push(w);
   await sbInsert('withdrawals', w);
-  // Reset balance after request (admin pays in 24h)
   await updateUser(parseInt(user_id), { balance: 0 });
-  // Notify admin via bot if available
   try {
     if (bot && ADMIN_ID) {
       bot.telegram.sendMessage(ADMIN_ID, `💸 NEW WITHDRAW\nUser: ${u.first_name} (@${u.username}) ID: ${u.user_id}\nAmount: ${u.currency}${w.amountCash} = $${w.usdtAmount} USDT = R${w.zarAmount}\nMethod: ${w.method}\nWallet: ${wallet}\nRegion: ${u.region} | VIP: ${u.vip_level}`);
@@ -403,16 +371,14 @@ app.post('/api/withdraw', async (req, res) => {
   } catch (e) {}
   res.json({ success: true, usdtAmount: w.usdtAmount, zarAmount: w.zarAmount, message: 'Request sent! Admin pays in 24h.' });
 });
-
-// VIP Plans
 app.get('/api/vip-plans', async (req, res) => {
   const region = req.query.region || 'SA';
   res.json(getVipPlans(region));
 });
 
-// Request VIP
+// Request VIP - OLD method (kept for admin / fallback)
 app.post('/api/request-vip', async (req, res) => {
-  const { user_id, plan } = req.body;
+  const { user_id, plan, method, proof } = req.body;
   let u = await getUser(parseInt(user_id));
   if (!u) return res.json({ error: 'user not found' });
   const plans = getVipPlans(u.region);
@@ -422,22 +388,19 @@ app.post('/api/request-vip', async (req, res) => {
     id: vipRequests.length + 1, user_id: parseInt(user_id),
     username: u.username, first_name: u.first_name,
     plan, price: p.price, priceUSD: p.priceUSD, region: u.region,
+    method: method || 'Stars', proof: proof || '',
     status: 'pending', created_at: new Date().toISOString()
   };
   vipRequests.push(reqObj);
   await sbInsert('vip_requests', reqObj);
   try {
     if (bot && ADMIN_ID) {
-      bot.telegram.sendMessage(ADMIN_ID, `👑 NEW VIP REQUEST\nUser: ${u.first_name} (@${u.username}) ID: ${u.user_id}\nPlan: ${plan}\nPrice: ${u.currency}${p.price.toFixed(2)} ($${p.priceUSD})\nRegion: ${u.region}\nUse /approvevip ${u.user_id} ${plan} to activate.`);
+      bot.telegram.sendMessage(ADMIN_ID, `👑 NEW VIP REQUEST\nUser: ${u.first_name} (@${u.username}) ID: ${u.user_id}\nPlan: ${plan}\nPrice: ${u.currency}${p.price.toFixed(2)} ($${p.priceUSD})\nMethod: ${method}\nProof: ${proof}\nRegion: ${u.region}\n\nApprove with:\n/approvevip ${u.user_id} ${plan}`);
     }
   } catch (e) {}
   res.json({ success: true, price: p.price, plan });
 });
-
-// Tasks
 app.get('/api/tasks', (req, res) => res.json(tasksList));
-
-// Leaderboard
 app.get('/api/leaderboard', async (req, res) => {
   const all = Array.from(users.values())
     .sort((a, b) => (b.balance + (b.coins / 1000) * (b.region === 'SA' ? USDT_TO_ZAR : 1)) - (a.balance + (a.coins / 1000) * (a.region === 'SA' ? USDT_TO_ZAR : 1)))
@@ -501,8 +464,6 @@ app.get('/api/videos/search', async (req, res) => {
   const vids = await fetchYouTube(q, region);
   res.json(vids);
 });
-
-// Admin: view pending withdrawals / VIP
 app.get('/api/admin/pending', (req, res) => {
   res.json({ withdrawals: withdrawals.filter(w => w.status === 'pending'), vipRequests: vipRequests.filter(v => v.status === 'pending'), offerwallRewards: offerwallRewards.slice(-20) });
 });
@@ -529,9 +490,9 @@ if (BOT_TOKEN) {
     const welcome = `👋 Welcome to *SHAYA WATCH* ${u.first_name}!\n\n` +
       `🔥 *EARN PLANS*\n` +
       `• FREE: $0.01/ad • 10/day • $50 Min\n` +
-      `• VIP: $0.025/ad • 20/day • $20 Min\n` +
-      `• VIP PRO: $0.05/ad • 20/day • $20 Min\n` +
-      `• VIP ELITE: $0.10/ad • 20/day • $20 Min\n\n` +
+      `• VIP: $0.025/ad • 20/day • $20 Min • 250 ⭐\n` +
+      `• VIP PRO: $0.05/ad • 20/day • $20 Min • 500 ⭐\n` +
+      `• VIP ELITE: $0.10/ad • 20/day • $20 Min • 1000 ⭐\n\n` +
       `💱 1 USDT = R${rate.toFixed(2)} LIVE\n` +
       `🎁 Daily Bonus + Offers + Invite = More Coins\n\n` +
       `Tap below to open the app 👇`;
@@ -582,6 +543,69 @@ if (BOT_TOKEN) {
     ctx.reply(`📊 STATS\nUsers: ${totalUsers}\nWithdraws Paid: ${totalPaid}\nPending: ${pending}\nVIP Requests: ${vipRequests.filter(v => v.status === 'pending').length}\nRate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}`);
   });
 
+  // ===== VIP WITH TELEGRAM STARS ⭐ =====
+  // API: Mini App asks Bot to send Stars invoice
+  app.post('/api/vip-stars-invoice', async (req, res) => {
+    const { user_id, plan } = req.body;
+    let u = await getUser(parseInt(user_id));
+    if (!u) return res.json({ error: 'user not found - send /start in bot first' });
+    const stars = VIP_STARS_MAP || 250;
+    if (!bot) return res.json({ error: 'Bot not connected' });
+    try {
+      // Send invoice in Stars (XTR) - Stars go straight to Bot owner
+      await bot.telegram.sendInvoice(parseInt(user_id), {
+        title: `Shaya Watch ${plan}`,
+        description: `${plan} - 30 Days • ${plan === 'VIP' ? '$0.025' : plan === 'VIP PRO' ? '$0.05' : '$0.10'}/ad • 20/day • $20 Min Withdraw`,
+        payload: `vip_${plan}_${user_id}_${Date.now()}`,
+        provider_token: '',
+        currency: 'XTR',
+        prices: [{ label: `${plan} - 30 Days`, amount: stars }],
+        start_parameter: `vip_${plan}`
+      });
+      console.log(`Stars invoice sent: ${user_id} ${plan} ${stars} ⭐`);
+      res.json({ success: true, stars, plan });
+    } catch (e) {
+      console.log('Stars invoice failed', e.message);
+      res.json({ error: 'Could not send invoice. Make sure you pressed /start in @ShayaWatchAllBot first. Error: ' + e.message });
+    }
+  });
+
+  // User must accept payment - always approve Stars payments
+  bot.on('pre_checkout_query', async (ctx) => {
+    try { await ctx.answerPreCheckoutQuery(true); } catch (e) { console.log('pre_checkout failed', e.message); }
+  });
+
+  // User paid with Stars - AUTO ACTIVATE VIP
+  bot.on('successful_payment', async (ctx) => {
+    const pay = ctx.message.successful_payment;
+    const payload = pay.invoice_payload || '';
+    let plan = 'VIP';
+    if (payload.includes('VIP PRO')) plan = 'VIP PRO';
+    else if (payload.includes('VIP ELITE')) plan = 'VIP ELITE';
+    else if (payload.includes('VIP')) plan = 'VIP';
+
+    const user_id = ctx.from.id;
+    const starsPaid = pay.total_amount;
+    const until = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+    // Ensure user exists
+    let u = await getUser(user_id);
+    if (!u) u = await createUser(user_id, { username: ctx.from.username || '', first_name: ctx.from.first_name || '' });
+
+    await updateUser(user_id, { vip_level: plan, vip_until: until });
+    console.log(`⭐ STARS PAID: ${user_id} ${plan} ${starsPaid} Stars - Activated until ${until}`);
+
+    await ctx.reply(`🎉 VIP ACTIVATED!\n\n👑 Plan: ${plan}\n⭐ Paid: ${starsPaid} Stars\n📅 Until: ${until}\n\nYou now earn more per ad + $20 Min Withdraw!\nGo back to the app and refresh!`, {
+      reply_markup: { inline_keyboard: [[{ text: '🚀 OPEN SHAYA WATCH', web_app: { url: WEBAPP_URL } }]] }
+    });
+
+    if (ADMIN_ID) {
+      try {
+        await ctx.telegram.sendMessage(ADMIN_ID, `⭐ STARS RECEIVED!\nUser: ${ctx.from.first_name} (@${ctx.from.username}) ID: ${user_id}\nPlan: ${plan}\nStars: ${starsPaid} ⭐\nUntil: ${until}\n\nStars are in your Bot balance. Transfer them in BotFather > Your Bot > Payments > Transfer Stars.`);
+      } catch (e) {}
+    }
+  });
+
   bot.launch().then(() => console.log('Bot launched @ShayaWatchAllBot')).catch(e => console.log('Bot launch failed', e.message));
   process.once('SIGINT', () => bot.stop('SIGINT'));
   process.once('SIGTERM', () => bot.stop('SIGTERM'));
@@ -593,5 +617,5 @@ if (BOT_TOKEN) {
 app.listen(PORT, () => {
   console.log(`✅ Shaya Watch running on port ${PORT}`);
   console.log(`WebApp: ${WEBAPP_URL}`);
-  console.log(`Giga Ad: 9114 | Offerwall: 9114 | OnclickA: 472254`);
+  console.log(`Giga Ad: 9114 | Offerwall: 9114 | OnclickA: 472254 | VIP Stars: 250/500/1000`);
 });
