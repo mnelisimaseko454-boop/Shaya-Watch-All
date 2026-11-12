@@ -1,340 +1,212 @@
-// index.js - Shaya Watch - SA + USA - Bot + WebApp
-// Bot: @ShayaWatchAllBot | WebApp: https://shaya-watch-all.onrender.com
+// index.js - Shaya Watch - PROFITABLE + Supabase + Giga + OnclickA
 const { Telegraf, Markup } = require('telegraf');
-const { DatabaseSync } = require('node:sqlite');
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
 
-const TOKEN = process.env.BOT_TOKEN || "PUT_YOUR_TOKEN_FROM_BOTFATHER";
+const TOKEN = process.env.BOT_TOKEN || "PUT_YOUR_TOKEN";
 const ADMIN_ID = 1159481047;
 const BOT_USERNAME = "ShayaWatchAllBot";
 const WEBAPP_URL = "https://shaya-watch-all.onrender.com";
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || "";
+const SUPABASE_URL = process.env.SUPABASE_URL || "";
+const SUPABASE_KEY = process.env.SUPABASE_KEY || "";
 
-// --- USDT TO RAND - AUTO LIVE RATE ---
-let USDT_TO_ZAR = 16.62;
+let USDT_TO_ZAR = 16.59;
 let LAST_RATE_UPDATE = 0;
 let ZAR_TO_USDT = 1 / USDT_TO_ZAR;
-
 async function updateUsdtRate(){
   try{
     const res = await fetch('https://open.er-api.com/v6/latest/USD');
     const data = await res.json();
-    if(data?.rates?.ZAR){
-      USDT_TO_ZAR = data.rates.ZAR;
-      ZAR_TO_USDT = 1 / USDT_TO_ZAR;
-      LAST_RATE_UPDATE = Date.now();
-      console.log(`💱 Live Rate Updated [ER-API]: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}`);
-      return;
-    }
-    throw new Error('No ZAR in ER-API');
+    if(data?.rates?.ZAR){ USDT_TO_ZAR = data.rates.ZAR; ZAR_TO_USDT = 1/USDT_TO_ZAR; LAST_RATE_UPDATE = Date.now(); console.log(`💱 Live: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}`); return; }
+    throw new Error('No ZAR');
   }catch(e){
-    console.log('ER-API failed, trying Binance fallback...', e.message);
-    try{
-      const res2 = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=USDTZAR');
-      const data2 = await res2.json();
-      if(data2?.price){
-        USDT_TO_ZAR = parseFloat(data2.price);
-        ZAR_TO_USDT = 1 / USDT_TO_ZAR;
-        LAST_RATE_UPDATE = Date.now();
-        console.log(`💱 Live Rate Updated [Binance]: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}`);
-        return;
-      }
-    }catch(e2){ console.log('Binance failed too, using fallback', USDT_TO_ZAR); }
+    try{ const r2 = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=USDTZAR'); const d2 = await r2.json(); if(d2?.price){ USDT_TO_ZAR = parseFloat(d2.price); ZAR_TO_USDT = 1/USDT_TO_ZAR; LAST_RATE_UPDATE = Date.now(); } }catch(e2){}
   }
 }
-updateUsdtRate();
-setInterval(updateUsdtRate, 30*60*1000);
+updateUsdtRate(); setInterval(updateUsdtRate, 30*60*1000);
 
 const bot = new Telegraf(TOKEN);
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
-// --- PERSISTENT DB - FIX 3 + FIX FOR ERR_DLOPEN_FAILED ---
-// Uses Node built-in SQLite - no native build needed
-const DB_PATH = process.env.DATABASE_PATH || (fs.existsSync('/data') ? '/data/shaya.db' : 'shaya.db');
-console.log('Using DB at:', DB_PATH);
-// Make sure /data exists if Render Disk is attached
-try{ if(DB_PATH.startsWith('/data')) fs.mkdirSync('/data', {recursive:true}); }catch(e){}
-const db = new DatabaseSync(DB_PATH);
-try{ db.exec('PRAGMA journal_mode = WAL'); }catch(e){}
-try{ db.exec('PRAGMA synchronous = NORMAL'); }catch(e){}
+// ===== SUPABASE =====
+function sbHeaders(){ return { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=representation' }; }
+async function sbGet(table, query){ const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, { headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` } }); return await res.json(); }
+async function sbInsert(table, body){ const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}`, { method:'POST', headers: sbHeaders(), body: JSON.stringify(body) }); return await res.json(); }
+async function sbUpdate(table, query, body){ const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?${query}`, { method:'PATCH', headers: sbHeaders(), body: JSON.stringify(body) }); return await res.json(); }
 
-db.exec(`CREATE TABLE IF NOT EXISTS users (
-  user_id INTEGER PRIMARY KEY,
-  username TEXT, first_name TEXT,
-  region TEXT DEFAULT 'SA', currency TEXT DEFAULT 'R',
-  balance REAL DEFAULT 0, coins INTEGER DEFAULT 0,
-  referrals INTEGER DEFAULT 0, total_ads INTEGER DEFAULT 0,
-  vip_level TEXT DEFAULT 'FREE', vip_until TEXT DEFAULT NULL,
-  last_daily TEXT DEFAULT NULL, last_checkin TEXT DEFAULT NULL,
-  streak INTEGER DEFAULT 0, referred_by INTEGER DEFAULT NULL,
-  wallet TEXT DEFAULT NULL, total_earned REAL DEFAULT 0,
-  updated_at TEXT DEFAULT NULL
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS tasks (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  title TEXT, reward_cash REAL, reward_coins INTEGER, link TEXT
-)`);
-
-db.exec(`CREATE TABLE IF NOT EXISTS withdrawals (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  user_id INTEGER, amount REAL, coins INTEGER,
-  method TEXT, wallet TEXT, status TEXT DEFAULT 'PENDING', created_at TEXT,
-  usdt_amount REAL DEFAULT 0, zar_amount REAL DEFAULT 0
-)`);
-
-if (db.prepare('SELECT COUNT(*) as c FROM tasks').get().c === 0) {
-  db.prepare(`INSERT INTO tasks (title, reward_cash, reward_coins, link) VALUES
-  ('Join Shaya Earn Network Group', 0.10, 50, 'https://t.me/ShayaEarnNetwork'),
-  ('Follow Our Channel', 0.05, 20, 'https://t.me/ShayaEarnNetwork'),
-  ('Share Bot To 3 Friends', 0.20, 100, '')`).run();
-}
-
-function getUser(id, username, firstName) {
-  let u = db.prepare('SELECT * FROM users WHERE user_id=?').get(id);
-  if (!u) {
-    db.prepare('INSERT INTO users (user_id, username, first_name, updated_at) VALUES (?,?,?,?)').run(id, username||'', firstName||'', new Date().toISOString());
-    u = db.prepare('SELECT * FROM users WHERE user_id=?').get(id);
+async function getUser(id, username, firstName){
+  if(!id) return null;
+  let rows = await sbGet('users', `user_id=eq.${id}&select=*`);
+  let u = Array.isArray(rows) ? rows[0] : null;
+  if(!u){
+    const now = new Date().toISOString();
+    const inserted = await sbInsert('users', { user_id: parseInt(id), username: username||'', first_name: firstName||'', updated_at: now });
+    u = Array.isArray(inserted) ? inserted[0] : { user_id: parseInt(id), username: username||'', first_name: firstName||'', region:'SA', currency:'R', balance:0, coins:0, referrals:0, total_ads:0, daily_ads:0, last_ad_date:null, vip_level:'FREE', vip_until:null, last_daily:null, streak:0, referred_by:null, wallet:null, total_earned:0, updated_at: now };
+  }
+  if(u.vip_level && u.vip_level !== 'FREE' && u.vip_until){
+    if(new Date(u.vip_until) < new Date()){ await sbUpdate('users', `user_id=eq.${id}`, { vip_level:'FREE', vip_until:null }); u.vip_level='FREE'; u.vip_until=null; }
   }
   return u;
 }
+async function updateUser(id, patch){ await sbUpdate('users', `user_id=eq.${id}`, { ...patch, updated_at: new Date().toISOString() }); return await getUser(id); }
 
 const RATES = {
-  SA: { currency:'R', perAdCash:0.02, perAdCoins:10, coinValue:1000,
-    minWithdraw:30, minWithdrawUSDT:30,
-    referralCash:0.50, referralCoins:50, referralNeedAds:10,
-    vipPrice:30, vipPerAdCash:0.04, vipPerAdCoins:20,
-    vipProPrice:100, vipProPerAdCash:0.08, vipProPerAdCoins:40 },
-  USA: { currency:'$', perAdCash:0.002, perAdCoins:2, coinValue:1000,
-    minWithdraw:0.05, minWithdrawUSDT:30,
-    referralCash:0.10, referralCoins:10, referralNeedAds:5,
-    vipPrice:5, vipPerAdCash:0.004, vipPerAdCoins:4,
-    vipProPrice:15, vipProPerAdCash:0.008, vipProPerAdCoins:8 }
+  SA: { currency:'R', perAdCoins:10, coinValue:1000, referralCashUSD:0.50, referralCoins:50, referralNeedAds:10 },
+  USA: { currency:'$', perAdCoins:10, coinValue:1000, referralCashUSD:0.10, referralCoins:10, referralNeedAds:5 }
 };
 
-async function getYouTubeVideos(type='trending', query='', region='SA') {
-  if (!YOUTUBE_API_KEY) return [];
-  const regionCode = region === 'USA' ? 'US' : 'ZA';
-  let url = '';
-  if (type === 'trending') url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=12&regionCode=${regionCode}&key=${YOUTUBE_API_KEY}`;
-  else if (type === 'search') url = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=12&q=${encodeURIComponent(query)}&type=video&regionCode=${regionCode}&key=${YOUTUBE_API_KEY}`;
-  else if (type === 'music') url = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=12&regionCode=${regionCode}&videoCategoryId=10&key=${YOUTUBE_API_KEY}`;
-  try {
-    const res = await fetch(url);
-    const data = await res.json();
-    if (!data.items) return [];
-    return data.items.map(v => ({ id: v.id.videoId || v.id, title: v.snippet.title, channel: v.snippet.channelTitle, thumb: v.snippet.thumbnails.medium.url, views: v.statistics?.viewCount || 0, url: `https://www.youtube.com/watch?v=${v.id.videoId || v.id}` }));
-  } catch(e){ return []; }
+// ===== PROFITABLE VIP PLANS =====
+const VIP_PLANS = {
+  'FREE': { mult:1, perAdUSD:0.01, coins:5, priceUSD:0, days:0, dailyLimit:10, minWithdrawUSDT:50 },
+  'VIP': { mult:1, perAdUSD:0.025, coins:10, priceUSD:10, days:30, dailyLimit:20, minWithdrawUSDT:20 },
+  'VIP PRO': { mult:1, perAdUSD:0.05, coins:20, priceUSD:25, days:30, dailyLimit:20, minWithdrawUSDT:20 },
+  'VIP ELITE': { mult:1, perAdUSD:0.10, coins:40, priceUSD:50, days:30, dailyLimit:20, minWithdrawUSDT:20 }
+};
+function getPerAd(u){ const p = VIP_PLANS[u.vip_level] || VIP_PLANS['FREE']; const cash = u.region==='SA' ? p.perAdUSD * USDT_TO_ZAR : p.perAdUSD; return { cash, coins: p.coins, usd: p.perAdUSD, mult:1, dailyLimit: p.dailyLimit, minWithdrawUSDT: p.minWithdrawUSDT }; }
+function getVipPrice(planName, region){ const p = VIP_PLANS[planName]; if(!p) return 0; return region==='SA' ? p.priceUSD * USDT_TO_ZAR : p.priceUSD; }
+function getDailyLimit(u){ return (VIP_PLANS[u.vip_level] || VIP_PLANS['FREE']).dailyLimit; }
+function getMinWithdraw(u){ const p = VIP_PLANS[u.vip_level] || VIP_PLANS['FREE']; return p.minWithdrawUSDT; }
+
+async function getYouTubeVideos(type='trending', query='', region='SA'){
+  if(!YOUTUBE_API_KEY) return [];
+  const regionCode = region==='USA' ? 'US' : 'ZA';
+  let url='';
+  if(type==='trending') url=`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=12&regionCode=${regionCode}&key=${YOUTUBE_API_KEY}`;
+  else if(type==='search') url=`https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=12&q=${encodeURIComponent(query)}&type=video&regionCode=${regionCode}&key=${YOUTUBE_API_KEY}`;
+  else if(type==='music') url=`https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&chart=mostPopular&maxResults=12&regionCode=${regionCode}&videoCategoryId=10&key=${YOUTUBE_API_KEY}`;
+  try{ const res = await fetch(url); const data = await res.json(); if(!data.items) return []; return data.items.map(v=>({ id: v.id.videoId||v.id, title: v.snippet.title, channel: v.snippet.channelTitle, thumb: v.snippet.thumbnails.medium.url, views: v.statistics?.viewCount||0, url:`https://www.youtube.com/watch?v=${v.id.videoId||v.id}` })); }catch(e){ return []; }
 }
 
-app.get('/api/user/:id', (req,res)=>{
-  const u = db.prepare('SELECT * FROM users WHERE user_id=?').get(req.params.id);
-  if(!u) return res.json({error:'not found'});
-  res.json({ ...u, rate: RATES[u.region], usdtToZar: USDT_TO_ZAR, zarToUsdt: ZAR_TO_USDT, lastRateUpdate: LAST_RATE_UPDATE });
+// ===== API =====
+app.get('/api/user/:id', async (req,res)=>{
+  const u = await getUser(parseInt(req.params.id)); if(!u) return res.json({error:'not found'});
+  const perAd = getPerAd(u); const today = new Date().toISOString().slice(0,10);
+  const dailyAds = u.last_ad_date===today ? (u.daily_ads||0) : 0;
+  const dailyLimit = getDailyLimit(u); const minWithdrawUSDT = getMinWithdraw(u);
+  res.json({ ...u, rate: RATES[u.region], perAd, vipPlans: VIP_PLANS, usdtToZar: USDT_TO_ZAR, zarToUsdt: ZAR_TO_USDT, dailyAds, dailyLimit, dailyLeft: Math.max(0, dailyLimit - dailyAds), minWithdrawUSDT });
 });
-
-app.get('/api/rate', (req,res)=>{
-  res.json({ usdtToZar: USDT_TO_ZAR, zarToUsdt: ZAR_TO_USDT, lastUpdate: new Date(LAST_RATE_UPDATE).toISOString(), source: 'open.er-api.com + Binance fallback' });
-});
-
-app.get('/api/convert-usdt', async (req,res)=>{
-  if(Date.now() - LAST_RATE_UPDATE > 30*60*1000) await updateUsdtRate();
-  const usdt = parseFloat(req.query.usdt || 0);
-  const zar = parseFloat(req.query.zar || 0);
-  if(usdt) return res.json({ usdt, zar: (usdt * USDT_TO_ZAR).toFixed(2), rate: USDT_TO_ZAR, live: true });
-  if(zar) return res.json({ zar, usdt: (zar * ZAR_TO_USDT).toFixed(4), rate: USDT_TO_ZAR, live: true });
-  res.json({ rate: USDT_TO_ZAR, example: { usdt_30: (30*USDT_TO_ZAR).toFixed(2), usdt_1: USDT_TO_ZAR, usdt_0_05: (0.05*USDT_TO_ZAR).toFixed(2) }, live: true });
-});
-
-app.post('/api/convert-balance-to-usdt', (req,res)=>{
+app.get('/api/rate', (req,res)=> res.json({ usdtToZar: USDT_TO_ZAR, zarToUsdt: ZAR_TO_USDT, lastUpdate: new Date(LAST_RATE_UPDATE).toISOString() }));
+app.get('/api/vip-plans', (req,res)=>{ const region = req.query.region||'SA'; const out={}; for(const k in VIP_PLANS){ out[k]={ ...VIP_PLANS[k], price: getVipPrice(k, region), currency: region==='SA'?'R':'$' }; } res.json(out); });
+app.get('/api/convert-usdt', async (req,res)=>{ if(Date.now()-LAST_RATE_UPDATE > 30*60*1000) await updateUsdtRate(); const usdt = parseFloat(req.query.usdt||0); const zar = parseFloat(req.query.zar||0); if(usdt) return res.json({ usdt, zar:(usdt*USDT_TO_ZAR).toFixed(2), rate:USDT_TO_ZAR, live:true }); if(zar) return res.json({ zar, usdt:(zar*ZAR_TO_USDT).toFixed(4), rate:USDT_TO_ZAR, live:true }); res.json({ rate:USDT_TO_ZAR, example:{ usdt_20:(20*USDT_TO_ZAR).toFixed(2) }, live:true }); });
+app.post('/api/watch', async (req,res)=>{
   const { user_id } = req.body;
-  const u = db.prepare('SELECT * FROM users WHERE user_id=?').get(user_id);
-  if(!u) return res.json({error:'user not found'});
-  if(u.region === 'SA') return res.json({ success:true, balanceRand: u.balance, balanceUSDT: (u.balance * ZAR_TO_USDT).toFixed(4), rate: USDT_TO_ZAR });
-  return res.json({ success:true, balanceUSD: u.balance, balanceUSDT: u.balance.toFixed(4), rate: 1 });
-});
-
-app.post('/api/watch', (req,res)=>{
-  const { user_id } = req.body;
-  let u = db.prepare('SELECT * FROM users WHERE user_id=?').get(user_id);
-  if(!u) return res.json({error:'user not found'});
-  const r = RATES[u.region];
-  let cash=r.perAdCash, coins=r.perAdCoins;
-  if(u.vip_level==='VIP'){ cash=r.vipPerAdCash; coins=r.vipPerAdCoins; }
-  if(u.vip_level==='VIP PRO'){ cash=r.vipProPerAdCash; coins=r.vipProPerAdCoins; }
-  db.prepare('UPDATE users SET balance=balance+?, coins=coins+?, total_ads=total_ads+1, total_earned=total_earned+?, updated_at=? WHERE user_id=?').run(cash,coins,cash,new Date().toISOString(),user_id);
-  u = db.prepare('SELECT * FROM users WHERE user_id=?').get(user_id);
-  if(u.referred_by && u.total_ads === RATES[u.region].referralNeedAds){
-    const ref = db.prepare('SELECT * FROM users WHERE user_id=?').get(u.referred_by);
-    if(ref){
-      const rr = RATES[ref.region];
-      db.prepare('UPDATE users SET balance=balance+?, coins=coins+?, referrals=referrals+1, updated_at=? WHERE user_id=?').run(rr.referralCash, rr.referralCoins, new Date().toISOString(), ref.user_id);
-    }
-  }
-  res.json({ success:true, earnedCash:cash, earnedCoins:coins, user:u });
-});
-
-app.post('/api/daily', (req,res)=>{
-  const { user_id } = req.body;
-  let u = db.prepare('SELECT * FROM users WHERE user_id=?').get(user_id);
-  if(!u) return res.json({error:'user not found'});
+  let u = await getUser(user_id); if(!u) return res.json({error:'user not found'});
   const today = new Date().toISOString().slice(0,10);
-  if(u.last_daily===today) return res.json({error:'Already claimed today'});
-  const r = RATES[u.region];
-  const streak = u.last_daily ? u.streak+1 : 1;
-  const bonusCash = r.perAdCash*5 + (streak*0.01);
-  const bonusCoins = 20 + streak;
-  db.prepare('UPDATE users SET balance=balance+?, coins=coins+?, last_daily=?, streak=?, updated_at=? WHERE user_id=?').run(bonusCash, bonusCoins, today, streak, new Date().toISOString(), user_id);
+  let dailyAds = u.last_ad_date===today ? (u.daily_ads||0) : 0;
+  const perAd = getPerAd(u); const DAILY_LIMIT = perAd.dailyLimit;
+  if(dailyAds >= DAILY_LIMIT) return res.json({error:`Daily limit reached! ${u.vip_level} = ${DAILY_LIMIT} ads/day. Upgrade to VIP for 20/day.`, dailyAds, dailyLimit: DAILY_LIMIT});
+  dailyAds += 1;
+  await updateUser(user_id, { balance: (u.balance||0)+perAd.cash, coins: (u.coins||0)+perAd.coins, total_ads: (u.total_ads||0)+1, daily_ads: dailyAds, last_ad_date: today, total_earned: (u.total_earned||0)+perAd.cash });
+  u = await getUser(user_id);
+  if(u.referred_by && u.total_ads === RATES[u.region].referralNeedAds){
+    const ref = await getUser(u.referred_by);
+    if(ref){ const refCashUSD = RATES[ref.region].referralCashUSD; const refCash = ref.region==='SA' ? refCashUSD*USDT_TO_ZAR : refCashUSD; await updateUser(ref.user_id, { balance:(ref.balance||0)+refCash, coins:(ref.coins||0)+RATES[ref.region].referralCoins, referrals:(ref.referrals||0)+1 }); }
+  }
+  res.json({ success:true, earnedCash:perAd.cash, earnedCoins:perAd.coins, earnedUSD:perAd.usd, dailyAds, dailyLeft: DAILY_LIMIT - dailyAds, dailyLimit: DAILY_LIMIT, user:u });
+});
+app.post('/api/daily', async (req,res)=>{
+  const { user_id } = req.body; let u = await getUser(user_id); if(!u) return res.json({error:'user not found'});
+  const today = new Date().toISOString().slice(0,10); if(u.last_daily===today) return res.json({error:'Already claimed today'});
+  const perAd = getPerAd(u); const streak = u.last_daily ? (u.streak||0)+1 : 1;
+  const bonusCash = perAd.cash*3 + (streak * (u.region==='SA' ? 0.01*USDT_TO_ZAR : 0.01));
+  const bonusCoins = (10+streak);
+  await updateUser(user_id, { balance:(u.balance||0)+bonusCash, coins:(u.coins||0)+bonusCoins, last_daily: today, streak });
   res.json({ success:true, bonusCash, bonusCoins, streak });
 });
-
-app.post('/api/convert', (req,res)=>{
-  const { user_id } = req.body;
-  let u = db.prepare('SELECT * FROM users WHERE user_id=?').get(user_id);
-  if(!u) return res.json({error:'user not found'});
-  const r = RATES[u.region];
-  if(u.coins < r.coinValue) return res.json({error:`Need ${r.coinValue} coins`});
-  const val = u.coins / r.coinValue;
-  db.prepare('UPDATE users SET balance=balance+?, coins=0, updated_at=? WHERE user_id=?').run(val, new Date().toISOString(), user_id);
-  res.json({ success:true, converted:val });
+app.post('/api/convert', async (req,res)=>{
+  const { user_id } = req.body; let u = await getUser(user_id); if(!u) return res.json({error:'user not found'});
+  const r = RATES[u.region]; if((u.coins||0) < r.coinValue) return res.json({error:`Need ${r.coinValue} coins`});
+  const val = u.coins / r.coinValue; const cashVal = u.region==='SA' ? val * USDT_TO_ZAR : val;
+  await updateUser(user_id, { balance:(u.balance||0)+cashVal, coins:0 }); res.json({ success:true, converted:cashVal });
 });
-
-app.post('/api/withdraw', (req,res)=>{
-  const { user_id, method, wallet } = req.body;
-  let u = db.prepare('SELECT * FROM users WHERE user_id=?').get(user_id);
-  if(!u) return res.json({error:'user not found'});
-  const r = RATES[u.region];
+app.post('/api/withdraw', async (req,res)=>{
+  const { user_id, method, wallet } = req.body; let u = await getUser(user_id); if(!u) return res.json({error:'user not found'});
   const isUSDT = method.includes('USDT');
+  const usdtBalance = u.region==='SA' ? u.balance * ZAR_TO_USDT : u.balance;
+  const minUSDT = getMinWithdraw(u); const minCash = u.region==='SA' ? minUSDT*USDT_TO_ZAR : minUSDT;
   if(isUSDT){
-    let usdtBalance = u.region === 'SA' ? u.balance * ZAR_TO_USDT : u.balance;
-    if(usdtBalance < r.minWithdrawUSDT) return res.json({error:`Need $${r.minWithdrawUSDT} USDT minimum. SA: R${(r.minWithdrawUSDT*USDT_TO_ZAR).toFixed(2)} | USA: $${r.minWithdrawUSDT}. Your USDT: $${usdtBalance.toFixed(2)}`});
-    const usdtAmount = usdtBalance;
-    const zarAmount = u.region === 'SA' ? u.balance : usdtBalance * USDT_TO_ZAR;
-    db.prepare('INSERT INTO withdrawals (user_id, amount, coins, method, wallet, created_at, usdt_amount, zar_amount) VALUES (?,?,?,?,?,?,?,?)').run(user_id, u.balance, u.coins, method, wallet, new Date().toISOString(), usdtAmount, zarAmount);
-    db.prepare('UPDATE users SET balance=0, coins=0, wallet=?, updated_at=? WHERE user_id=?').run(wallet, new Date().toISOString(), user_id);
-    bot.telegram.sendMessage(ADMIN_ID, `💸 NEW USDT WITHDRAWAL\nUser: ${user_id} @${u.username}\nRegion: ${u.region}\nUSDT: $${usdtAmount.toFixed(2)} USDT\nIn Rand: R${zarAmount.toFixed(2)}\nRate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}\nMethod: ${method}\nWallet: ${wallet}`).catch(()=>{});
-    return res.json({ success:true, usdtAmount, zarAmount });
+    if(usdtBalance < minUSDT) return res.json({error:`Need $${minUSDT} USDT minimum for ${u.vip_level}. ${u.vip_level==='FREE' ? 'FREE needs $50. Upgrade to VIP for $20 min.' : ''} Your USDT: $${usdtBalance.toFixed(2)}`});
+    const zarAmount = u.region==='SA' ? u.balance : usdtBalance*USDT_TO_ZAR;
+    await sbInsert('withdrawals', { user_id, amount: u.balance, coins: u.coins, method, wallet, created_at: new Date().toISOString(), usdt_amount: usdtBalance, zar_amount: zarAmount });
+    await updateUser(user_id, { balance:0, coins:0, wallet });
+    bot.telegram.sendMessage(ADMIN_ID, `💸 WITHDRAWAL\nUser: ${user_id} @${u.username}\nPlan: ${u.vip_level}\nRegion: ${u.region}\nUSDT: $${usdtBalance.toFixed(2)} = R${zarAmount.toFixed(2)}\nMethod: ${method}\nWallet: ${wallet}`).catch(()=>{});
+    return res.json({ success:true, usdtAmount:usdtBalance, zarAmount });
   } else {
-    if(u.balance < r.minWithdraw) return res.json({error:`Need ${u.currency}${r.minWithdraw} minimum for ${method}. Your balance: ${u.currency}${u.balance.toFixed(2)}`});
-    const usdtEq = u.region === 'SA' ? (u.balance * ZAR_TO_USDT).toFixed(4) : u.balance.toFixed(4);
-    db.prepare('INSERT INTO withdrawals (user_id, amount, coins, method, wallet, created_at, usdt_amount, zar_amount) VALUES (?,?,?,?,?,?,?,?)').run(user_id, u.balance, u.coins, method, wallet, new Date().toISOString(), usdtEq, u.balance);
-    db.prepare('UPDATE users SET balance=0, coins=0, wallet=?, updated_at=? WHERE user_id=?').run(wallet, new Date().toISOString(), user_id);
-    bot.telegram.sendMessage(ADMIN_ID, `💸 NEW WITHDRAWAL\nUser: ${user_id} @${u.username}\nRegion: ${u.region}\nAmount: ${u.currency}${u.balance} + ${u.coins} Coins (= $${usdtEq} USDT)\nMethod: ${method}\nWallet: ${wallet}`).catch(()=>{});
+    if(u.balance < minCash) return res.json({error:`Need ${u.currency}${minCash.toFixed(2)} minimum for ${u.vip_level}. Your balance: ${u.currency}${u.balance.toFixed(2)} (= $${usdtBalance.toFixed(2)} USDT)`});
+    await sbInsert('withdrawals', { user_id, amount: u.balance, coins: u.coins, method, wallet, created_at: new Date().toISOString(), usdt_amount: usdtBalance, zar_amount: u.balance });
+    await updateUser(user_id, { balance:0, coins:0, wallet });
+    bot.telegram.sendMessage(ADMIN_ID, `💸 WITHDRAWAL\nUser: ${user_id} @${u.username}\nPlan: ${u.vip_level}\nAmount: ${u.currency}${u.balance} (= $${usdtBalance.toFixed(2)} USDT)\nMethod: ${method}\nWallet: ${wallet}`).catch(()=>{});
     return res.json({ success:true });
   }
 });
-
-app.get('/api/tasks', (req,res)=>{ res.json(db.prepare('SELECT * FROM tasks').all()); });
-app.get('/api/leaderboard', (req,res)=>{ res.json(db.prepare('SELECT username, first_name, balance, coins, total_ads, region FROM users ORDER BY total_earned DESC LIMIT 10').all()); });
-
-app.post('/api/sync', (req,res)=>{
-  const { user_id, balance, coins, total_ads, referrals, streak, region, vip_level } = req.body;
-  let u = db.prepare('SELECT * FROM users WHERE user_id=?').get(user_id);
-  if(!u) return res.json({error:'not found'});
-  if(u.balance === 0 && u.coins === 0 && (balance > 0 || coins > 0)){
-    db.prepare('UPDATE users SET balance=?, coins=?, total_ads=?, referrals=?, streak=?, region=?, vip_level=?, updated_at=? WHERE user_id=?').run(balance||0, coins||0, total_ads||0, referrals||0, streak||0, region||u.region, vip_level||u.vip_level, new Date().toISOString(), user_id);
-    u = db.prepare('SELECT * FROM users WHERE user_id=?').get(user_id);
-    console.log(`Restored user ${user_id} from frontend backup`);
-  }
-  res.json({success:true, user:u});
+app.get('/api/tasks', async (req,res)=>{ const rows = await sbGet('tasks', 'select=*'); res.json(Array.isArray(rows)?rows:[]); });
+app.get('/api/leaderboard', async (req,res)=>{ const rows = await sbGet('users', 'select=username,first_name,balance,coins,total_ads,region,vip_level&order=total_earned.desc&limit=10'); res.json(Array.isArray(rows)?rows:[]); });
+app.post('/api/sync', async (req,res)=>{ const { user_id, balance, coins, total_ads, referrals, streak, region, vip_level } = req.body; let u = await getUser(user_id); if(!u) return res.json({error:'not found'}); if((u.balance||0)===0 && (u.coins||0)===0 && (balance>0 || coins>0)){ u = await updateUser(user_id, { balance:balance||0, coins:coins||0, total_ads:total_ads||0, referrals:referrals||0, streak:streak||0, region:region||u.region, vip_level:vip_level||u.vip_level }); } res.json({success:true, user:u}); });
+app.post('/api/set-region', async (req,res)=>{
+  const { user_id, region } = req.body; if(!['SA','USA'].includes(region)) return res.json({error:'Invalid region'});
+  let u = await getUser(user_id); if(!u) return res.json({error:'user not found'});
+  const oldRegion = u.region; let newBalance = u.balance;
+  if(oldRegion!==region){ if(oldRegion==='SA' && region==='USA') newBalance = u.balance * ZAR_TO_USDT; if(oldRegion==='USA' && region==='SA') newBalance = u.balance * USDT_TO_ZAR; }
+  u = await updateUser(user_id, { region, currency: RATES[region].currency, balance: newBalance });
+  res.json({success:true, user:u, rate:RATES[region], oldRegion, newBalance});
 });
-
-app.post('/api/set-region', (req,res)=>{
-  const { user_id, region } = req.body;
-  if(!['SA','USA'].includes(region)) return res.json({error:'Invalid region'});
-  db.prepare('UPDATE users SET region=?, currency=?, updated_at=? WHERE user_id=?').run(region, RATES[region].currency, new Date().toISOString(), user_id);
-  const u = db.prepare('SELECT * FROM users WHERE user_id=?').get(user_id);
-  res.json({success:true, user:u, rate: RATES[region]});
-});
-
 app.get('/ping', (req,res)=> res.send('OK'));
-
 app.get('/api/videos/trending', async (req,res)=>{ res.json(await getYouTubeVideos('trending','',req.query.region||'SA')); });
 app.get('/api/videos/music', async (req,res)=>{ res.json(await getYouTubeVideos('music','',req.query.region||'SA')); });
 app.get('/api/videos/search', async (req,res)=>{ res.json(await getYouTubeVideos('search',req.query.q||'Amapiano',req.query.region||'SA')); });
+app.post('/api/request-vip', async (req,res)=>{
+  const { user_id, plan } = req.body; const u = await getUser(user_id); if(!u) return res.json({error:'user not found'});
+  if(!VIP_PLANS || plan==='FREE') return res.json({error:'Invalid plan'});
+  const price = getVipPrice(plan, u.region);
+  await sbInsert('vip_requests', { user_id, plan, region: u.region, created_at: new Date().toISOString() });
+  bot.telegram.sendMessage(ADMIN_ID, `👑 NEW VIP REQUEST\nUser: ${user_id} @${u.username}\nPlan: ${plan}\nRegion: ${u.region}\nPrice: ${u.currency}${price.toFixed(2)} ($${VIP_PLANS.priceUSD})\nDuration: 30 days\n\nApprove: /activate ${user_id} ${plan}`).catch(()=>{});
+  res.json({success:true, plan, price, currency:u.currency});
+});
 
-bot.start((ctx)=>{
-  const user = ctx.from;
-  const args = ctx.message.text.split(' ')[1];
-  getUser(user.id, user.username, user.first_name);
-  if(args && args.startsWith('ref_')){
-    const refId = parseInt(args.replace('ref_',''));
-    if(refId && refId!==user.id) db.prepare('UPDATE users SET referred_by=? WHERE user_id=?').run(refId, user.id);
-  }
-  ctx.reply(`🔥 SHAYA WATCH - ALL PROFIT PLANS\n\n🇿🇦 SA + 🇺🇸 USA in ONE bot!\n💱 LIVE: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}\nTap below to OPEN APP 👇`, Markup.inlineKeyboard([
+// --- BOT ---
+bot.start(async (ctx)=>{
+  const user = ctx.from; const args = ctx.message.text.split(' ')[1];
+  await getUser(user.id, user.username, user.first_name);
+  if(args && args.startsWith('ref_')){ const refId = parseInt(args.replace('ref_','')); if(refId && refId!==user.id) await updateUser(user.id, { referred_by: refId }); }
+  ctx.reply(`🔥 SHAYA WATCH - PROFIT PLANS\n\n🇿🇦 SA + 🇺🇸 USA\n💱 LIVE: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}\n🆓 FREE: $0.01/ad | 10/day | $50 Min\n👑 VIP $10: $0.025/ad | 20/day | $20 Min\n💎 PRO $25: $0.05/ad | 20/day | $20 Min\n🔥 ELITE $50: $0.10/ad | 20/day | $20 Min\n\nTap below 👇`, Markup.inlineKeyboard([
     [Markup.button.webApp('🚀 OPEN SHAYA APP', `${WEBAPP_URL}?start=${user.id}`)],
     [Markup.button.callback('🇿🇦 SA MODE', 'set_SA'), Markup.button.callback('🇺🇸 USA MODE', 'set_USA')],
-    [Markup.button.callback('👥 My Referral Link', 'invite')],
+    [Markup.button.callback('👥 Referral Link', 'invite')],
+    [Markup.button.callback('👑 VIP PLANS', 'vip_plans')],
   ]));
 });
-
-bot.action(/set_(SA|USA)/, (ctx)=>{
-  const region = ctx.match[1];
-  db.prepare('UPDATE users SET region=?, currency=?, updated_at=? WHERE user_id=?').run(region, RATES[region].currency, new Date().toISOString(), ctx.from.id);
-  ctx.answerCbQuery(`Set to ${region}`);
-  ctx.reply(`✅ Region: ${region} (${RATES[region].currency})\nNow open the app to earn!`, Markup.inlineKeyboard([[Markup.button.webApp('🚀 OPEN APP', `${WEBAPP_URL}?start=${ctx.from.id}`)]]));
+bot.action(/set_(SA|USA)/, async (ctx)=>{
+  const region = ctx.match[1]; const u = await getUser(ctx.from.id); let newBalance = u ? u.balance : 0;
+  if(u && u.region!==region){ if(u.region==='SA' && region==='USA') newBalance = u.balance * ZAR_TO_USDT; if(u.region==='USA' && region==='SA') newBalance = u.balance * USDT_TO_ZAR; await updateUser(ctx.from.id, { region, currency: RATES[region].currency, balance: newBalance }); }
+  ctx.answerCbQuery(`Set to ${region}`); ctx.reply(`✅ Region: ${region}\nBalance converted: ${u?.currency}${u?.balance.toFixed(2)} → ${RATES[region].currency}${newBalance.toFixed(2)}`, Markup.inlineKeyboard([[Markup.button.webApp('🚀 OPEN APP', `${WEBAPP_URL}?start=${ctx.from.id}`)]]));
 });
-
-bot.action('invite', (ctx)=>{
-  ctx.reply(`👥 Your Link:\nhttps://t.me/${BOT_USERNAME}?start=ref_${ctx.from.id}\n\nShare it everywhere! You earn on every friend.`);
+bot.action('invite', (ctx)=>{ ctx.reply(`👥 Your Link:\nhttps://t.me/${BOT_USERNAME}?start=ref_${ctx.from.id}`); });
+bot.action('vip_plans', async (ctx)=>{
+  const u = await getUser(ctx.from.id); const cur = u.region==='SA'?'R':'$';
+  ctx.reply(`👑 VIP PLANS (30 Days) - PROFITABLE\n🆓 FREE: $0.01/ad • 10/day • $50 Min\n👑 VIP: $0.025/ad • 20/day • $20 Min • ${cur}${getVipPrice('VIP',u.region).toFixed(2)}\n💎 VIP PRO: $0.05/ad • 20/day • $20 Min • ${cur}${getVipPrice('VIP PRO',u.region).toFixed(2)}\n🔥 VIP ELITE: $0.10/ad • 20/day • $20 Min • ${cur}${getVipPrice('VIP ELITE',u.region).toFixed(2)}\n\nYour VIP: ${u.vip_level}${u.vip_until?' until '+u.vip_until:''}`, Markup.inlineKeyboard([[Markup.button.webApp('👑 BUY VIP IN APP', `${WEBAPP_URL}?start=${ctx.from.id}`)]]));
 });
-
-bot.command('trending', async (ctx)=>{
-  const u = getUser(ctx.from.id, ctx.from.username, ctx.from.first_name);
-  const videos = await getYouTubeVideos('trending','',u.region||'SA');
-  if(!videos.length) return ctx.reply('❌ YouTube API Key missing or quota finished.');
-  let msg = `🔥 TRENDING IN ${u.region} NOW:\n\n`;
-  videos.slice(0,5).forEach((v,i)=>{ msg += `${i+1}. ${v.title}\n👤 ${v.channel} | 👁️ ${v.views} views\n${v.url}\n\n`; });
-  ctx.reply(msg);
+bot.command('trending', async (ctx)=>{ const u = await getUser(ctx.from.id, ctx.from.username, ctx.from.first_name); const videos = await getYouTubeVideos('trending','',u.region||'SA'); if(!videos.length) return ctx.reply('❌ YouTube API Key missing.'); let msg = `🔥 TRENDING IN ${u.region}:\n\n`; videos.slice(0,5).forEach((v,i)=>{ msg += `${i+1}. ${v.title}\n👤 ${v.channel} | 👁️ ${v.views}\n${v.url}\n\n`; }); ctx.reply(msg); });
+bot.command('balance', async (ctx)=>{
+  const u = await getUser(ctx.from.id, ctx.from.username, ctx.from.first_name); const usdtVal = u.region==='SA' ? (u.balance * ZAR_TO_USDT).toFixed(4) : u.balance.toFixed(4); const perAd = getPerAd(u); const today = new Date().toISOString().slice(0,10); const dailyAds = u.last_ad_date===today ? (u.daily_ads||0) : 0; const minUSDT = getMinWithdraw(u);
+  ctx.reply(`💰 Balance: ${u.currency}${u.balance.toFixed(2)} (= $${usdtVal} USDT)\n🪙 Coins: ${u.coins}\n📺 Ads Today: ${dailyAds}/${perAd.dailyLimit} | Total: ${u.total_ads}\n👥 Referrals: ${u.referrals}\n👑 VIP: ${u.vip_level}${u.vip_until?' until '+u.vip_until:''} ($${perAd.usd}/ad)\n💸 Min Withdraw: $${minUSDT} USDT`);
 });
-
-bot.command('usdt', (ctx)=>{
-  const u = getUser(ctx.from.id, ctx.from.username, ctx.from.first_name);
-  const usdtVal = u.region==='SA' ? (u.balance * ZAR_TO_USDT).toFixed(4) : u.balance.toFixed(4);
-  ctx.reply(`💱 USDT CONVERTER - LIVE\n\nYour Balance: ${u.currency}${u.balance.toFixed(2)}\n= $${usdtVal} USDT\n\nRate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)} (LIVE)\n30 USDT = R${(30*USDT_TO_ZAR).toFixed(2)}\n0.05 USDT = R${(0.05*USDT_TO_ZAR).toFixed(2)}\n\nWithdraw Min:\n• Cash: ${u.currency}${RATES[u.region].minWithdraw}\n• USDT: $30 USDT`);
-});
-
-bot.command('balance', (ctx)=>{
-  const u = getUser(ctx.from.id, ctx.from.username, ctx.from.first_name);
-  const usdtVal = u.region==='SA' ? (u.balance * ZAR_TO_USDT).toFixed(4) : u.balance.toFixed(4);
-  ctx.reply(`💰 Balance: ${u.currency}${u.balance.toFixed(2)} (= $${usdtVal} USDT)\n🪙 Coins: ${u.coins}\n📺 Ads: ${u.total_ads}\n👥 Referrals: ${u.referrals}\n🔥 Streak: ${u.streak} days\n👑 VIP: ${u.vip_level}`);
-});
-
-bot.command('activate', (ctx)=>{
+bot.command('vip', async (ctx)=>{ const u = await getUser(ctx.from.id); const cur = u.region==='SA'?'R':'$'; ctx.reply(`👑 VIP PLANS (30 Days)\nFREE: $0.01/ad • 10/day • $50 Min\nVIP: $0.025/ad • 20/day • $20 Min - ${cur}${getVipPrice('VIP',u.region).toFixed(2)}\nVIP PRO: $0.05/ad • 20/day • $20 Min - ${cur}${getVipPrice('VIP PRO',u.region).toFixed(2)}\nVIP ELITE: $0.10/ad • 20/day • $20 Min - ${cur}${getVipPrice('VIP ELITE',u.region).toFixed(2)}\n\nYour VIP: ${u.vip_level}`); });
+bot.command('activate', async (ctx)=>{
   if(ctx.from.id!==ADMIN_ID) return ctx.reply('Admin only');
-  const parts = ctx.message.text.split(' ');
-  const targetId = parts[1]; const level = parts.slice(2).join(' ');
-  if(!targetId || !level) return ctx.reply('Use: /activate 123456 VIP OR /activate 123456 VIP PRO');
-  const lvl = level.toUpperCase().includes('PRO') ? 'VIP PRO' : 'VIP';
-  const until = new Date(Date.now()+7*24*60*60*1000).toISOString().slice(0,10);
-  db.prepare('UPDATE users SET vip_level=?, vip_until=?, updated_at=? WHERE user_id=?').run(lvl, until, new Date().toISOString(), parseInt(targetId));
-  ctx.reply(`✅ ${targetId} = ${lvl} until ${until}`);
-  bot.telegram.sendMessage(parseInt(targetId), `🎉 You are now ${lvl} until ${until}!`).catch(()=>{});
+  const parts = ctx.message.text.split(' '); const targetId = parts[1]; const level = parts.slice(2).join(' ').toUpperCase(); if(!targetId || !level) return ctx.reply('Use: /activate 123456 VIP PRO');
+  let lvl='FREE'; if(level.includes('ELITE')) lvl='VIP ELITE'; else if(level.includes('PRO')) lvl='VIP PRO'; else if(level.includes('VIP')) lvl='VIP';
+  const days = VIP_PLANS[lvl]?.days||0; const until = days ? new Date(Date.now()+days*24*60*60*1000).toISOString().slice(0,10) : null;
+  await updateUser(parseInt(targetId), { vip_level: lvl, vip_until: until });
+  const reqs = await sbGet('vip_requests', `user_id=eq.${targetId}&plan=eq.${encodeURIComponent(lvl)}&status=eq.PENDING&select=*`); if(Array.isArray(reqs) && reqs[0]) await sbUpdate('vip_requests', `id=eq.${reqs[0].id}`, { status:'APPROVED' });
+  ctx.reply(`✅ ${targetId} = ${lvl} until ${until||'N/A'}`); bot.telegram.sendMessage(parseInt(targetId), `🎉 You are now ${lvl}${until?' until '+until:''}!\nPer ad: $${VIP_PLANS[lvl].perAdUSD} | ${VIP_PLANS[lvl].dailyLimit}/day | Min $${VIP_PLANS[lvl].minWithdrawUSDT}`).catch(()=>{});
 });
-
-bot.command('stats', (ctx)=>{
-  if(ctx.from.id!==ADMIN_ID) return;
-  const total = db.prepare('SELECT COUNT(*) as c FROM users').get().c;
-  const sa = db.prepare("SELECT COUNT(*) as c FROM users WHERE region='SA'").get().c;
-  const usa = db.prepare("SELECT COUNT(*) as c FROM users WHERE region='USA'").get().c;
-  const pend = db.prepare("SELECT COUNT(*) as c FROM withdrawals WHERE status='PENDING'").get().c;
-  ctx.reply(`📊 STATS\nTotal: ${total} | SA: ${sa} | USA: ${usa}\nPending Withdrawals: ${pend}\nRate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)} (LIVE)`);
-});
-
-bot.command('approve', (ctx)=>{
-  if(ctx.from.id!==ADMIN_ID) return;
-  const id = ctx.message.text.split(' ')[1];
-  db.prepare("UPDATE withdrawals SET status='PAID' WHERE id=?").run(id);
-  ctx.reply(`✅ Withdrawal #${id} marked PAID`);
-});
+bot.command('stats', async (ctx)=>{ if(ctx.from.id!==ADMIN_ID) return; const all = await sbGet('users', 'select=user_id,region&limit=1000'); const total = Array.isArray(all)?all.length:0; const sa = Array.isArray(all)?all.filter(x=>x.region==='SA').length:0; const pend = await sbGet('withdrawals', 'select=id&status=eq.PENDING'); ctx.reply(`📊 STATS\nTotal: ${total} | SA: ${sa} | USA: ${total-sa}\nPending Withdrawals: ${Array.isArray(pend)?pend.length:0}\nRate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)} | FREE $0.01/10/day/$50 Min | VIP $0.025-$0.10`); });
+bot.command('approve', async (ctx)=>{ if(ctx.from.id!==ADMIN_ID) return; const id = ctx.message.text.split(' ')[1]; await sbUpdate('withdrawals', `id=eq.${id}`, { status:'PAID' }); ctx.reply(`✅ Withdrawal #${id} marked PAID`); });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, ()=> console.log(`🌐 WebApp on port ${PORT} | DB: ${DB_PATH}`));
-bot.launch();
-console.log('🤖 Bot running + WebApp API ready');
-process.once('SIGINT', ()=> bot.stop('SIGINT'));
-process.once('SIGTERM', ()=> bot.stop('SIGTERM'));
+app.listen(PORT, ()=> console.log(`🌐 WebApp on port ${PORT} | Supabase: ${SUPABASE_URL ? 'Connected' : 'MISSING!'}`));
+bot.launch({ dropPendingUpdates:true }).then(()=> console.log('🤖 Bot running')).catch((e)=>{ console.log('⚠️ BOT FAILED', e.message); });
+process.once('SIGINT', ()=> bot.stop('SIGINT')); process.once('SIGTERM', ()=> bot.stop('SIGTERM'));
