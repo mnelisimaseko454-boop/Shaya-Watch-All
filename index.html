@@ -134,7 +134,6 @@
     try{
       if(onclickaShow){
         await onclickaShow();
-        document.getElementById('adNetworkLabel').innerText = 'Ad Network: OnclickA TMA Rewarded Video ✅ • Click #' + adClickCount;
         return true;
       }
       if(window.show){ await window.show(); return true; }
@@ -145,7 +144,6 @@
     try{
       if(window.showGiga){
         await window.showGiga();
-        document.getElementById('adNetworkLabel').innerText = 'Ad Network: Giga.pub ✅ • Click #' + adClickCount;
         return true;
       }
       return false;
@@ -199,8 +197,6 @@
   .ytcard img{width:110px;border-radius:8px;object-fit:cover}
   .progress{height:10px;background:#333;border-radius:10px;overflow:hidden;margin-top:8px}
   .progress div{height:100%;background:#FFD700;transition:width .3s}
-  .adbox{background:#222;border:1px dashed #FFD700;border-radius:12px;padding:10px;margin-top:12px;text-align:center;font-size:12px;color:#aaa}
-  .adstatus{font-size:11px;color:#00ff88;margin-top:4px}
   .offerbox{background:linear-gradient(135deg,#7b2fff,#00c6ff);border-radius:16px;padding:14px;margin-top:12px;color:#fff}
   .offerbox button{background:#FFD700;color:#000;border:none;padding:12px;border-radius:10px;font-weight:900;width:100%;margin-top:8px}
   .offerbox button.small{background:#222;color:#fff;border:1px solid #fff;padding:8px;font-size:12px}
@@ -225,7 +221,6 @@
     <button class="bigbtn" id="watchBtn" onclick="watchAd()">▶️ WATCH AD & EARN</button>
     <p style="text-align:center;font-size:12px;color:#aaa;margin-top:8px" id="rateLine">You Earn: $0.01 per ad</p>
     <p id="adStatus" style="text-align:center;margin-top:6px;color:#0f0"></p>
-    <p id="adNetworkLabel" class="adstatus" style="text-align:center">Ad Network: Giga.pub (9114) + OnclickA (472254) • 50/50 Split</p>
   </div>
 
   <!-- ===== OFFERWALL 9114 - ACTIVE ===== -->
@@ -241,16 +236,9 @@
     <p style="font-size:11px;margin-top:6px">Powered by Giga Offerwall (9114 ACTIVE) • Rewards auto-credit</p>
   </div>
 
-  <div class="adbox" id="dualAdSlot">
-    📢 Advertisement • Giga.pub (9114) + OnclickA (472254) • Your click supports Shaya Watch
-    <div id="giga-container"></div>
-    <div id="onclicka-container"></div>
-  </div>
   <div class="grid">
     <div class="mini" onclick="claimDaily()"><b>🎁 Daily Bonus</b><span>Claim Every Day</span></div>
     <div class="mini" onclick="convertCoins()"><b>🪙 Convert Coins</b><span>Coins → Cash</span></div>
-    <div class="mini" onclick="showPage('invite')"><b>👥 Invite</b><span>Earn Per Friend</span></div>
-    <div class="mini" onclick="showPage('withdraw')"><b>💸 Withdraw</b><span>Min $50 FREE / $20 VIP</span></div>
   </div>
   <div class="usdtbox">
     <b>💱 CONVERT USDT → RAND (LIVE)</b>
@@ -410,7 +398,7 @@ async function watchAd(){
   if(user && (user.dailyAds||0)>=limit){ alert(`❌ Daily limit reached! ${user.vip_level} = ${limit}/day. Upgrade to VIP for 20/day.`); return; }
   const btn=document.getElementById('watchBtn');
   btn.disabled=true; btn.innerText='⏳ Loading Ad... Please Watch';
-  document.getElementById('adStatus').innerText='Ad playing via Giga (9114) + OnclickA (472254)... please watch full ad';
+  document.getElementById('adStatus').innerText='Ad playing... please watch full ad';
   await triggerAdNetworks();
   setTimeout(async ()=>{
     const res=await fetch('/api/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId)})});
@@ -476,4 +464,4 @@ async function searchVideos(){
 loadUser();
 </script>
 </body>
-                                                                                                                                                                      </html>
+</html>
