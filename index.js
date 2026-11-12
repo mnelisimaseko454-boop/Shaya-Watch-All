@@ -1,3 +1,19 @@
+// ✅ FIXED: Use callApi directly - Telegraf sendInvoice drops title
+await bot.telegram.callApi('sendInvoice', {
+  chat_id: parseInt(user_id),
+  title: `Shaya Watch ${planClean}`,
+  description: `${planClean} - 30 Days - ${perAdText}/ad - 20/day - $20 Min Withdraw`,
+  payload: payload,
+  provider_token: '',
+  currency: 'XTR',
+  prices: [{ label: `${planClean} - 30 Days`, amount: stars }],
+  start_parameter: `vip_${planClean}`
+});
+
+
+Here is your FULLY FIXED index.js to paste — with that fix already inside:
+
+javascript
 // ===== SHAYA WATCH - FULL BACKEND - index.js =====
 // Giga Ad 9114 + Giga Offerwall 9114 + OnclickA 472254
 // VIP with Telegram Stars ⭐ - 250 / 500 / 1000 Stars - Auto-Activate
@@ -375,8 +391,6 @@ app.get('/api/vip-plans', async (req, res) => {
   const region = req.query.region || 'SA';
   res.json(getVipPlans(region));
 });
-
-// Request VIP - OLD method (kept for admin / fallback)
 app.post('/api/request-vip', async (req, res) => {
   const { user_id, plan, method, proof } = req.body;
   let u = await getUser(parseInt(user_id));
@@ -408,8 +422,6 @@ app.get('/api/leaderboard', async (req, res) => {
     .map(u => ({ user_id: u.user_id, username: u.username, first_name: u.first_name, region: u.region, vip_level: u.vip_level, balance: u.balance, coins: u.coins }));
   res.json(all);
 });
-
-// ===== GIGA OFFERWALL 9114 - CREDIT REWARD =====
 app.post('/api/offerwall-credit', async (req, res) => {
   const { user_id, amount, source } = req.body;
   let u = await getUser(parseInt(user_id));
@@ -426,8 +438,6 @@ app.post('/api/offerwall-credit', async (req, res) => {
   console.log(`Offerwall: ${user_id} +${coinsToAdd} Coins from ${source}`);
   res.json({ success: true, coinsAdded: coinsToAdd, user: formatUserForFrontend(updated) });
 });
-
-// ===== YOUTUBE VIDEOS =====
 async function fetchYouTube(query, region, maxResults = 12) {
   if (!YOUTUBE_API_KEY) return [];
   try {
@@ -543,7 +553,7 @@ if (BOT_TOKEN) {
     ctx.reply(`📊 STATS\nUsers: ${totalUsers}\nWithdraws Paid: ${totalPaid}\nPending: ${pending}\nVIP Requests: ${vipRequests.filter(v => v.status === 'pending').length}\nRate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}`);
   });
 
-  // ===== VIP WITH TELEGRAM STARS ⭐ - FIXED sendInvoice =====
+  // ===== VIP WITH TELEGRAM STARS ⭐ - FIXED with callApi =====
   app.post('/api/vip-stars-invoice', async (req, res) => {
     const { user_id, plan } = req.body;
     let u = await getUser(parseInt(user_id));
@@ -555,17 +565,17 @@ if (BOT_TOKEN) {
       const perAdText = planClean === 'VIP' ? '$0.025' : planClean === 'VIP PRO' ? '$0.05' : '$0.10';
       const payload = `vip_${planClean}_${user_id}_${Date.now()}`;
 
-      // ✅ CORRECT Telegraf format - positional args, NOT object
-      await bot.telegram.sendInvoice(
-        parseInt(user_id),
-        `Shaya Watch ${planClean}`,
-        `${planClean} - 30 Days - ${perAdText}/ad - 20/day - $20 Min Withdraw`,
-        payload,
-        '',
-        'XTR',
-        [{ label: `${planClean} - 30 Days`, amount: stars }],
-        { start_parameter: `vip_${planClean}` }
-      );
+      // ✅ FIXED: Use callApi directly - Telegraf sendInvoice drops title
+      await bot.telegram.callApi('sendInvoice', {
+        chat_id: parseInt(user_id),
+        title: `Shaya Watch ${planClean}`,
+        description: `${planClean} - 30 Days - ${perAdText}/ad - 20/day - $20 Min Withdraw`,
+        payload: payload,
+        provider_token: '',
+        currency: 'XTR',
+        prices: [{ label: `${planClean} - 30 Days`, amount: stars }],
+        start_parameter: `vip_${planClean}`
+      });
       console.log(`Stars invoice sent: ${user_id} ${planClean} ${stars} ⭐`);
       res.json({ success: true, stars, plan: planClean });
     } catch (e) {
@@ -574,12 +584,10 @@ if (BOT_TOKEN) {
     }
   });
 
-  // User must accept payment - always approve Stars payments
   bot.on('pre_checkout_query', async (ctx) => {
     try { await ctx.answerPreCheckoutQuery(true); } catch (e) { console.log('pre_checkout failed', e.message); }
   });
 
-  // User paid with Stars - AUTO ACTIVATE VIP
   bot.on('successful_payment', async (ctx) => {
     const pay = ctx.message.successful_payment;
     const payload = pay.invoice_payload || '';
@@ -622,3 +630,4 @@ app.listen(PORT, () => {
   console.log(`WebApp: ${WEBAPP_URL}`);
   console.log(`Giga Ad: 9114 | Offerwall: 9114 | OnclickA: 472254 | VIP Stars: 250/500/1000`);
 });
+
