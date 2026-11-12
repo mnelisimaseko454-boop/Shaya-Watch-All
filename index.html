@@ -5,40 +5,129 @@
 <title>Shaya Watch</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<!-- ===== ONCLICKA TMA REWARDED VIDEO - ID: 472254 ===== -->
+<!-- ===== GIGA AD - ID 9114 - ACTIVE ✅ ===== -->
+<script src="https://ad.gigapub.tech/script?id=9114"></script>
+
+<!-- ===== ONCLICKA TMA - ID 472254 ✅ ===== -->
 <script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
+
+<!-- ===== GIGA OFFERWALL - PROJECT 9114 - ACTIVE ✅ - LOAD ONCE ===== -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (!window.loadOfferWallSDK) {
+      const script = document.createElement('script');
+      script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=9114';
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  });
+</script>
+
 <script>
   var ONCLICKA_SPOT_ID = "472254";
-  var GIGA_ZONE_ID = "9114";
-  var GIGA_SCRIPT_URL = "";
+  var GIGA_APP_ID = "9114";
+  var GIGA_OFFERWALL_PROJECT_ID = "9114";
   var adClickCount = 0;
   var onclickaShow = null;
-  var gigaLoaded = false;
+  var gigaOfferWallSDK = null;
 
+  // --- Init OnclickA ---
   window.initCdTma?.({ id: '472254' }).then(show => {
     window.show = show;
     onclickaShow = show;
-    console.log('OnclickA TMA Ready - Spot: 472254');
+    console.log('OnclickA Ready - 472254');
   }).catch(e => console.log('OnclickA init failed', e));
 
-  (function loadGiga(){
-    if(GIGA_SCRIPT_URL){
-      var s = document.createElement('script');
-      s.src = GIGA_SCRIPT_URL;
-      s.async = true;
-      s.onload = function(){ gigaLoaded = true; console.log('Giga loaded'); };
-      document.head.appendChild(s);
-    }
-  })();
+  // --- Init Giga Offerwall 9114 ---
+  (window.loadGigaSDKCallbacks || (window.loadGigaSDKCallbacks = [])).push(() => {
+    window.loadOfferWallSDK({ projectId: '9114' })
+    .then(sdk => {
+      window.gigaOfferWallSDK = sdk;
+      gigaOfferWallSDK = sdk;
+      console.log('Giga Offerwall Ready - 9114 ACTIVE');
+      // Check if offers available
+      try{ console.log('Has Offers:', sdk.hasOffers()); }catch(e){}
+      sdk.on('rewardClaim', async (data) => {
+        console.log('Reward claim received:', data);
+        // data = { rewardId, userId, projectId, hash, amount }
+        await creditUserReward(data.userId, data.amount);
+        try{ await sdk.confirmReward(data.rewardId, data.hash); }catch(e){ console.log('confirmReward failed', e); }
+      });
+    })
+    .catch(error => { console.error('Error loading Offerwall SDK:', error); });
+  });
 
+  // --- Credit user for Offerwall reward ---
+  async function creditUserReward(gigaUserId, amount){
+    try{
+      var res = await fetch('/api/offerwall-credit', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ user_id: parseInt(userId), amount: amount, source: 'giga-offerwall-9114' })
+      });
+      var d = await res.json();
+      if(d.success){
+        var r2 = await fetch('/api/user/' + userId);
+        user = await r2.json();
+        updateUI();
+        document.getElementById('adStatus').innerText = '🎉 Offerwall: +' + amount + ' Coins credited!';
+        alert('🎉 Offerwall Reward: +' + amount + ' Coins!');
+        return true;
+      }
+      console.log('Offerwall credit response:', d);
+      if(user){ user.coins = (user.coins||0) + Math.floor(amount); updateUI(); alert('🎉 Offerwall: +' + Math.floor(amount) + ' Coins! (Add /api/offerwall-credit in index.js to make it permanent)'); }
+      return true;
+    }catch(e){
+      console.log('creditUserReward error', e);
+      if(user){ user.coins = (user.coins||0) + Math.floor(amount); updateUI(); }
+      return true;
+    }
+  }
+
+  // --- Offerwall Controls - All SDK methods you sent ---
+  function openOfferWall(){
+    if(window.gigaOfferWallSDK){ window.gigaOfferWallSDK.open(); }
+    else { alert('Offerwall still loading... wait 3 sec and try again.'); }
+  }
+  function closeOfferWall(){ if(window.gigaOfferWallSDK) window.gigaOfferWallSDK.close(); }
+  function openOffer(offerId){ if(window.gigaOfferWallSDK) window.gigaOfferWallSDK.openOffer(offerId); }
+  async function checkOffers(){
+    if(!window.gigaOfferWallSDK) return alert('Offerwall still loading...');
+    try{
+      var offers = await window.gigaOfferWallSDK.getOffers();
+      alert('Offers - Available: ' + offers.available + ' | Active: ' + offers.active);
+      console.log('Offers:', offers);
+    }catch(e){ alert('Could not fetch offers: ' + e.message); }
+  }
+  async function checkPendingRewards(){
+    if(!window.gigaOfferWallSDK) return;
+    try{
+      var pending = await window.gigaOfferWallSDK.pending();
+      console.log('Pending:', pending);
+      if(pending && pending.length){
+        alert('You have ' + pending.length + ' pending rewards! Claiming...');
+        for(var r of pending){ await creditUserReward(r.userId, r.amount); await window.gigaOfferWallSDK.confirmReward(r.rewardId, r.hash); }
+      } else { alert('No pending rewards.'); }
+    }catch(e){ console.log(e); }
+  }
+  async function checkMyRewards(){
+    if(!window.gigaOfferWallSDK) return;
+    try{
+      var rewards = await window.gigaOfferWallSDK.getRewards();
+      console.log('Rewards:', rewards);
+      alert('Total Rewards: ' + (rewards ? rewards.length : 0));
+    }catch(e){ console.log(e); }
+  }
+
+  // --- Ads: Giga + OnclickA ---
   async function triggerAdNetworks(){
     adClickCount++;
     var onclickaFirst = (adClickCount % 2 === 1);
     if(onclickaFirst){
       var ok = await tryOnclickA();
-      if(!ok) tryGiga();
+      if(!ok) await tryGiga();
     } else {
-      var gOk = tryGiga();
+      var gOk = await tryGiga();
       if(!gOk) await tryOnclickA();
     }
     return true;
@@ -54,15 +143,22 @@
       return false;
     }catch(e){ return false; }
   }
-  function tryGiga(){
+  async function tryGiga(){
     try{
-      if(window.giga){ window.giga(); return true; }
-      if(window.showGigaAd){ window.showGigaAd(); return true; }
-      document.dispatchEvent(new MouseEvent('click', {bubbles:true}));
-      document.getElementById('adNetworkLabel').innerText = 'Ad Network: Giga.pub ✅ • Click #' + adClickCount;
-      return gigaLoaded;
+      if(window.showGiga){
+        await window.showGiga();
+        document.getElementById('adNetworkLabel').innerText = 'Ad Network: Giga.pub ✅ • Click #' + adClickCount;
+        return true;
+      }
+      return false;
     }catch(e){ return false; }
   }
+
+  // Wire rewards-button after DOM loads
+  document.addEventListener('DOMContentLoaded', function(){
+    var btn = document.getElementById('rewards-button');
+    if(btn) btn.addEventListener('click', openOfferWall);
+  });
 </script>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
@@ -108,6 +204,9 @@
   .progress div{height:100%;background:#FFD700;transition:width .3s}
   .adbox{background:#222;border:1px dashed #FFD700;border-radius:12px;padding:10px;margin-top:12px;text-align:center;font-size:12px;color:#aaa}
   .adstatus{font-size:11px;color:#00ff88;margin-top:4px}
+  .offerbox{background:linear-gradient(135deg,#7b2fff,#00c6ff);border-radius:16px;padding:14px;margin-top:12px;color:#fff}
+  .offerbox button{background:#FFD700;color:#000;border:none;padding:12px;border-radius:10px;font-weight:900;width:100%;margin-top:8px}
+  .offerbox button.small{background:#222;color:#fff;border:1px solid #fff;padding:8px;font-size:12px}
 </style>
 </head>
 <body>
@@ -129,10 +228,24 @@
     <button class="bigbtn" id="watchBtn" onclick="watchAd()">▶️ WATCH AD & EARN</button>
     <p style="text-align:center;font-size:12px;color:#aaa;margin-top:8px" id="rateLine">You Earn: $0.01 per ad</p>
     <p id="adStatus" style="text-align:center;margin-top:6px;color:#0f0"></p>
-    <p id="adNetworkLabel" class="adstatus" style="text-align:center">Ad Network: Giga.pub + OnclickA (472254) • 50/50 Split</p>
+    <p id="adNetworkLabel" class="adstatus" style="text-align:center">Ad Network: Giga.pub (9114) + OnclickA (472254) • 50/50 Split</p>
   </div>
+
+  <!-- ===== OFFERWALL 9114 - ACTIVE ===== -->
+  <div class="offerbox">
+    <b>🎯 OFFERWALL - Earn More Coins</b>
+    <p style="font-size:13px;margin-top:4px">Complete offers, install apps, surveys → Get Coins → Convert to Cash. 1000 Coins = $1</p>
+    <button id="rewards-button" onclick="openOfferWall()">🎁 OPEN OFFERS & EARN COINS</button>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="small" style="flex:1" onclick="checkOffers()">Check Offers</button>
+      <button class="small" style="flex:1" onclick="checkPendingRewards()">Pending Rewards</button>
+      <button class="small" style="flex:1" onclick="closeOfferWall()">Close Wall</button>
+    </div>
+    <p style="font-size:11px;margin-top:6px">Powered by Giga Offerwall (9114 ACTIVE) • Rewards auto-credit</p>
+  </div>
+
   <div class="adbox" id="dualAdSlot">
-    📢 Advertisement • Giga.pub + OnclickA (472254) • Your click supports Shaya Watch
+    📢 Advertisement • Giga.pub (9114) + OnclickA (472254) • Your click supports Shaya Watch
     <div id="giga-container"></div>
     <div id="onclicka-container"></div>
   </div>
@@ -172,7 +285,6 @@
 <div id="page-invite" class="hidden"><div class="card"><h3>👥 INVITE FRIENDS</h3><p id="inviteReward" style="margin:8px 0">Reward per friend</p><p style="background:#222;padding:10px;border-radius:10px;word-break:break-all" id="inviteLink">Loading...</p><button class="bigbtn" onclick="copyLink()">📋 COPY LINK</button><button class="bigbtn" style="background:#25D366" onclick="shareWhatsApp()">📲 SHARE TO WHATSAPP</button></div></div>
 <div id="page-withdraw" class="hidden"><div class="card"><h3>💸 WITHDRAW</h3><p id="withdrawInfo" style="margin:8px 0">Min: $50 FREE / $20 VIP</p><p id="withdrawUSDTInfo" style="font-size:13px;color:#00ff88">Your balance in USDT: $0.00</p><select id="withdrawMethod" onchange="updateWithdrawInfo()"><option value="USDT TRC20">USDT TRC20</option><option value="Capitec">Capitec / Bank</option><option value="Airtime">Airtime</option><option value="PayPal">PayPal (USA)</option></select><input id="walletInput" placeholder="Enter Capitec / USDT Wallet / PayPal"><button class="bigbtn" onclick="requestWithdraw()">✅ REQUEST WITHDRAWAL</button><p id="withdrawStatus" style="margin-top:8px;color:#0f0"></p><p style="font-size:11px;color:#aaa;margin-top:8px" id="withdrawHint">FREE: $50 Min • VIP: $20 Min</p></div></div>
 
-<!-- VIDEO MODAL - FIXED: starts hidden with inline style + !important -->
 <div id="ytModal" class="modal hidden" style="display:none">
   <div class="modal-head"><span id="ytModalTitle" style="font-size:13px;flex:1;padding-right:8px">Playing...</span><button onclick="closeVideo()">✕ CLOSE</button></div>
   <iframe id="ytPlayer" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
@@ -184,7 +296,6 @@
 let userId = new URLSearchParams(window.location.search).get('start') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
 let user = null; let region='SA'; let currentYtType='trending'; let USDT_TO_ZAR=16.59; let currentVideo=null;
 if(window.Telegram?.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
-// Ensure modal is hidden on load - extra safety
 document.addEventListener('DOMContentLoaded', function(){ var m=document.getElementById('ytModal'); if(m){ m.classList.add('hidden'); m.style.display='none'; } });
 function saveToPhone(){ if(!user||!userId) return; try{ localStorage.setItem('shaya_backup_'+userId, JSON.stringify({balance:user.balance, coins:user.coins, total_ads:user.total_ads, referrals:user.referrals, streak:user.streak, region:user.region, vip_level:user.vip_level, total_earned:user.total_earned})); }catch(e){} }
 function getPhoneBackup(){ try{ return JSON.parse(localStorage.getItem('shaya_backup_'+userId)); }catch(e){ return null; } }
@@ -259,7 +370,7 @@ async function watchAd(){
   if(user && (user.dailyAds||0)>=limit){ alert(`❌ Daily limit reached! ${user.vip_level} = ${limit}/day. Upgrade to VIP for 20/day.`); return; }
   const btn=document.getElementById('watchBtn');
   btn.disabled=true; btn.innerText='⏳ Loading Ad... Please Watch';
-  document.getElementById('adStatus').innerText='Ad playing via Giga + OnclickA (472254)... please watch full ad';
+  document.getElementById('adStatus').innerText='Ad playing via Giga (9114) + OnclickA (472254)... please watch full ad';
   await triggerAdNetworks();
   setTimeout(async ()=>{
     const res=await fetch('/api/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId)})});
@@ -276,16 +387,10 @@ function shareWhatsApp(){ const link=document.getElementById('inviteLink').inner
 async function requestWithdraw(){ const method=document.getElementById('withdrawMethod').value; const wallet=document.getElementById('walletInput').value; if(!wallet) return alert('Enter your wallet first'); const res=await fetch('/api/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId),method,wallet})}); const d=await res.json(); document.getElementById('withdrawStatus').innerText=d.success?`✅ Request sent! ${d.usdtAmount?`USDT: $${d.usdtAmount.toFixed(2)} = R${d.zarAmount.toFixed(2)}`:''} Admin pays in 24h.`:d.error; if(d.success) loadUser(); }
 async function loadTasks(){ const res=await fetch('/api/tasks'); const tasks=await res.json(); document.getElementById('tasksList').innerHTML=tasks.map(t=>`<div class="task"><span>${t.title}<br><small>+${t.reward_cash} + ${t.reward_coins} Coins</small></span><button onclick="window.open('${t.link}')">Do</button></div>`).join(''); }
 async function loadLeaderboard(){ const res=await fetch('/api/leaderboard'); const list=await res.json(); document.getElementById('leaderboard').innerHTML=list.map((u,i)=>`<div class="leader"><span>${i+1}. ${u.first_name||u.username} (${u.region}) ${u.vip_level!=='FREE'?'👑':''}</span><span>${u.balance.toFixed(2)} + ${u.coins} Coins</span></div>`).join(''); }
-
-// ===== FIXED VIDEO PLAYER =====
 function openVideo(v){
   var vidId = v.id;
   if(typeof vidId === 'object' && vidId !== null) vidId = vidId.videoId;
-  if(!vidId || vidId === 'undefined'){
-    alert('Video ID missing - opening on YouTube instead.');
-    window.open(v.url || 'https://www.youtube.com', '_blank');
-    return;
-  }
+  if(!vidId || vidId === 'undefined'){ alert('Video ID missing - opening on YouTube instead.'); window.open(v.url || 'https://www.youtube.com', '_blank'); return; }
   currentVideo = v;
   document.getElementById('ytModalTitle').innerText = v.title || 'Playing...';
   var embedUrl = 'https://www.youtube.com/embed/' + vidId + '?autoplay=1&rel=0&playsinline=1';
