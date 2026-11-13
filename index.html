@@ -179,4 +179,260 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <div class="card"><b>🏆 LEADERBOARD</b><div id="leaderboard">Loading...</div></div>
 </div>
 
-<div id="page-invite" class="hidden"><div class="card"><h3>👥 INVITE FRIENDS</h3><p id="inviteReward" style="margin:8px 0">Reward per friend</p><p style="background:#222;padding:10px;border-radius:10px;word-break:break-all" id="
+<div id="page-invite" class="hidden"><div class="card"><h3>👥 INVITE FRIENDS</h3><p id="inviteReward" style="margin:8px 0">Reward per friend</p><p style="background:#222;padding:10px;border-radius:10px;word-break:break-all" id="inviteLink">Loading...</p><button class="bigbtn" onclick="copyLink()">📋 COPY LINK</button><button class="bigbtn" style="background:#25D366" onclick="shareWhatsApp()">📲 SHARE TO WHATSAPP</button></div></div>
+
+<!-- ===== WITHDRAW - WALT VERSION - NO PayPal, NO TRC20 ✅ ===== -->
+<div id="page-withdraw" class="hidden"><div class="card"><h3>💸 WITHDRAW</h3>
+<p id="withdrawInfo" style="margin:8px 0">Min: $50 FREE / $20 VIP</p>
+<p id="withdrawUSDTInfo" style="font-size:13px;color:#00ff88">Your balance in USDT: $0.00</p>
+
+<select id="withdrawMethod" onchange="updateWithdrawInfo()">
+<option value="Dollars (USDT) - Walt">💵 Dollars (USDT) - Walt</option>
+<option value="Gram - Walt">👛 Gram - Walt</option>
+<option value="Capitec / Bank">🏦 Capitec / Bank</option>
+<option value="Airtime">📱 Airtime</option>
+</select>
+
+<input id="walletInput" placeholder="Paste your Walt Dollars address - starts with UQ...">
+
+<div class="wallet-hint" id="withdrawHintBox">
+<b id="withdrawHintTitle">💵 Dollars (USDT) - Walt</b>
+<p id="withdrawHint" style="margin-top:4px">In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted).</p>
+</div>
+
+<button class="bigbtn" onclick="requestWithdraw()">✅ REQUEST WITHDRAWAL</button>
+<p id="withdrawStatus" style="margin-top:8px;color:#0f0"></p>
+<p style="font-size:11px;color:#aaa;margin-top:8px">FREE: $50 Min • VIP: $20 Min • Payouts via Walt - Dollars (USDT) / Gram</p>
+</div></div>
+
+<div id="ytModal" class="modal hidden" style="display:none">
+<div class="modal-head"><span id="ytModalTitle" style="font-size:13px;flex:1;padding-right:8px">Playing...</span><button onclick="closeVideo()">✕ CLOSE</button></div>
+<iframe id="ytPlayer" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
+<div style="padding:12px;background:#111;text-align:center"><button onclick="watchAdFromVideo()" style="background:#FFD700;border:none;padding:12px 18px;border-radius:10px;font-weight:900;width:100%">▶️ FINISH VIDEO & EARN</button><p style="font-size:11px;color:#aaa;margin-top:6px">Watch 5 sec in Mini App, then claim. FREE 10/day, VIP 20/day.</p></div>
+</div>
+
+<div class="nav"><div class="active" onclick="showPage('home')">🏠<br>Home</div><div onclick="showPage('invite')">👥<br>Invite</div><div onclick="showPage('withdraw')">💸<br>Withdraw</div></div>
+
+<script>
+let userId = new URLSearchParams(window.location.search).get('start') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+let user = null;
+let region='SA';
+let currentYtType='trending';
+let USDT_TO_ZAR=16.59;
+let currentVideo=null;
+if(window.Telegram?.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
+document.addEventListener('DOMContentLoaded', function(){ var m=document.getElementById('ytModal'); if(m){ m.classList.add('hidden'); m.style.display='none'; } });
+
+// ===== VIP WITH TELEGRAM STARS ⭐ - FIXED =====
+let selectedVipPlan = '';
+const VIP_STARS = { 'VIP': 250, 'VIP PRO': 500, 'VIP ELITE': 1000 };
+function buyVip(plan){
+  selectedVipPlan = plan;
+  const stars = VIP_STARS || 250;
+  const perAd = plan === 'VIP' ? '$0.025/ad' : plan === 'VIP PRO' ? '$0.05/ad' : '$0.10/ad';
+  const html = `
+  <div id="vipStarsModal" style="position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">
+    <div style="background:#1a1a1a;border:1px solid #FFD700;border-radius:16px;padding:18px;width:100%;max-width:400px;text-align:center">
+      <h3 style="color:#FFD700">👑 BUY ${plan}</h3>
+      <div style="font-size:48px;margin:10px 0">⭐</div>
+      <div style="font-size:28px;font-weight:900;color:#FFD700">${stars} Stars</div>
+      <p style="margin:8px 0;font-size:13px;color:#aaa">${perAd} • 20/day • $20 Min • 30 Days</p>
+      <p style="font-size:12px;background:#222;padding:10px;border-radius:10px">1. Tap PAY WITH STARS below<br>2. Bot will send you a Stars invoice in chat<br>3. Pay with Stars in Telegram<br>4. VIP activates AUTOMATICALLY</p>
+      <button onclick="payVipWithStars()" style="background:#FFD700;color:#000;border:none;width:100%;padding:14px;border-radius:12px;font-weight:900;margin-top:10px">⭐ PAY ${stars} STARS</button>
+      <button onclick="document.getElementById('vipStarsModal').remove()" style="background:#333;color:#fff;border:none;width:100%;padding:12px;border-radius:12px;margin-top:8px">Cancel</button>
+    </div>
+  </div>`;
+  document.body.insertAdjacentHTML('beforeend', html);
+}
+async function payVipWithStars(){
+  const plan = selectedVipPlan;
+  const stars = VIP_STARS || 250;
+  const modal = document.getElementById('vipStarsModal'); if(modal) modal.remove();
+  const res = await fetch('/api/vip-stars-invoice', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: parseInt(userId), plan }) });
+  const d = await res.json();
+  if(d.success){ alert(`✅ Check your Telegram chat!\nBot sent you an invoice for ${stars} ⭐ for ${plan}.\n\nTap PAY in the chat to pay with Stars.\nYour VIP will activate automatically after payment.`); try{ window.Telegram.WebApp.openTelegramLink('https://t.me/ShayaWatchAllBot'); }catch(e){} }
+  else { alert(d.error || 'Could not create Stars invoice. Make sure you pressed /start in @ShayaWatchAllBot first.'); }
+}
+function saveToPhone(){ if(!user||!userId) return; try{ localStorage.setItem('shaya_backup_'+userId, JSON.stringify({balance:user.balance, coins:user.coins, total_ads:user.total_ads, referrals:user.referrals, streak:user.streak, region:user.region, vip_level:user.vip_level, total_earned:user.total_earned})); }catch(e){} }
+function getPhoneBackup(){ try{ return JSON.parse(localStorage.getItem('shaya_backup_'+userId)); }catch(e){ return null; } }
+async function loadUser(){
+  if(!userId){ document.getElementById('balance').innerText='Open via Telegram Bot'; return; }
+  const backup=getPhoneBackup();
+  if(backup){ const cur=backup.region==='USA'?'$':'R'; document.getElementById('balance').innerText=`${cur}${backup.balance.toFixed(2)}`; region=backup.region||'SA'; }
+  try{
+    const res=await fetch(`/api/user/${userId}`); user=await res.json(); if(user.error) return;
+    region=user.region||region||'SA'; if(user.usdtToZar) USDT_TO_ZAR=user.usdtToZar;
+    if(backup && user.balance===0 && user.coins===0 && (backup.balance>0||backup.coins>0)){ await fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId),...backup})}); const r2=await fetch(`/api/user/${userId}`); user=await r2.json(); region=user.region||region; }
+    updateUI(); saveToPhone(); refreshRate(); loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans();
+  }catch(e){}
+}
+function updateUI(){
+  if(!user) return;
+  const perAd=user.perAd||{cash:0.01, coins:5, usd:0.01, dailyLimit:10, minWithdrawUSDT:50};
+  const dailyLimit=user.dailyLimit||perAd.dailyLimit||10;
+  const dailyAds=user.dailyAds||0;
+  const dailyLeft=user.dailyLeft!==undefined?user.dailyLeft:dailyLimit-dailyAds;
+  const minUSDT=user.minWithdrawUSDT||perAd.minWithdrawUSDT||50;
+  const minCash=region==='SA'?minUSDT*USDT_TO_ZAR:minUSDT;
+  document.getElementById('balance').innerText=`${user.currency}${user.balance.toFixed(2)}`;
+  document.getElementById('coins').innerText=`🪙 ${user.coins} Coins ($${(user.coins/1000).toFixed(2)}) • 1000 = $1`;
+  const usdtVal=region==='SA'?(user.balance/USDT_TO_ZAR).toFixed(4):user.balance.toFixed(4);
+  document.getElementById('usdtValue').innerText=`💱 = $${usdtVal} USDT (1 USDT = R${USDT_TO_ZAR.toFixed(2)} LIVE)`;
+  document.getElementById('statsLine').innerText=`Ads: ${user.total_ads} | Referrals: ${user.referrals} | Streak: ${user.streak} days`;
+  document.getElementById('vipBadge').innerText=user.vip_level;
+  document.getElementById('vipUntilLine').innerText=user.vip_until?`👑 ${user.vip_level} until ${user.vip_until} • $${perAd.usd}/ad • ${dailyLimit}/day`:`👑 FREE • $0.01/ad • 10/day • $50 Min`;
+  document.getElementById('rateLine').innerText=`You Earn: $${perAd.usd} (${user.currency}${perAd.cash.toFixed(2)}) + ${perAd.coins} Coins • ${dailyLimit}/day`;
+  document.getElementById('dailyLabel').innerText=`📺 Ads Today: ${dailyAds} / ${dailyLimit} (${user.vip_level})`;
+  document.getElementById('dailyBar').style.width=`${(dailyAds/dailyLimit*100)}%`;
+  document.getElementById('dailyBar').style.background=dailyAds>=dailyLimit?'#ff4444':'#FFD700';
+  document.getElementById('dailyLeftLabel').innerText=dailyAds>=dailyLimit?`❌ Limit reached! ${user.vip_level==='FREE'?'Upgrade to VIP for 20/day':'Come back tomorrow.'}`:`${dailyLeft} left today • Max $${(dailyLeft*perAd.usd).toFixed(2)} more today`;
+  document.getElementById('minWithdrawLabel').innerText=`Min Withdraw: $${minUSDT} USDT (${user.vip_level}) ${user.vip_level==='FREE'?'• Upgrade to VIP for $20 Min':''}`;
+  const btn=document.getElementById('watchBtn');
+  if(dailyAds>=dailyLimit){ btn.disabled=true; btn.innerText=`❌ DAILY LIMIT (${dailyAds}/${dailyLimit})`; } else { btn.disabled=false; btn.innerText='▶️ WATCH AD & EARN'; }
+  document.getElementById('inviteReward').innerText=region==='SA'?`Reward: $0.50 (R${(0.50*USDT_TO_ZAR).toFixed(2)}) + 50 Coins per friend`:`Reward: $0.10 + 10 Coins per friend`;
+  document.getElementById('withdrawInfo').innerText=`Min: $${minUSDT} USDT = ${region==='SA'?'R'+minCash.toFixed(2):'$'+minUSDT} (${user.vip_level})`;
+  document.getElementById('withdrawUSDTInfo').innerText=`Your balance in USDT: $${usdtVal} / $${minUSDT}.00 needed`;
+  document.getElementById('usdtRateLine').innerText=`Rate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)} • LIVE`;
+  document.getElementById('usdtExamples').innerText=`20 USDT = R${(20*USDT_TO_ZAR).toFixed(2)} • 50 USDT = R${(50*USDT_TO_ZAR).toFixed(2)} • $0.01 = R${(0.01*USDT_TO_ZAR).toFixed(2)}`;
+  document.getElementById('btnSA').className=region==='SA'?'active':'';
+  document.getElementById('btnUSA').className=region==='USA'?'active':'';
+  document.getElementById('ytTitle').innerText=region==='SA'?'🔥 TRENDING ON YOUTUBE - SA':'🔥 TRENDING ON YOUTUBE - USA';
+  document.getElementById('inviteLink').innerText=`https://t.me/ShayaWatchAllBot?start=ref_${userId}`;
+  saveToPhone();
+}
+async function loadVipPlans(){
+  try{
+    const res=await fetch(`/api/vip-plans?region=${region}`); const plans=await res.json();
+    const order=['VIP','VIP PRO','VIP ELITE'];
+    const emojis={'VIP':'👑','VIP PRO':'💎','VIP ELITE':'🔥'};
+    document.getElementById('vipPlansList').innerHTML=order.map(k=>{
+      const p=plans[k]; const isActive=user&&user.vip_level===k;
+      return `<div class="vipcard ${isActive?'active':''}"><b>${emojis[k]} ${k} ${isActive?'✅ ACTIVE':''}</b><br><small>$${p.perAdUSD}/ad • ${p.dailyLimit}/day • $${p.minWithdrawUSDT} Min • 30 Days</small><br><b>⭐ ${VIP_STARS[k]} Stars</b><br><small>${user?.currency||'R'}${p.price.toFixed(2)} ($${p.priceUSD}) value</small><br><button onclick="buyVip('${k}')" style="margin-top:6px">${isActive?'✅ YOUR PLAN':'⭐ BUY '+k+' - '+VIP_STARS[k]+' STARS'}</button></div>`;
+    }).join('');
+  }catch(e){}
+}
+async function refreshRate(){ try{ const res=await fetch('/api/rate'); const d=await res.json(); if(d.usdtToZar){ USDT_TO_ZAR=d.usdtToZar; convertUSDTInput(); if(user) updateUI(); } }catch(e){} }
+setInterval(refreshRate, 30*60*1000);
+async function convertUSDTInput(){
+  const usdt=parseFloat(document.getElementById('usdtInput').value||0);
+  if(usdt>0){ try{ const res=await fetch(`/api/convert-usdt?usdt=${usdt}`); const d=await res.json(); document.getElementById('usdtResult').innerText=`= R${d.zar} (Live)`; return; }catch(e){} }
+  document.getElementById('usdtResult').innerText=`= R${(usdt*USDT_TO_ZAR).toFixed(2)}`;
+}
+function setUSDT(v){ document.getElementById('usdtInput').value=v; convertUSDTInput(); }
+
+// ===== WITHDRAW - WALT VERSION ✅ =====
+function updateWithdrawInfo(){
+  const m=document.getElementById('withdrawMethod').value;
+  const minUSDT=user?.minWithdrawUSDT||50;
+  const minCash=region==='SA'?minUSDT*USDT_TO_ZAR:minUSDT;
+  const walletInput=document.getElementById('walletInput');
+  const hintEl=document.getElementById('withdrawHint');
+  const hintTitle=document.getElementById('withdrawHintTitle');
+  if(m === 'Dollars (USDT) - Walt'){
+    if(walletInput) walletInput.placeholder='Paste your Walt Dollars address - starts with UQ...';
+    if(hintTitle) hintTitle.innerText='💵 Dollars (USDT) - Walt';
+    if(hintEl) hintEl.innerText=`Min: $${minUSDT} USDT = ${region==='SA'?'R'+minCash.toFixed(2):'$'+minUSDT} • In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted).`;
+  } else if(m === 'Gram - Walt'){
+    if(walletInput) walletInput.placeholder='Paste your Walt Gram address - starts with UQ...';
+    if(hintTitle) hintTitle.innerText='👛 Gram - Walt';
+    if(hintEl) hintEl.innerText=`Min: $${minUSDT} • In Walt: Tap Gram > Deposit > Copy UQ... address. Payout sent as GRAM. Note: GRAM price changes, Dollars is stable.`;
+  } else if(m === 'Capitec / Bank'){
+    if(walletInput) walletInput.placeholder='Enter Capitec / Bank Account Number + Name';
+    if(hintTitle) hintTitle.innerText='🏦 Capitec / Bank';
+    if(hintEl) hintEl.innerText=`Min: $${minUSDT} USDT = ${region==='SA'?'R'+minCash.toFixed(2):'$'+minUSDT} • Bank transfer - slower than Walt`;
+  } else if(m === 'Airtime'){
+    if(walletInput) walletInput.placeholder='Enter Phone Number for Airtime e.g. 071...';
+    if(hintTitle) hintTitle.innerText='📱 Airtime';
+    if(hintEl) hintEl.innerText=`Min: $${minUSDT} USDT • Airtime payout to your number`;
+  }
+}
+async function setRegion(newRegion){
+  if(region===newRegion) return;
+  const oldBalance=user?user.balance:0; const oldRegion=region;
+  try{
+    const res=await fetch('/api/set-region',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId),region:newRegion})});
+    const d=await res.json(); if(d.success&&d.user){ user=d.user; region=newRegion; updateUI(); alert(`✅ Region: ${oldRegion} → ${newRegion}\nBalance: ${oldRegion==='SA'?'R':'$'}${oldBalance.toFixed(2)} → ${newRegion==='SA'?'R':'$'}${user.balance.toFixed(2)}`); }
+  }catch(e){ alert('Region change failed, try again'); }
+  loadVideos(currentYtType); loadVipPlans();
+}
+function showPage(p){
+  document.getElementById('page-home').classList.toggle('hidden',p!=='home');
+  document.getElementById('page-invite').classList.toggle('hidden',p!=='invite');
+  document.getElementById('page-withdraw').classList.toggle('hidden',p!=='withdraw');
+  if(p==='withdraw') updateWithdrawInfo();
+}
+async function watchAd(){
+  const limit = user?.dailyLimit || (user?.vip_level==='FREE'?10:20);
+  if(user && (user.dailyAds||0)>=limit){ alert(`❌ Daily limit reached! ${user.vip_level} = ${limit}/day. Upgrade to VIP for 20/day.`); return; }
+  const btn=document.getElementById('watchBtn'); btn.disabled=true; btn.innerText='⏳ Loading Ad... Please Watch';
+  document.getElementById('adStatus').innerText='Ad playing... please watch full ad';
+  await triggerAdNetworks();
+  setTimeout(async ()=>{
+    const res=await fetch('/api/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId)})});
+    const data=await res.json();
+    if(data.success){ const r2=await fetch(`/api/user/${userId}`); user=await r2.json(); if(user.usdtToZar) USDT_TO_ZAR=user.usdtToZar; updateUI(); loadVipPlans(); document.getElementById('adStatus').innerText=`✅ +$${data.earnedUSD} (${user.currency}${data.earnedCash.toFixed(2)}) + ${data.earnedCoins} Coins! Ads: ${data.dailyAds}/${data.dailyLimit} • ${data.dailyLeft} left`; }
+    else { document.getElementById('adStatus').innerText=data.error; if(data.dailyAds>=limit) updateUI(); }
+    if(!user || (user.dailyAds||0)<limit){ btn.disabled=false; btn.innerText='▶️ WATCH AD & EARN'; }
+  }, 5000);
+}
+async function claimDaily(){ const res=await fetch('/api/daily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId)})}); const d=await res.json(); alert(d.success?`🎁 Daily: +${user.currency}${d.bonusCash.toFixed(2)} + ${d.bonusCoins} Coins | Streak: ${d.streak}`:d.error); loadUser(); }
+async function convertCoins(){ const res=await fetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId)})}); const d=await res.json(); alert(d.success?`✅ Converted +${user.currency}${d.converted.toFixed(2)}`:d.error); loadUser(); }
+function copyLink(){ navigator.clipboard.writeText(document.getElementById('inviteLink').innerText); alert('Link copied!'); }
+function shareWhatsApp(){ const link=document.getElementById('inviteLink').innerText; window.open(`https://wa.me/?text=${encodeURIComponent('Join Shaya Watch! FREE $0.01/ad, VIP $0.025/ad! '+link)}`); }
+async function requestWithdraw(){
+  const method=document.getElementById('withdrawMethod').value;
+  const wallet=document.getElementById('walletInput').value.trim();
+  if(!wallet) return alert('Enter your wallet first');
+  if(method.toLowerCase().includes('paypal') || method.toLowerCase().includes('trc20')){ return alert('❌ PayPal and USDT TRC20 are REMOVED. Please select Dollars (USDT) - Walt.'); }
+  if(method === 'Dollars (USDT) - Walt' || method === 'Gram - Walt'){
+    if(!wallet.startsWith('UQ')){ return alert('❌ Wrong address!\n\nWalt addresses start with UQ...\nYou pasted: ' + wallet.slice(0,12) + '...\n\nTRC20 (T...) is NOT accepted.\nGo to Walt > Dollars > Deposit > Copy UQ... address.'); }
+    if(wallet.startsWith('T')){ return alert('❌ That is a TRC20 address (starts with T). Walt uses TON - must start with UQ...'); }
+  }
+  const res=await fetch('/api/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId),method,wallet})});
+  const d=await res.json();
+  document.getElementById('withdrawStatus').innerText=d.success?`✅ Request sent! ${d.usdtAmount?`USDT: $${d.usdtAmount.toFixed(2)} = R${d.zarAmount.toFixed(2)}`:''} Admin pays in 24h.`:d.error;
+  if(d.success) loadUser();
+}
+async function loadTasks(){ const res=await fetch('/api/tasks'); const tasks=await res.json(); document.getElementById('tasksList').innerHTML=tasks.map(t=>`<div class="task"><span>${t.title}<br><small>+${t.reward_cash} + ${t.reward_coins} Coins</small></span><button onclick="window.open('${t.link}')">Do</button></div>`).join(''); }
+async function loadLeaderboard(){ const res=await fetch('/api/leaderboard'); const list=await res.json(); document.getElementById('leaderboard').innerHTML=list.map((u,i)=>`<div class="leader"><span>${i+1}. ${u.first_name||u.username} (${u.region}) ${u.vip_level!=='FREE'?'👑':''}</span><span>${u.balance.toFixed(2)} + ${u.coins} Coins</span></div>`).join(''); }
+function openVideo(v){
+  var vidId = v.id; if(typeof vidId === 'object' && vidId !== null) vidId = vidId.videoId;
+  if(!vidId || vidId === 'undefined'){ alert('Video ID missing - opening on YouTube instead.'); window.open(v.url || 'https://www.youtube.com', '_blank'); return; }
+  currentVideo = v; document.getElementById('ytModalTitle').innerText = v.title || 'Playing...';
+  var embedUrl = 'https://www.youtube.com/embed/' + vidId + '?autoplay=1&rel=0&playsinline=1';
+  document.getElementById('ytPlayer').src = embedUrl;
+  var m = document.getElementById('ytModal'); m.classList.remove('hidden'); m.style.display = 'flex';
+}
+function closeVideo(){ document.getElementById('ytPlayer').src = ''; var m = document.getElementById('ytModal'); m.classList.add('hidden'); m.style.display = 'none'; }
+async function watchAdFromVideo(){ closeVideo(); await watchAd(); }
+function renderVideos(videos){
+  if(!videos || !videos.length){
+    videos = [
+      { id: 'dQw4w9WgXcQ', title: 'Amapiano Mix 2026 - Best of Amapiano', channel: 'Shaya Watch', thumb: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg', views: '1M', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
+      { id: 'kXYiU_JCYtU', title: 'Amapiano Hits - Kabza De Small x DJ Maphorisa', channel: 'Amapiano', thumb: 'https://i.ytimg.com/vi/kXYiU_JCYtU/mqdefault.jpg', views: '500K', url: 'https://www.youtube.com/watch?v=kXYiU_JCYtU' },
+      { id: 'LXb3EKWsInQ', title: 'Trending SA Music Video 2026', channel: 'SA Music', thumb: 'https://i.ytimg.com/vi/LXb3EKWsInQ/mqdefault.jpg', views: '800K', url: 'https://www.youtube.com/watch?v=LXb3EKWsInQ' },
+    ];
+    document.getElementById('ytList').innerHTML = '<p style="font-size:11px;color:#FFD700">⚠️ YouTube API Key missing - Showing fallback videos. Add YOUTUBE_API_KEY in Render to get live trending.</p>' + videos.map((v,i)=>`<div class="ytcard" onclick='openVideo(${JSON.stringify(v).replace(/'/g,"&#39;")})'><img src="${v.thumb}"><div><b style="font-size:13px">${v.title.slice(0,60)}</b><br><small>${v.channel} • ${v.views} views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>`).join('');
+    return;
+  }
+  document.getElementById('ytList').innerHTML = videos.map((v,i)=>{
+    var safeId = (typeof v.id === 'object' && v.id) ? v.id.videoId : v.id;
+    var safeV = { ...v, id: safeId };
+    return `<div class="ytcard" onclick='openVideo(${JSON.stringify(safeV).replace(/'/g,"&#39;")})'><img src="${v.thumb}"><div><b style="font-size:13px">${(v.title||'').slice(0,60)}</b><br><small>${v.channel} • ${v.views} views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>`;
+  }).join('');
+}
+async function loadVideos(type='trending'){
+  currentYtType=type;
+  document.getElementById('ytTrendingBtn').className=type==='trending'?'ytbtn active':'ytbtn';
+  document.getElementById('ytMusicBtn').className=type==='music'?'ytbtn active':'ytbtn';
+  document.getElementById('ytList').innerHTML='Loading videos...';
+  try{ const res=await fetch(`/api/videos/${type}?region=${region}`); const videos=await res.json(); renderVideos(videos); }catch(e){ renderVideos([]); }
+}
+async function searchVideos(){
+  const q=document.getElementById('ytSearch').value||(region==='SA'?'Amapiano':'Hip Hop');
+  try{ const res=await fetch(`/api/videos/search?q=${encodeURIComponent(q)}&region=${region}`); const videos=await res.json(); renderVideos(videos); }catch(e){ renderVideos([]); }
+}
+loadUser();
+</script>
+</body>
+</html>
