@@ -185,21 +185,17 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <div id="page-withdraw" class="hidden"><div class="card"><h3>💸 WITHDRAW</h3>
 <p id="withdrawInfo" style="margin:8px 0">Min: $50 FREE / $20 VIP</p>
 <p id="withdrawUSDTInfo" style="font-size:13px;color:#00ff88">Your balance in USDT: $0.00</p>
-
 <select id="withdrawMethod" onchange="updateWithdrawInfo()">
 <option value="Dollars (USDT) - Walt">💵 Dollars (USDT) - Walt</option>
 <option value="Gram - Walt">👛 Gram - Walt</option>
 <option value="Capitec / Bank">🏦 Capitec / Bank</option>
 <option value="Airtime">📱 Airtime</option>
 </select>
-
 <input id="walletInput" placeholder="Paste your Walt Dollars address - starts with UQ...">
-
 <div class="wallet-hint" id="withdrawHintBox">
 <b id="withdrawHintTitle">💵 Dollars (USDT) - Walt</b>
 <p id="withdrawHint" style="margin-top:4px">In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted).</p>
 </div>
-
 <button class="bigbtn" onclick="requestWithdraw()">✅ REQUEST WITHDRAWAL</button>
 <p id="withdrawStatus" style="margin-top:8px;color:#0f0"></p>
 <p style="font-size:11px;color:#aaa;margin-top:8px">FREE: $50 Min • VIP: $20 Min • Payouts via Walt - Dollars (USDT) / Gram</p>
@@ -214,7 +210,18 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <div class="nav"><div class="active" onclick="showPage('home')">🏠<br>Home</div><div onclick="showPage('invite')">👥<br>Invite</div><div onclick="showPage('withdraw')">💸<br>Withdraw</div></div>
 
 <script>
-let userId = new URLSearchParams(window.location.search).get('start') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+// ===== FIXED LINE 1 - userId + Chrome warning ✅ =====
+let userId = new URLSearchParams(window.location.search).get('start') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || new URLSearchParams(window.location.search).get('user_id');
+
+// If opened in browser, not in Telegram - show fix
+if(!userId){
+  document.addEventListener('DOMContentLoaded', ()=>{
+    document.getElementById('balance').innerHTML = '<a href="https://t.me/ShayaWatchAllBot" style="color:#FFD700;font-size:18px;text-decoration:none">👉 TAP HERE TO OPEN IN TELEGRAM BOT</a>';
+    document.getElementById('ytList').innerHTML = '⚠️ Open via @ShayaWatchAllBot - not in Chrome';
+    document.getElementById('tasksList').innerHTML = '⚠️ Open via @ShayaWatchAllBot';
+    document.getElementById('leaderboard').innerHTML = '⚠️ Open via @ShayaWatchAllBot';
+  });
+}
 let user = null;
 let region='SA';
 let currentYtType='trending';
@@ -255,8 +262,15 @@ async function payVipWithStars(){
 }
 function saveToPhone(){ if(!user||!userId) return; try{ localStorage.setItem('shaya_backup_'+userId, JSON.stringify({balance:user.balance, coins:user.coins, total_ads:user.total_ads, referrals:user.referrals, streak:user.streak, region:user.region, vip_level:user.vip_level, total_earned:user.total_earned})); }catch(e){} }
 function getPhoneBackup(){ try{ return JSON.parse(localStorage.getItem('shaya_backup_'+userId)); }catch(e){ return null; } }
+
+// ===== FIXED LINE 2 - loadUser still loads public stuff in Chrome ✅ =====
 async function loadUser(){
-  if(!userId){ document.getElementById('balance').innerText='Open via Telegram Bot'; return; }
+  if(!userId){
+    document.getElementById('balance').innerText='Open via Telegram Bot';
+    // Still load public stuff even without login
+    loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans();
+    return;
+  }
   const backup=getPhoneBackup();
   if(backup){ const cur=backup.region==='USA'?'$':'R'; document.getElementById('balance').innerText=`${cur}${backup.balance.toFixed(2)}`; region=backup.region||'SA'; }
   try{
