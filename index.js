@@ -2,16 +2,14 @@
 // Giga Ad 9114 + Giga Offerwall 9114 + OnclickA 472254
 // VIP with Telegram Stars ⭐ - 250 / 500 / 1000 Stars - Auto-Activate
 // FIXED: Stars invoice via fetch() - amount forced to Number
-
+// FIXED: Withdraw = Dollars (USDT) - Walt + Gram - Walt - NO PayPal, NO TRC20
 const express = require('express');
 const path = require('path');
 const { Telegraf } = require('telegraf');
-
 const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
-
 const PORT = process.env.PORT || 3000;
 const BOT_TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '';
 const WEBAPP_URL = process.env.WEBAPP_URL || 'https://shaya-watch-all.onrender.com';
@@ -27,9 +25,7 @@ try {
     const { createClient } = require('@supabase/supabase-js');
     supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
     console.log('Supabase connected');
-  } else {
-    console.log('Supabase NOT set - using memory storage');
-  }
+  } else { console.log('Supabase NOT set - using memory storage'); }
 } catch (e) { console.log('Supabase init failed, using memory', e.message); }
 
 // ===== MEMORY STORAGE =====
@@ -47,10 +43,8 @@ const tasksList = [
 // ===== BOT - DEFINED EARLY so routes can use it =====
 let bot = null;
 if (BOT_TOKEN) {
-  try {
-    bot = new Telegraf(BOT_TOKEN);
-    console.log('Bot object created');
-  } catch (e) { console.log('Bot create failed', e.message); }
+  try { bot = new Telegraf(BOT_TOKEN); console.log('Bot object created'); }
+  catch (e) { console.log('Bot create failed', e.message); }
 }
 
 // ===== CONFIG =====
@@ -64,11 +58,7 @@ async function refreshRate() {
   try {
     const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
     const d = await res.json();
-    if (d && d.rates && d.rates.ZAR) {
-      USDT_TO_ZAR = parseFloat(d.rates.ZAR);
-      lastRateFetch = now;
-      console.log('Rate updated: 1 USDT = R' + USDT_TO_ZAR);
-    }
+    if (d && d.rates && d.rates.ZAR) { USDT_TO_ZAR = parseFloat(d.rates.ZAR); lastRateFetch = now; console.log('Rate updated: 1 USDT = R' + USDT_TO_ZAR); }
   } catch (e) { console.log('Rate fetch failed, using cached', USDT_TO_ZAR); }
   return USDT_TO_ZAR;
 }
@@ -108,37 +98,20 @@ async function sbInsert(table, row) {
   if (!supabase) return;
   try { await supabase.from(table).insert(row); } catch (e) { console.log('sb insert', table, 'failed', e.message); }
 }
-
 async function getUser(user_id) {
   user_id = parseInt(user_id);
   if (users.has(user_id)) return users.get(user_id);
   const sb = await sbGetUser(user_id);
   if (sb) {
-    const mapped = {
-      user_id: sb.user_id, username: sb.username || '', first_name: sb.first_name || '',
-      region: sb.region || 'SA', currency: sb.region === 'USA' ? '$' : 'R',
-      balance: parseFloat(sb.balance || 0), coins: parseInt(sb.coins || 0),
-      total_ads: parseInt(sb.total_ads || 0), referrals: parseInt(sb.referrals || 0),
-      streak: parseInt(sb.streak || 0), vip_level: sb.vip_level || 'FREE', vip_until: sb.vip_until || null,
-      total_earned: parseFloat(sb.total_earned || 0),
-      dailyAds: 0, dailyDate: todayStr(), lastDaily: sb.last_daily || null, referred_by: sb.referred_by || null
-    };
-    users.set(user_id, mapped);
-    return mapped;
+    const mapped = { user_id: sb.user_id, username: sb.username || '', first_name: sb.first_name || '', region: sb.region || 'SA', currency: sb.region === 'USA' ? '$' : 'R', balance: parseFloat(sb.balance || 0), coins: parseInt(sb.coins || 0), total_ads: parseInt(sb.total_ads || 0), referrals: parseInt(sb.referrals || 0), streak: parseInt(sb.streak || 0), vip_level: sb.vip_level || 'FREE', vip_until: sb.vip_until || null, total_earned: parseFloat(sb.total_earned || 0), dailyAds: 0, dailyDate: todayStr(), lastDaily: sb.last_daily || null, referred_by: sb.referred_by || null };
+    users.set(user_id, mapped); return mapped;
   }
   return null;
 }
 async function createUser(user_id, data = {}) {
   user_id = parseInt(user_id);
   const region = data.region || 'SA';
-  const u = {
-    user_id, username: data.username || '', first_name: data.first_name || '',
-    region, currency: region === 'USA' ? '$' : 'R',
-    balance: 0, coins: 0, total_ads: 0, referrals: 0, streak: 0,
-    vip_level: 'FREE', vip_until: null, total_earned: 0,
-    dailyAds: 0, dailyDate: todayStr(), lastDaily: null,
-    referred_by: data.referred_by || null
-  };
+  const u = { user_id, username: data.username || '', first_name: data.first_name || '', region, currency: region === 'USA' ? '$' : 'R', balance: 0, coins: 0, total_ads: 0, referrals: 0, streak: 0, vip_level: 'FREE', vip_until: null, total_earned: 0, dailyAds: 0, dailyDate: todayStr(), lastDaily: null, referred_by: data.referred_by || null };
   users.set(user_id, u);
   await sbUpsertUser({ user_id: u.user_id, username: u.username, first_name: u.first_name, region: u.region, balance: u.balance, coins: u.coins, total_ads: u.total_ads, referrals: u.referrals, streak: u.streak, vip_level: u.vip_level, vip_until: u.vip_until, total_earned: u.total_earned, referred_by: u.referred_by });
   if (data.referred_by && parseInt(data.referred_by) !== user_id) {
@@ -158,17 +131,13 @@ async function updateUser(user_id, patch) {
   let u = users.get(user_id);
   if (!u) u = await getUser(user_id);
   if (!u) return null;
-  Object.assign(u, patch);
-  users.set(user_id, u);
+  Object.assign(u, patch); users.set(user_id, u);
   await sbUpsertUser({ user_id: u.user_id, username: u.username, first_name: u.first_name, region: u.region, balance: u.balance, coins: u.coins, total_ads: u.total_ads, referrals: u.referrals, streak: u.streak, vip_level: u.vip_level, vip_until: u.vip_until, total_earned: u.total_earned, referred_by: u.referred_by, last_daily: u.lastDaily });
   return u;
 }
 function formatUserForFrontend(u) {
   if (u.dailyDate !== todayStr()) { u.dailyAds = 0; u.dailyDate = todayStr(); }
-  if (u.vip_level !== 'FREE' && u.vip_until) {
-    const until = new Date(u.vip_until);
-    if (until < new Date()) { u.vip_level = 'FREE'; u.vip_until = null; }
-  }
+  if (u.vip_level !== 'FREE' && u.vip_until) { const until = new Date(u.vip_until); if (until < new Date()) { u.vip_level = 'FREE'; u.vip_until = null; } }
   const perAd = getPerAd(u);
   const dailyLimit = perAd.dailyLimit;
   const dailyAds = u.dailyAds || 0;
@@ -179,7 +148,7 @@ function formatUserForFrontend(u) {
 
 // ===== API ROUTES =====
 app.get('/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
-app.get('/api/version', (req, res) => res.json({ version: 'fetch-stars-v3', time: new Date().toISOString() }));
+app.get('/api/version', (req, res) => res.json({ version: 'walt-dollars-v4', time: new Date().toISOString() }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/api/rate', async (req, res) => { const rate = await refreshRate(); res.json({ usdtToZar: rate, usdt: 1, zar: rate }); });
 app.get('/api/convert-usdt', async (req, res) => { const usdt = parseFloat(req.query.usdt || 0); const rate = await refreshRate(); res.json({ usdt, zar: (usdt * rate).toFixed(2), rate }); });
@@ -207,7 +176,8 @@ app.post('/api/set-region', async (req, res) => {
   if (!u) return res.json({ error: 'user not found' });
   if (u.region === region) return res.json({ success: true, user: formatUserForFrontend(u) });
   const rate = await refreshRate();
-  const oldRegion = u.region; const oldBalance = u.balance; let newBalance = oldBalance;
+  const oldRegion = u.region; const oldBalance = u.balance;
+  let newBalance = oldBalance;
   if (oldRegion === 'SA' && region === 'USA') newBalance = oldBalance / rate;
   else if (oldRegion === 'USA' && region === 'SA') newBalance = oldBalance * rate;
   const updated = await updateUser(parseInt(user_id), { region, currency: region === 'USA' ? '$' : 'R', balance: parseFloat(newBalance.toFixed(2)) });
@@ -243,25 +213,78 @@ app.post('/api/convert', async (req, res) => {
   const updated = await updateUser(parseInt(user_id), { balance: parseFloat((u.balance + cashValue).toFixed(2)), coins: u.coins - (thousands * 1000), total_earned: parseFloat(((u.total_earned || 0) + cashValue).toFixed(2)) });
   res.json({ success: true, converted: parseFloat(cashValue.toFixed(2)), balance: updated.balance });
 });
+
+// ===== WITHDRAW - WALT VERSION - NO PayPal, NO TRC20 ✅ =====
 app.post('/api/withdraw', async (req, res) => {
   const { user_id, method, wallet } = req.body;
   let u = await getUser(parseInt(user_id));
   if (!u) return res.json({ error: 'user not found' });
+
+  // Normalize old method names -> new Walt names
+  let cleanMethod = (method || '').trim();
+  if (cleanMethod === 'USDT TRC20' || cleanMethod.toLowerCase().includes('trc20')) {
+    return res.json({ error: '❌ USDT TRC20 is REMOVED. Please select Dollars (USDT) - Walt. TRC20 address (T...) is NOT accepted.' });
+  }
+  if (cleanMethod.toLowerCase().includes('paypal')) {
+    return res.json({ error: '❌ PayPal is REMOVED. Please select Dollars (USDT) - Walt, Gram - Walt, Capitec / Bank or Airtime.' });
+  }
+  // Map legacy names if frontend is old
+  if (cleanMethod === 'USDT (TON) - Telegram Wallet' || cleanMethod === 'Telegram Wallet') cleanMethod = 'Dollars (USDT) - Walt';
+  if (cleanMethod === 'Gram Wallet (TON)' || cleanMethod === 'Gram Wallet') cleanMethod = 'Gram - Walt';
+  if (!cleanMethod) cleanMethod = 'Dollars (USDT) - Walt';
+
   const perAd = getPerAd(u);
   const minUSDT = perAd.minWithdrawUSDT;
   const minCash = u.region === 'SA' ? minUSDT * USDT_TO_ZAR : minUSDT;
   if (u.balance < minCash) return res.json({ error: `Min withdraw is $${minUSDT} USDT (${u.currency}${minCash.toFixed(2)}). You have ${u.currency}${u.balance.toFixed(2)}.` });
-  if (!wallet || wallet.length < 4) return res.json({ error: 'Enter your wallet / bank details' });
+  if (!wallet || wallet.trim().length < 4) return res.json({ error: 'Enter your wallet / bank details' });
+
+  const walletTrim = wallet.trim();
+  // Walt validation - Must be UQ... (TON)
+  if (cleanMethod === 'Dollars (USDT) - Walt' || cleanMethod === 'Gram - Walt') {
+    if (!walletTrim.startsWith('UQ')) {
+      return res.json({ error: '❌ Wrong address! Walt addresses start with UQ... You pasted a T... (TRC20) address. Go to Walt > Dollars > Deposit > Copy UQ... address.' });
+    }
+  }
+  // Extra block: Never accept T... TRC20 as Walt
+  if (walletTrim.startsWith('T') && (cleanMethod.includes('Walt') || cleanMethod.includes('Dollars') || cleanMethod.includes('Gram'))) {
+    return res.json({ error: '❌ That is a TRC20 address (starts with T). Walt uses TON - must start with UQ...' });
+  }
+
   const usdtAmount = u.region === 'SA' ? (u.balance / USDT_TO_ZAR) : u.balance;
   const zarAmount = u.region === 'SA' ? u.balance : u.balance * USDT_TO_ZAR;
-  const w = { id: withdrawals.length + 1, user_id: parseInt(user_id), username: u.username, first_name: u.first_name, method: method || 'USDT TRC20', wallet, amountCash: parseFloat(u.balance.toFixed(2)), usdtAmount: parseFloat(usdtAmount.toFixed(2)), zarAmount: parseFloat(zarAmount.toFixed(2)), region: u.region, vip_level: u.vip_level, status: 'pending', created_at: new Date().toISOString() };
+  const w = { id: withdrawals.length + 1, user_id: parseInt(user_id), username: u.username, first_name: u.first_name, method: cleanMethod, wallet: walletTrim, amountCash: parseFloat(u.balance.toFixed(2)), usdtAmount: parseFloat(usdtAmount.toFixed(2)), zarAmount: parseFloat(zarAmount.toFixed(2)), region: u.region, vip_level: u.vip_level, status: 'pending', created_at: new Date().toISOString() };
   withdrawals.push(w);
   await sbInsert('withdrawals', w);
   await updateUser(parseInt(user_id), { balance: 0 });
-  try { if (bot && ADMIN_ID) bot.telegram.sendMessage(ADMIN_ID, `💸 NEW WITHDRAW\nUser: ${u.first_name} (@${u.username}) ID: ${u.user_id}\nAmount: ${u.currency}${w.amountCash} = $${w.usdtAmount} USDT = R${w.zarAmount}\nMethod: ${w.method}\nWallet: ${wallet}`); } catch (e) {}
+  try {
+    if (bot && ADMIN_ID) bot.telegram.sendMessage(ADMIN_ID, `💸 NEW WITHDRAW - WALT\nUser: ${u.first_name} (@${u.username}) ID: ${u.user_id}\nAmount: ${u.currency}${w.amountCash} = $${w.usdtAmount} USDT = R${w.zarAmount}\nMethod: ${w.method}\nWallet: ${walletTrim}\n⚠️ Send on TON network only - Walt address must start with UQ...\n${w.method.includes('Dollars') ? 'Send USDT (Dollars) on TON' : w.method.includes('Gram') ? 'Send GRAM on TON' : ''}`);
+  } catch (e) {}
   res.json({ success: true, usdtAmount: w.usdtAmount, zarAmount: w.zarAmount });
 });
+
 app.get('/api/vip-plans', async (req, res) => { res.json(getVipPlans(req.query.region || 'SA')); });
+
+// ===== VIP STARS INVOICE - FIXED - amount forced to Number =====
+app.post('/api/vip-stars-invoice', async (req, res) => {
+  try {
+    const { user_id, plan } = req.body;
+    let u = await getUser(parseInt(user_id));
+    if (!u) return res.json({ error: 'user not found - send /start in bot first' });
+    if (!VIP_STARS_MAP) return res.json({ error: 'Invalid plan' });
+    const stars = Number(VIP_STARS_MAP); // ✅ FIXED: Must be Number, not object/string
+    if (!bot) return res.json({ error: 'Bot not configured' });
+    const title = `Shaya Watch - ${plan} VIP (30 Days)`;
+    const desc = `${plan} - $${getVipPlans(u.region).perAdUSD}/ad • 20/day • $20 Min • 30 Days`;
+    // Telegram Stars invoice - payload must contain user_id + plan
+    await bot.telegram.sendInvoice(parseInt(user_id), title, desc, `vip_${plan}_${user_id}_${Date.now()}`, 'XTR', [{ label: `${plan} VIP`, amount: stars }]);
+    res.json({ success: true, stars, plan });
+  } catch (e) {
+    console.log('vip-stars-invoice error', e.message);
+    res.json({ error: 'Could not create Stars invoice: ' + e.message });
+  }
+});
+
 app.post('/api/request-vip', async (req, res) => {
   const { user_id, plan, method, proof } = req.body;
   let u = await getUser(parseInt(user_id));
@@ -269,8 +292,7 @@ app.post('/api/request-vip', async (req, res) => {
   const p = getVipPlans(u.region);
   if (!p) return res.json({ error: 'Invalid plan' });
   const reqObj = { id: vipRequests.length + 1, user_id: parseInt(user_id), username: u.username, first_name: u.first_name, plan, price: p.price, priceUSD: p.priceUSD, region: u.region, method: method || 'Stars', proof: proof || '', status: 'pending', created_at: new Date().toISOString() };
-  vipRequests.push(reqObj);
-  await sbInsert('vip_requests', reqObj);
+  vipRequests.push(reqObj); await sbInsert('vip_requests', reqObj);
   res.json({ success: true, price: p.price, plan });
 });
 app.get('/api/tasks', (req, res) => res.json(tasksList));
@@ -303,128 +325,65 @@ app.get('/api/videos/music', async (req, res) => { const region = req.query.regi
 app.get('/api/videos/search', async (req, res) => { res.json(await fetchYouTube(req.query.q || 'Amapiano', req.query.region || 'SA')); });
 app.get('/api/admin/pending', (req, res) => { res.json({ withdrawals: withdrawals.filter(w => w.status === 'pending'), vipRequests: vipRequests.filter(v => v.status === 'pending') }); });
 
-// ===== VIP WITH TELEGRAM STARS ⭐ - VIA FETCH - FORCED NUMBER =====
-app.post('/api/vip-stars-invoice', async (req, res) => {
-  const { user_id, plan } = req.body;
-  console.log('VIP invoice request:', user_id, plan, typeof plan);
-  let u = await getUser(parseInt(user_id));
-  if (!u) return res.json({ error: 'user not found - send /start in bot first' });
-  if (!BOT_TOKEN) return res.json({ error: 'Bot not connected' });
-  try {
-    const planClean = String(plan || 'VIP').trim();
-    // ✅ FORCE NUMBER - This is the fix for "amount must be a Number"
-    const starsRaw = VIP_STARS_MAP[planClean];
-    const stars = Math.floor(Number(starsRaw || 250));
-    console.log('Plan:', planClean, 'Stars raw:', starsRaw, 'Stars final:', stars, 'Type:', typeof stars);
-    if (!Number.isInteger(stars) || stars <= 0) {
-      return res.json({ error: 'Invalid stars amount: ' + stars });
-    }
-    const perAdText = planClean === 'VIP' ? '$0.025' : planClean === 'VIP PRO' ? '$0.05' : '$0.10';
-    const payload = `vip_${planClean}_${user_id}_${Date.now()}`;
-
-    const bodyToSend = {
-      chat_id: parseInt(user_id),
-      title: `Shaya Watch ${planClean}`,
-      description: `${planClean} - 30 Days - ${perAdText}/ad - 20/day - $20 Min Withdraw`,
-      payload: payload,
-      provider_token: '',
-      currency: 'XTR',
-      prices: [{ label: `${planClean} - 30 Days`, amount: stars }],
-      start_parameter: `vip_${planClean}`
-    };
-    console.log('Sending to Telegram:', JSON.stringify(bodyToSend));
-
-    const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendInvoice`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(bodyToSend)
-    });
-    const tgData = await tgRes.json();
-    console.log('Telegram reply:', JSON.stringify(tgData));
-    if (!tgData.ok) {
-      return res.json({ error: 'Could not send invoice. Make sure you pressed /start in @ShayaWatchAllBot first. Error: ' + (tgData.description || 'Telegram error') });
-    }
-    console.log(`Stars invoice sent: ${user_id} ${planClean} ${stars} ⭐`);
-    res.json({ success: true, stars, plan: planClean });
-  } catch (e) {
-    console.log('Stars invoice failed', e.message);
-    res.json({ error: 'Could not send invoice. Error: ' + e.message });
-  }
-});
-
-// ===== TELEGRAM BOT HANDLERS =====
+// ===== BOT HANDLERS =====
 if (bot) {
   bot.start(async (ctx) => {
-    const user_id = ctx.from.id;
-    const payload = ctx.startPayload || '';
-    let referred_by = null;
-    if (payload.startsWith('ref_')) referred_by = payload.replace('ref_', '');
-    let u = await getUser(user_id);
-    if (!u) u = await createUser(user_id, { username: ctx.from.username || '', first_name: ctx.from.first_name || '', referred_by: referred_by ? parseInt(referred_by) : null });
-    const rate = await refreshRate();
-    await ctx.replyWithMarkdown(`👋 Welcome to *SHAYA WATCH* ${u.first_name}!\n\n🔥 *EARN PLANS*\n• FREE: $0.01/ad • 10/day • $50 Min\n• VIP: $0.025/ad • 20/day • $20 Min • 250 ⭐\n• VIP PRO: $0.05/ad • 20/day • $20 Min • 500 ⭐\n• VIP ELITE: $0.10/ad • 20/day • $20 Min • 1000 ⭐\n\n💱 1 USDT = R${rate.toFixed(2)} LIVE\n\nTap below to open the app 👇`, {
-      reply_markup: { inline_keyboard: [[{ text: '🚀 OPEN SHAYA WATCH', web_app: { url: WEBAPP_URL } }]] }
-    });
+    try {
+      const userId = ctx.from.id;
+      const payload = ctx.startPayload || '';
+      let referred_by = null;
+      if (payload && payload.startsWith('ref_')) referred_by = payload.replace('ref_', '');
+      let u = await getUser(userId);
+      if (!u) u = await createUser(userId, { username: ctx.from.username || '', first_name: ctx.from.first_name || '', referred_by });
+      else if (ctx.from.username) await updateUser(userId, { username: ctx.from.username, first_name: ctx.from.first_name || u.first_name });
+      await ctx.reply(`👋 Welcome to *Shaya Watch*!\n\n💰 Earn $0.01 per ad (FREE) • $0.025-$0.10 VIP\n🎁 Daily Bonus • 👥 Invite = $0.50\n💸 Withdraw via *Walt - Dollars (USDT)*\n\nTap below to open the app:`, {
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: [[{ text: '▶️ OPEN SHAYA WATCH', web_app: { url: WEBAPP_URL } }]] }
+      });
+    } catch (e) { console.log('start error', e.message); }
   });
+
   bot.command('balance', async (ctx) => {
-    let u = await getUser(ctx.from.id);
+    const u = await getUser(ctx.from.id);
     if (!u) return ctx.reply('Send /start first');
     const f = formatUserForFrontend(u);
-    ctx.reply(`💰 Balance: ${f.currency}${f.balance.toFixed(2)} = $${f.usdtBalance} USDT\n🪙 Coins: ${f.coins}\n📺 Ads Today: ${f.dailyAds}/${f.dailyLimit}\n👑 VIP: ${f.vip_level}`);
+    ctx.reply(`💰 Balance: ${f.currency}${f.balance.toFixed(2)} = $${f.usdtBalance} USDT\n🪙 Coins: ${f.coins}\n👑 ${f.vip_level} • Ads Today: ${f.dailyAds}/${f.dailyLimit}`);
   });
-  bot.command('approvevip', async (ctx) => {
-    if (ctx.from.id !== ADMIN_ID) return ctx.reply('Admin only');
-    const parts = ctx.message.text.split(' ');
-    const targetId = parseInt(parts[1]);
-    const planName = parts.slice(2).join(' ') || 'VIP';
-    let u = await getUser(targetId);
-    if (!u) return ctx.reply('User not found');
-    const until = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    await updateUser(targetId, { vip_level: planName, vip_until: until });
-    ctx.reply(`✅ Approved ${planName} for ${u.first_name} (${targetId}) until ${until}`);
-    try { await ctx.telegram.sendMessage(targetId, `🎉 Your ${planName} is ACTIVE until ${until}!`); } catch (e) {}
+
+  // Stars pre-checkout - MUST approve
+  bot.on('pre_checkout_query', async (ctx) => {
+    try { await ctx.answerPreCheckoutQuery(true); } catch (e) { console.log('pre_checkout error', e.message); }
   });
-  bot.command('paywithdraw', async (ctx) => {
-    if (ctx.from.id !== ADMIN_ID) return ctx.reply('Admin only');
-    const id = parseInt(ctx.message.text.split(' ')[1]);
-    const w = withdrawals.find(x => x.id === id);
-    if (!w) return ctx.reply('Withdraw not found');
-    w.status = 'paid';
-    ctx.reply(`✅ Marked withdraw #${id} as PAID`);
-    try { await ctx.telegram.sendMessage(w.user_id, `✅ Your withdraw of $${w.usdtAmount} USDT has been PAID!`); } catch (e) {}
-  });
-  bot.command('stats', async (ctx) => {
-    if (ctx.from.id !== ADMIN_ID) return;
-    ctx.reply(`📊 STATS\nUsers: ${users.size}\nWithdraws Paid: ${withdrawals.filter(w => w.status === 'paid').length}\nPending: ${withdrawals.filter(w => w.status === 'pending').length}\nRate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}`);
-  });
-  bot.on('pre_checkout_query', async (ctx) => { try { await ctx.answerPreCheckoutQuery(true); } catch (e) {} });
+
+  // Stars successful payment - Auto-activate VIP
   bot.on('successful_payment', async (ctx) => {
-    const pay = ctx.message.successful_payment;
-    const payload = pay.invoice_payload || '';
-    let plan = 'VIP';
-    if (payload.includes('VIP PRO')) plan = 'VIP PRO';
-    else if (payload.includes('VIP ELITE')) plan = 'VIP ELITE';
-    else if (payload.includes('VIP')) plan = 'VIP';
-    const user_id = ctx.from.id;
-    const starsPaid = pay.total_amount;
-    const until = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    let u = await getUser(user_id);
-    if (!u) u = await createUser(user_id, { username: ctx.from.username || '', first_name: ctx.from.first_name || '' });
-    await updateUser(user_id, { vip_level: plan, vip_until: until });
-    console.log(`⭐ STARS PAID: ${user_id} ${plan} ${starsPaid} Stars - Activated until ${until}`);
-    await ctx.reply(`🎉 VIP ACTIVATED!\n\n👑 Plan: ${plan}\n⭐ Paid: ${starsPaid} Stars\n📅 Until: ${until}\n\nGo back to the app and refresh!`, { reply_markup: { inline_keyboard: [[{ text: '🚀 OPEN SHAYA WATCH', web_app: { url: WEBAPP_URL } }]] } });
-    if (ADMIN_ID) { try { await ctx.telegram.sendMessage(ADMIN_ID, `⭐ STARS RECEIVED!\nUser: ${ctx.from.first_name} (@${ctx.from.username}) ID: ${user_id}\nPlan: ${plan}\nStars: ${starsPaid} ⭐\nUntil: ${until}`); } catch (e) {} }
+    try {
+      const payload = ctx.message.successful_payment.invoice_payload || '';
+      // payload format: vip_PLAN_userId_timestamp
+      const parts = payload.split('_');
+      // vip_VIP_123_... or vip_VIP PRO_... - handle spaces
+      let plan = 'VIP';
+      if (payload.includes('VIP ELITE')) plan = 'VIP ELITE';
+      else if (payload.includes('VIP PRO')) plan = 'VIP PRO';
+      else if (payload.includes('VIP')) plan = 'VIP';
+      const userId = ctx.from.id;
+      let u = await getUser(userId);
+      if (!u) u = await createUser(userId, { username: ctx.from.username || '', first_name: ctx.from.first_name || '' });
+      const until = new Date(); until.setDate(until.getDate() + 30);
+      await updateUser(userId, { vip_level: plan, vip_until: until.toISOString() });
+      await ctx.reply(`🎉 *VIP ACTIVATED!*\n\n👑 Plan: ${plan}\n📅 Until: ${until.toDateString()}\n💰 Now earn $${getVipPlans(u.region).perAdUSD}/ad • 20/day • $20 Min Withdraw\n\nOpen the app to start earning more!`, {
+        parse_mode: 'Markdown',
+        reply_markup: { inline_keyboard: [[{ text: '▶️ OPEN APP', web_app: { url: WEBAPP_URL } }]] }
+      });
+      if (ADMIN_ID) try { bot.telegram.sendMessage(ADMIN_ID, `⭐ NEW VIP SALE\nUser: ${u.first_name} (@${u.username}) ID: ${userId}\nPlan: ${plan} • Stars: ${VIP_STARS_MAP}`); } catch (e) {}
+    } catch (e) { console.log('successful_payment error', e.message); }
   });
-  bot.launch().then(() => console.log('Bot launched @ShayaWatchAllBot')).catch(e => console.log('Bot launch failed', e.message));
+
+  // Launch bot - polling (Render) - ignore webhook conflicts
+  bot.launch().then(() => console.log('🤖 Bot launched - @ShayaWatchAllBot')).catch(e => console.log('Bot launch failed (maybe webhook already running):', e.message));
   process.once('SIGINT', () => bot.stop('SIGINT'));
   process.once('SIGTERM', () => bot.stop('SIGTERM'));
-} else {
-  console.log('⚠️ BOT_TOKEN not set - bot disabled, API still works');
 }
 
-// ===== START SERVER =====
-app.listen(PORT, () => {
-  console.log(`✅ Shaya Watch running on port ${PORT}`);
-  console.log(`WebApp: ${WEBAPP_URL}`);
-  console.log(`Giga Ad: 9114 | Offerwall: 9114 | OnclickA: 472254 | VIP Stars: 250/500/1000`);
-});
+app.listen(PORT, () => console.log(`🚀 Shaya Watch running on port ${PORT} - Walt Dollars version`));
+
