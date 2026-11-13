@@ -1,7 +1,7 @@
 // ===== SHAYA WATCH - FULL BACKEND - index.js =====
 // Giga Ad 9114 + Giga Offerwall 9114 + OnclickA 472254
 // VIP with Telegram Stars ⭐ - 250 / 500 / 1000 Stars - Auto-Activate
-// FIXED: Stars invoice via fetch() - no callApi, no crash
+// FIXED: Stars invoice via fetch() - amount forced to Number
 
 const express = require('express');
 const path = require('path');
@@ -179,6 +179,7 @@ function formatUserForFrontend(u) {
 
 // ===== API ROUTES =====
 app.get('/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+app.get('/api/version', (req, res) => res.json({ version: 'fetch-stars-v3', time: new Date().toISOString() }));
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/api/rate', async (req, res) => { const rate = await refreshRate(); res.json({ usdtToZar: rate, usdt: 1, zar: rate }); });
 app.get('/api/convert-usdt', async (req, res) => { const usdt = parseFloat(req.query.usdt || 0); const rate = await refreshRate(); res.json({ usdt, zar: (usdt * rate).toFixed(2), rate }); });
@@ -302,36 +303,45 @@ app.get('/api/videos/music', async (req, res) => { const region = req.query.regi
 app.get('/api/videos/search', async (req, res) => { res.json(await fetchYouTube(req.query.q || 'Amapiano', req.query.region || 'SA')); });
 app.get('/api/admin/pending', (req, res) => { res.json({ withdrawals: withdrawals.filter(w => w.status === 'pending'), vipRequests: vipRequests.filter(v => v.status === 'pending') }); });
 
-// ===== VIP WITH TELEGRAM STARS ⭐ - VIA FETCH (NO callApi, NO sendInvoice wrapper) =====
+// ===== VIP WITH TELEGRAM STARS ⭐ - VIA FETCH - FORCED NUMBER =====
 app.post('/api/vip-stars-invoice', async (req, res) => {
   const { user_id, plan } = req.body;
+  console.log('VIP invoice request:', user_id, plan, typeof plan);
   let u = await getUser(parseInt(user_id));
   if (!u) return res.json({ error: 'user not found - send /start in bot first' });
-  const stars = parseInt(VIP_STARS_MAP || 250);
   if (!BOT_TOKEN) return res.json({ error: 'Bot not connected' });
   try {
-    const planClean = (plan || 'VIP').trim();
+    const planClean = String(plan || 'VIP').trim();
+    // ✅ FORCE NUMBER - This is the fix for "amount must be a Number"
+    const starsRaw = VIP_STARS_MAP[planClean];
+    const stars = Math.floor(Number(starsRaw || 250));
+    console.log('Plan:', planClean, 'Stars raw:', starsRaw, 'Stars final:', stars, 'Type:', typeof stars);
+    if (!Number.isInteger(stars) || stars <= 0) {
+      return res.json({ error: 'Invalid stars amount: ' + stars });
+    }
     const perAdText = planClean === 'VIP' ? '$0.025' : planClean === 'VIP PRO' ? '$0.05' : '$0.10';
     const payload = `vip_${planClean}_${user_id}_${Date.now()}`;
 
-    // ✅ Direct Telegram API call - works on every Telegraf / Node version
+    const bodyToSend = {
+      chat_id: parseInt(user_id),
+      title: `Shaya Watch ${planClean}`,
+      description: `${planClean} - 30 Days - ${perAdText}/ad - 20/day - $20 Min Withdraw`,
+      payload: payload,
+      provider_token: '',
+      currency: 'XTR',
+      prices: [{ label: `${planClean} - 30 Days`, amount: stars }],
+      start_parameter: `vip_${planClean}`
+    };
+    console.log('Sending to Telegram:', JSON.stringify(bodyToSend));
+
     const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendInvoice`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        chat_id: parseInt(user_id),
-        title: `Shaya Watch ${planClean}`,
-        description: `${planClean} - 30 Days - ${perAdText}/ad - 20/day - $20 Min Withdraw`,
-        payload: payload,
-        provider_token: '',
-        currency: 'XTR',
-        prices: [{ label: `${planClean} - 30 Days`, amount: stars }],
-        start_parameter: `vip_${planClean}`
-      })
+      body: JSON.stringify(bodyToSend)
     });
     const tgData = await tgRes.json();
+    console.log('Telegram reply:', JSON.stringify(tgData));
     if (!tgData.ok) {
-      console.log('Telegram sendInvoice failed', tgData);
       return res.json({ error: 'Could not send invoice. Make sure you pressed /start in @ShayaWatchAllBot first. Error: ' + (tgData.description || 'Telegram error') });
     }
     console.log(`Stars invoice sent: ${user_id} ${planClean} ${stars} ⭐`);
