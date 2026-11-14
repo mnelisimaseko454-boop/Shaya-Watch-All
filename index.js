@@ -1,421 +1,198 @@
-// ===== SHAYA WATCH - FULL BACKEND - index.js =====
-// Giga Ad 9114 + Giga Offerwall 9114 + OnclickA 472254
-// VIP with Telegram Stars ⭐ - VIA FETCH - FORCED NUMBER - 250 / 500 / 1000
-// WITHDRAW: Dollars (USDT) - Walt + Gram - Walt - NO PayPal, NO TRC20
 const express = require('express');
+const cors = require('cors');
+const { createClient } = require('@supabase/supabase-js');
 const path = require('path');
-const { Telegraf } = require('telegraf');
+const TelegramBot = require('node-telegram-bot-api');
 const app = express();
+app.use(cors());
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.static(__dirname));
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
+const BOT_TOKEN = process.env.BOT_TOKEN;
+const BOT_USERNAME = process.env.BOT_USERNAME || 'ShayaXRPMinerBot';
+const WEBAPP_URL = process.env.WEBAPP_URL || 'https://shaya-xrp-miner.onrender.com';
+const ADMIN_ID = process.env.ADMIN_ID || '';
+const ADMIN_SECRET = process.env.ADMIN_SECRET || 'shaya123';
 const PORT = process.env.PORT || 3000;
-const BOT_TOKEN = process.env.BOT_TOKEN || process.env.TELEGRAM_BOT_TOKEN || '';
-const WEBAPP_URL = process.env.WEBAPP_URL || 'https://shaya-watch-all.onrender.com';
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY || '';
-const ADMIN_ID = parseInt(process.env.ADMIN_ID || '0');
-const SUPABASE_URL = process.env.SUPABASE_URL || '';
-const SUPABASE_KEY = process.env.SUPABASE_KEY || process.env.SUPABASE_ANON_KEY || '';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const MAX_ENERGY = 100;
+const MINE_COOLDOWN_MS = 3000;
+const AUTO_APPROVE_LIMIT = 2;
 
-// ===== SUPABASE CLIENT =====
-let supabase = null;
-try {
-  if (SUPABASE_URL && SUPABASE_KEY) {
-    const { createClient } = require('@supabase/supabase-js');
-    supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-    console.log('Supabase connected');
-  } else { console.log('Supabase NOT set - using memory storage'); }
-} catch (e) { console.log('Supabase init failed, using memory', e.message); }
+const ROBOTS = {
+  v1: { name: 'Robot v1.00', energy: 30, price: 100 },
+  v2: { name: 'Robot v2.00', energy: 400, price: 1000 },
+  v3: { name: 'Robot v3.00', energy: 2150, price: 5000 },
+  v4: { name: 'Robot v4.00', energy: 35000, price: 75000 },
+  v5: { name: 'Robot v5.00', energy: 100000, price: 200000 },
+  v6: { name: 'Robot v6.00', energy: 300000, price: 500000 },
+};
+const VIP_PLANS = {
+  'VIP': { stars: 250, mult: 2, minWithdraw: 1000, days: 30 },
+  'VIP PRO': { stars: 500, mult: 4, minWithdraw: 1000, days: 30 },
+  'VIP ELITE': { stars: 1000, mult: 8, minWithdraw: 1000, days: 30 },
+};
 
-// ===== MEMORY STORAGE =====
-const users = new Map();
-const withdrawals = [];
-const vipRequests = [];
-const offerwallRewards = [];
-const tasksList = [
-  { id: 1, title: 'Join Shaya Watch Channel', link: 'https://t.me/ShayaWatchAllBot', reward_cash: 0.05, reward_coins: 20 },
-  { id: 2, title: 'Invite 3 Friends', link: 'https://t.me/ShayaWatchAllBot', reward_cash: 0.10, reward_coins: 50 },
-  { id: 3, title: 'Watch 5 Ads Today', link: 'https://t.me/ShayaWatchAllBot', reward_cash: 0.05, reward_coins: 20 },
-  { id: 4, title: 'Share Shaya Watch on WhatsApp', link: 'https://t.me/ShayaWatchAllBot', reward_cash: 0.05, reward_coins: 10 },
-];
+async function getUser(id, from = {}) {
+  let { data: u } = await supabase.from('users').select('*').eq('id', id).single();
+  if (!u) { const { data: n } = await supabase.from('users').insert({ id, username: from.username || '', first_name: from.first_name || 'Player', diamonds: 300, energy: 100 }).select().single(); u = n; }
+  return u;
+}
+function calcPerHour(u) { let p = 0; const r = u.robots || {}; for (let k in r) if (ROBOTS[k]) p += ROBOTS[k].energy * r[k]; if (u.vip_level && VIP_PLANS[u.vip_level] && u.vip_until && new Date(u.vip_until) > new Date()) p *= VIP_PLANS[u.vip_level].mult; return p; }
+function isVip(u) { return u.vip_level !== 'FREE' && u.vip_until && new Date(u.vip_until) > new Date(); }
+function getMinWithdraw(u) { return isVip(u) ? 1000 : 2000; }
+function collect(u) { const h = (Date.now() - new Date(u.last_claim || Date.now()).getTime()) / 3600000; const e = Math.floor(calcPerHour(u) * h); return { earnedEnergy: e, diamondsEarned: Math.floor(e / 10) }; }
+async function checkEnergy(id) {
+  let { data: user } = await supabase.from('users').select('*').eq('id', id).single();
+  if (!user) return { energy: 100, user: null };
+  let energy = user.energy ?? 100; let regen = Math.floor((Date.now() - new Date(user.last_regen || Date.now()).getTime()) / 60000);
+  if (regen > 0) { energy = Math.min(MAX_ENERGY, energy + regen); await supabase.from('users').update({ energy, last_regen: new Date().toISOString() }).eq('id', id); user.energy = energy; }
+  return { energy, user };
+}
+// STREAK LOGIC
+async function updateStreak(user) {
+  const today = new Date().toISOString().slice(0, 10);
+  if (user.last_streak_date === today) return user;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  let streak = user.streak || 0;
+  if (user.last_streak_date === yesterday) streak += 1; else streak = 1;
+  // Streak bonus: Day1=10, Day2=20, Day3=30... max 100
+  const bonus = Math.min(100, streak * 10);
+  const newDiamonds = (user.diamonds || 0) + bonus;
+  await supabase.from('users').update({ streak, last_streak_date: today, diamonds: newDiamonds }).eq('id', user.id);
+  return { ...user, streak, diamonds: newDiamonds, streakBonus: bonus };
+}
+function dashboardText(u) {
+  return `👤 DASHBOARD\n\n⬜ Available: ${u.diamonds} 💎\n⬜ Payment: ${u.payment || 0} 💎\n⬜ Payed out: ${(u.paid_out || 0).toFixed(2)} XRP\n1 XRP ~ 1.0636 $ | 1000 💎 = 1 XRP\n⚡ Energy: ${u.energy} | ${calcPerHour(u)}/hour\n🔥 Streak: ${u.streak || 0} days\n👑 VIP: ${isVip(u) ? u.vip_level : 'FREE'} | Min Withdraw: ${getMinWithdraw(u)} 💎`;
+}
+function mainKeyboard() { return { reply_markup: { inline_keyboard: [
+  [{ text: '🔥 Boost', web_app: { url: WEBAPP_URL } }, { text: '⚡ Factory', callback_data: 'factory' }, { text: '🏪 Shop', callback_data: 'shop' }],
+  [{ text: '💎 Add', callback_data: 'add' }, { text: '📩 Withdraw', callback_data: 'withdraw' }],
+  [{ text: '👑 VIP ⭐', callback_data: 'vip' }],
+  [{ text: '👥 Invite friends', callback_data: 'invite' }],
+  [{ text: '🎁 Bonus', callback_data: 'bonus' }, { text: '✨ Extra', callback_data: 'extra' }],
+  [{ text: '📋 Menu', callback_data: 'menu' }],
+  [{ text: '⛏️ OPEN MINER', web_app: { url: WEBAPP_URL } }],
+]}}; }
 
-// ===== BOT =====
 let bot = null;
 if (BOT_TOKEN) {
-  try { bot = new Telegraf(BOT_TOKEN); console.log('Bot object created'); }
-  catch (e) { console.log('Bot create failed', e.message); }
+  bot = new TelegramBot(BOT_TOKEN, { polling: true });
+  bot.onText(/\/start(?:\s+ref_(\d+))?/, async (msg, match) => {
+    let u = await getUser(msg.from.id, msg.from);
+    u = await updateStreak(u);
+    const refId = match[1];
+    if (refId && refId != String(msg.from.id) && !u.referred_by) {
+      await supabase.from('users').update({ referred_by: Number(refId) }).eq('id', msg.from.id);
+      const { data: ref } = await supabase.from('users').select('*').eq('id', Number(refId)).single();
+      if (ref) { await supabase.from('users').update({ diamonds: ref.diamonds + 50, referrals: (ref.referrals || 0) + 1 }).eq('id', Number(refId)); bot.sendMessage(refId, `🎉 New referral! +50 💎`).catch(()=>{}); }
+    }
+    let extra = u.streakBonus ? `\n🔥 Daily Streak Day ${u.streak}! +${u.streakBonus} 💎` : '';
+    bot.sendMessage(msg.chat.id, `Mining XRP rewards is simple and free. Don't miss out, get started now!!${extra}\n\n${dashboardText(u)}`, mainKeyboard());
+  });
+  bot.onText(/\/pending/, async (msg) => { if (String(msg.from.id) !== String(ADMIN_ID)) return; const { data } = await supabase.from('withdraws').select('*').in('status', ['auto_approved', 'pending_review', 'approved']).order('created_at', { ascending: false }); if (!data?.length) return bot.sendMessage(msg.chat.id, '✅ No pending'); let t = `📩 PENDING (${data.length})\n\n`; data.forEach(w => { t += `${w.status} | #${w.id} | ${w.xrp.toFixed(2)} XRP | @${w.username || ''}\nWallet: ${w.wallet}\n/pay ${w.id} | /reject ${w.id}\n\n`; }); bot.sendMessage(msg.chat.id, t); });
+  bot.onText(/\/approve (\d+)/, async (msg, match) => { if (String(msg.from.id) !== String(ADMIN_ID)) return; const { data: w } = await supabase.from('withdraws').select('*').eq('id', Number(match[1])).single(); if (!w || w.status !== 'pending_review') return bot.sendMessage(msg.chat.id, '⚠️ Not in review'); await supabase.from('withdraws').update({ status: 'approved' }).eq('id', w.id); bot.sendMessage(w.user_id, `✅ APPROVED! ${w.xrp.toFixed(2)} XRP`).catch(()=>{}); bot.sendMessage(msg.chat.id, `✅ APPROVED #${w.id}`); });
+  bot.onText(/\/pay (\d+)/, async (msg, match) => { if (String(msg.from.id) !== String(ADMIN_ID)) return; const { data: w } = await supabase.from('withdraws').select('*').eq('id', Number(match[1])).single(); if (!w || w.status === 'paid' || w.status === 'rejected') return bot.sendMessage(msg.chat.id, '⚠️ Handled'); await supabase.from('withdraws').update({ status: 'paid' }).eq('id', w.id); const { data: u } = await supabase.from('users').select('*').eq('id', w.user_id).single(); if (u) await supabase.from('users').update({ paid_out: (u.paid_out || 0) + w.xrp, payment: Math.max(0, (u.payment || 0) - w.amount_diamonds) }).eq('id', w.user_id); bot.sendMessage(w.user_id, `✅ PAID! 💸 ${w.xrp.toFixed(2)} XRP`).catch(()=>{}); bot.sendMessage(msg.chat.id, `✅ PAID #${w.id}`); });
+  bot.onText(/\/reject (\d+)/, async (msg, match) => { if (String(msg.from.id) !== String(ADMIN_ID)) return; const { data: w } = await supabase.from('withdraws').select('*').eq('id', Number(match[1])).single(); if (!w || w.status === 'paid' || w.status === 'rejected') return bot.sendMessage(msg.chat.id, '⚠️ Handled'); await supabase.from('withdraws').update({ status: 'rejected' }).eq('id', w.id); const { data: u } = await supabase.from('users').select('*').eq('id', w.user_id).single(); if (u) await supabase.from('users').update({ diamonds: u.diamonds + w.amount_diamonds, payment: Math.max(0, (u.payment || 0) - w.amount_diamonds) }).eq('id', w.user_id); bot.sendMessage(w.user_id, `❌ REJECTED - ${w.amount_diamonds} 💎 refunded.`).catch(()=>{}); bot.sendMessage(msg.chat.id, `❌ REJECTED #${w.id}`); });
+  bot.onText(/\/stats/, async (msg) => { if (String(msg.from.id) !== String(ADMIN_ID)) return; const { data: users } = await supabase.from('users').select('*'); const { data: wd } = await supabase.from('withdraws').select('*').eq('status', 'paid'); bot.sendMessage(msg.chat.id, `📊 STATS\n👥 Users: ${(users || []).length}\n👑 VIP: ${(users || []).filter(u => u.vip_level !== 'FREE').length}\n✅ Paid: ${(wd || []).reduce((a,b)=>a+b.xrp,0).toFixed(2)} XRP\n🔗 Admin Panel: ${WEBAPP_URL}/admin?key=${ADMIN_SECRET}`); });
+  bot.on('pre_checkout_query', (q) => bot.answerPreCheckoutQuery(q.id, true).catch(()=>{}));
+  bot.on('successful_payment', async (msg) => { const plan = msg.successful_payment.invoice_payload.replace('vip_', ''); const info = VIP_PLANS[plan]; if (!info) return; const until = new Date(Date.now() + info.days * 86400000).toISOString(); await supabase.from('users').update({ vip_level: plan, vip_until: until }).eq('id', msg.from.id); bot.sendMessage(msg.chat.id, `✅ VIP ACTIVATED! 👑 ${plan} for ${info.days} days\n⚡ ${info.mult}x Mining | Min Withdraw 1000 💎`, mainKeyboard()); if (ADMIN_ID) bot.sendMessage(ADMIN_ID, `⭐ NEW VIP SALE\nUser: ${msg.from.id} @${msg.from.username || ''}\nPlan: ${plan} - ${info.stars} Stars`).catch(()=>{}); });
+  bot.on('callback_query', async (q) => {
+    const u = await getUser(q.from.id, q.from); const data = q.data; bot.answerCallbackQuery(q.id).catch(()=>{});
+    if (data === 'menu') return bot.editMessageText(dashboardText(u), { chat_id: q.message.chat.id, message_id: q.message.message_id, ...mainKeyboard() }).catch(()=>{});
+    if (data === 'factory') { let kb = Object.keys(ROBOTS).map(k => [{ text: `🤖 ${ROBOTS[k].name} - ${ROBOTS[k].price} 💎 - ${ROBOTS[k].energy}/h - Owned: ${(u.robots || {})[k] || 0}`, callback_data: `hire_${k}` }]); kb.push([{ text: '⬅ Back', callback_data: 'menu' }]); return bot.editMessageText(`⚡ FACTORY - Hire Robots\nPer hour: ${calcPerHour(u)}`, { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: kb } }).catch(()=>{}); }
+    if (data.startsWith('hire_')) { const k = data.replace('hire_', ''); const r = ROBOTS[k]; if (u.diamonds < r.price) return bot.answerCallbackQuery(q.id, { text: `❌ Need ${r.price} 💎`, show_alert: true }); const robots = { ...(u.robots || {}), [k]: ((u.robots || {})[k] || 0) + 1 }; await supabase.from('users').update({ diamonds: u.diamonds - r.price, robots }).eq('id', u.id); return bot.answerCallbackQuery(q.id, { text: `✅ Hired ${r.name}`, show_alert: true }); }
+    if (data === 'boost' || data === 'add') return bot.sendMessage(q.from.id, `🔥 BOOST = Watch Ad + Get +2 💎\nAds only work INSIDE the App.`, { reply_markup: { inline_keyboard: [[{ text: '🤖 OPEN MINER APP', web_app: { url: WEBAPP_URL } }]] } });
+    if (data === 'vip') { let kb = Object.keys(VIP_PLANS).map(k => [{ text: `👑 ${k} - ${VIP_PLANS[k].stars} ⭐`, callback_data: `buyvip_${k}` }]); kb.push([{ text: '⬅ Back', callback_data: 'menu' }]); return bot.editMessageText(`👑 VIP - 30 DAYS\nVIP 250⭐ = 2x\nVIP PRO 500⭐ = 4x\nVIP ELITE 1000⭐ = 8x`, { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: kb } }).catch(()=>{}); }
+    if (data.startsWith('buyvip_')) { const plan = data.replace('buyvip_', ''); const info = VIP_PLANS[plan]; try { await bot.sendInvoice(q.from.id, `👑 ${plan} - Shaya XRP Miner`, `${plan} - 30 Days - ${info.mult}x`, `vip_${plan}`, '', 'XTR', [{ label: plan, amount: info.stars }]); } catch(e) { bot.answerCallbackQuery(q.id, { text: '❌ Press /start first.', show_alert: true }); } return; }
+    if (data === 'bonus') { if (u.bonus_last && Date.now() - new Date(u.bonus_last).getTime() < 86400000) return bot.answerCallbackQuery(q.id, { text: '❌ Already claimed', show_alert: true }); await supabase.from('users').update({ bonus_last: new Date().toISOString(), diamonds: u.diamonds + 50 }).eq('id', u.id); return bot.answerCallbackQuery(q.id, { text: '🎁 Bonus +50 💎', show_alert: true }); }
+    if (data === 'extra') return bot.editMessageText(`✨ EXTRA\n• Daily Bonus +50 💎\n• Invite +50 💎\n• Factory robots mine 24/7\n• Boost = +2 💎 per REAL ad`, { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [[{ text: '⬅ Back', callback_data: 'menu' }]] } }).catch(()=>{});
+    if (data === 'invite') return bot.editMessageText(`👥 Invite\nhttps://t.me/${BOT_USERNAME}?start=ref_${u.id}\n+50 💎 per friend`, { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [[{ text: '⬅ Back', callback_data: 'menu' }]] } }).catch(()=>{});
+    if (data === 'shop') return bot.editMessageText(`🏪 SHOP\nOpen Mini App for full Shop.`, { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [[{ text: '⬅ Back', callback_data: 'menu' }]] } }).catch(()=>{});
+    if (data === 'withdraw') { const minW = getMinWithdraw(u); if (u.diamonds < minW) return bot.answerCallbackQuery(q.id, { text: `❌ Min ${minW} 💎. You have ${u.diamonds} 💎.`, show_alert: true }); return bot.editMessageText(`📩 WITHDRAW\nMin: ${minW} 💎\nYou have: ${u.diamonds} 💎`, { chat_id: q.message.chat.id, message_id: q.message.message_id, reply_markup: { inline_keyboard: [[{ text: '🤖 OPEN APP TO WITHDRAW', web_app: { url: WEBAPP_URL } }], [{ text: '⬅ Back', callback_data: 'menu' }]] } }).catch(()=>{}); }
+  });
 }
 
-// ===== CONFIG =====
-let USDT_TO_ZAR = 16.59;
-let lastRateFetch = 0;
-const VIP_STARS_MAP = { 'VIP': 250, 'VIP PRO': 500, 'VIP ELITE': 1000 };
-
-async function refreshRate() {
-  const now = Date.now();
-  if (now - lastRateFetch < 30 * 60 * 1000) return USDT_TO_ZAR;
-  try {
-    const res = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-    const d = await res.json();
-    if (d && d.rates && d.rates.ZAR) { USDT_TO_ZAR = parseFloat(d.rates.ZAR); lastRateFetch = now; console.log('Rate updated: 1 USDT = R' + USDT_TO_ZAR); }
-  } catch (e) { console.log('Rate fetch failed, using cached', USDT_TO_ZAR); }
-  return USDT_TO_ZAR;
-}
-refreshRate();
-setInterval(refreshRate, 30 * 60 * 1000);
-
-function getVipPlans(region) {
-  const isSA = region === 'SA';
-  const cur = isSA ? 'R' : '$';
-  return {
-    'VIP': { name: 'VIP', priceUSD: 5, price: isSA ? 5 * USDT_TO_ZAR : 5, currency: cur, perAdUSD: 0.025, perAdCash: isSA ? 0.025 * USDT_TO_ZAR : 0.025, perAdCoins: 10, dailyLimit: 20, minWithdrawUSDT: 20, days: 30, stars: 250 },
-    'VIP PRO': { name: 'VIP PRO', priceUSD: 10, price: isSA ? 10 * USDT_TO_ZAR : 10, currency: cur, perAdUSD: 0.05, perAdCash: isSA ? 0.05 * USDT_TO_ZAR : 0.05, perAdCoins: 20, dailyLimit: 20, minWithdrawUSDT: 20, days: 30, stars: 500 },
-    'VIP ELITE': { name: 'VIP ELITE', priceUSD: 20, price: isSA ? 20 * USDT_TO_ZAR : 20, currency: cur, perAdUSD: 0.10, perAdCash: isSA ? 0.10 * USDT_TO_ZAR : 0.10, perAdCoins: 40, dailyLimit: 20, minWithdrawUSDT: 20, days: 30, stars: 1000 }
-  };
-}
-function getPerAd(user) {
-  const region = user.region || 'SA';
-  const isSA = region === 'SA';
-  if (!user.vip_level || user.vip_level === 'FREE') {
-    return { cash: isSA ? 0.01 * USDT_TO_ZAR : 0.01, coins: 5, usd: 0.01, dailyLimit: 10, minWithdrawUSDT: 50 };
-  }
-  const plans = getVipPlans(region);
-  const p = plans[user.vip_level] || plans['VIP'];
-  return { cash: p.perAdCash, coins: p.perAdCoins, usd: p.perAdUSD, dailyLimit: p.dailyLimit, minWithdrawUSDT: p.minWithdrawUSDT };
-}
-function todayStr() { return new Date().toISOString().slice(0, 10); }
-
-async function sbGetUser(user_id) {
-  if (!supabase) return null;
-  try { const { data } = await supabase.from('users').select('*').eq('user_id', user_id).single(); return data || null; } catch (e) { return null; }
-}
-async function sbUpsertUser(u) {
-  if (!supabase) return;
-  try { await supabase.from('users').upsert(u, { onConflict: 'user_id' }); } catch (e) { console.log('sb upsert user failed', e.message); }
-}
-async function sbInsert(table, row) {
-  if (!supabase) return;
-  try { await supabase.from(table).insert(row); } catch (e) { console.log('sb insert', table, 'failed', e.message); }
-}
-async function getUser(user_id) {
-  user_id = parseInt(user_id);
-  if (users.has(user_id)) return users.get(user_id);
-  const sb = await sbGetUser(user_id);
-  if (sb) {
-    const mapped = { user_id: sb.user_id, username: sb.username || '', first_name: sb.first_name || '', region: sb.region || 'SA', currency: sb.region === 'USA' ? '$' : 'R', balance: parseFloat(sb.balance || 0), coins: parseInt(sb.coins || 0), total_ads: parseInt(sb.total_ads || 0), referrals: parseInt(sb.referrals || 0), streak: parseInt(sb.streak || 0), vip_level: sb.vip_level || 'FREE', vip_until: sb.vip_until || null, total_earned: parseFloat(sb.total_earned || 0), dailyAds: 0, dailyDate: todayStr(), lastDaily: sb.last_daily || null, referred_by: sb.referred_by || null };
-    users.set(user_id, mapped); return mapped;
-  }
-  return null;
-}
-async function createUser(user_id, data = {}) {
-  user_id = parseInt(user_id);
-  const region = data.region || 'SA';
-  const u = { user_id, username: data.username || '', first_name: data.first_name || '', region, currency: region === 'USA' ? '$' : 'R', balance: 0, coins: 0, total_ads: 0, referrals: 0, streak: 0, vip_level: 'FREE', vip_until: null, total_earned: 0, dailyAds: 0, dailyDate: todayStr(), lastDaily: null, referred_by: data.referred_by || null };
-  users.set(user_id, u);
-  await sbUpsertUser({ user_id: u.user_id, username: u.username, first_name: u.first_name, region: u.region, balance: u.balance, coins: u.coins, total_ads: u.total_ads, referrals: u.referrals, streak: u.streak, vip_level: u.vip_level, vip_until: u.vip_until, total_earned: u.total_earned, referred_by: u.referred_by });
-  if (data.referred_by && parseInt(data.referred_by) !== user_id) {
-    const refId = parseInt(data.referred_by);
-    let ref = await getUser(refId);
-    if (!ref) ref = await createUser(refId, {});
-    const isSA = ref.region === 'SA';
-    const bonusCash = isSA ? 0.50 * USDT_TO_ZAR : 0.10;
-    const bonusCoins = isSA ? 50 : 10;
-    ref.balance += bonusCash; ref.coins += bonusCoins; ref.referrals += 1; ref.total_earned += bonusCash;
-    await updateUser(refId, { balance: ref.balance, coins: ref.coins, referrals: ref.referrals, total_earned: ref.total_earned });
-  }
-  return u;
-}
-async function updateUser(user_id, patch) {
-  user_id = parseInt(user_id);
-  let u = users.get(user_id);
-  if (!u) u = await getUser(user_id);
-  if (!u) return null;
-  Object.assign(u, patch); users.set(user_id, u);
-  await sbUpsertUser({ user_id: u.user_id, username: u.username, first_name: u.first_name, region: u.region, balance: u.balance, coins: u.coins, total_ads: u.total_ads, referrals: u.referrals, streak: u.streak, vip_level: u.vip_level, vip_until: u.vip_until, total_earned: u.total_earned, referred_by: u.referred_by, last_daily: u.lastDaily });
-  return u;
-}
-function formatUserForFrontend(u) {
-  if (u.dailyDate !== todayStr()) { u.dailyAds = 0; u.dailyDate = todayStr(); }
-  if (u.vip_level !== 'FREE' && u.vip_until) { const until = new Date(u.vip_until); if (until < new Date()) { u.vip_level = 'FREE'; u.vip_until = null; } }
-  const perAd = getPerAd(u);
-  const dailyLimit = perAd.dailyLimit;
-  const dailyAds = u.dailyAds || 0;
-  const dailyLeft = Math.max(0, dailyLimit - dailyAds);
-  const usdtBal = u.region === 'SA' ? (u.balance / USDT_TO_ZAR) : u.balance;
-  return { ...u, perAd, dailyLimit, dailyAds, dailyLeft, minWithdrawUSDT: perAd.minWithdrawUSDT, usdtToZar: USDT_TO_ZAR, usdtBalance: parseFloat(usdtBal.toFixed(4)) };
-}
-
-// ===== API ROUTES =====
-app.get('/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
-app.get('/api/version', (req, res) => res.json({ version: 'fetch-stars-walt-v5', time: new Date().toISOString() }));
+// --- API ---
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/api/rate', async (req, res) => { const rate = await refreshRate(); res.json({ usdtToZar: rate, usdt: 1, zar: rate }); });
-app.get('/api/convert-usdt', async (req, res) => { const usdt = parseFloat(req.query.usdt || 0); const rate = await refreshRate(); res.json({ usdt, zar: (usdt * rate).toFixed(2), rate }); });
-app.get('/api/user/:id', async (req, res) => { const id = parseInt(req.params.id); let u = await getUser(id); if (!u) return res.json({ error: 'user not found - send /start in bot first' }); res.json(formatUserForFrontend(u)); });
-app.post('/api/sync', async (req, res) => {
-  const { user_id, balance, coins, total_ads, referrals, streak, region, vip_level, total_earned } = req.body;
-  let u = await getUser(parseInt(user_id));
-  if (!u) u = await createUser(parseInt(user_id), { region: region || 'SA' });
-  const patch = {};
-  if (balance !== undefined) patch.balance = parseFloat(balance);
-  if (coins !== undefined) patch.coins = parseInt(coins);
-  if (total_ads !== undefined) patch.total_ads = parseInt(total_ads);
-  if (referrals !== undefined) patch.referrals = parseInt(referrals);
-  if (streak !== undefined) patch.streak = parseInt(streak);
-  if (total_earned !== undefined) patch.total_earned = parseFloat(total_earned);
-  if (region) { patch.region = region; patch.currency = region === 'USA' ? '$' : 'R'; }
-  if (vip_level) patch.vip_level = vip_level;
-  const updated = await updateUser(parseInt(user_id), patch);
-  res.json({ success: true, user: formatUserForFrontend(updated) });
+// ADMIN PANEL PAGE
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'admin.html')));
+app.get('/api/admin/data', async (req, res) => {
+  if (req.query.key !== ADMIN_SECRET) return res.json({ error: 'Wrong key' });
+  const { data: users } = await supabase.from('users').select('*').order('diamonds', { ascending: false }).limit(200);
+  const { data: wd } = await supabase.from('withdraws').select('*').order('created_at', { ascending: false }).limit(200);
+  const { data: tasks } = await supabase.from('tasks').select('*');
+  const totalPaid = (wd || []).filter(w => w.status === 'paid').reduce((a, b) => a + b.xrp, 0);
+  const totalPending = (wd || []).filter(w => ['auto_approved', 'pending_review', 'approved'].includes(w.status)).reduce((a, b) => a + b.xrp, 0);
+  res.json({ users: users || [], withdraws: wd || [], tasks: tasks || [], stats: { totalUsers: (users || []).length, vipUsers: (users || []).filter(u => u.vip_level !== 'FREE').length, totalDiamonds: (users || []).reduce((a, b) => a + b.diamonds, 0), totalPaid, totalPending } });
 });
-app.post('/api/set-region', async (req, res) => {
-  const { user_id, region } = req.body;
-  if (!['SA', 'USA'].includes(region)) return res.json({ error: 'Invalid region' });
-  let u = await getUser(parseInt(user_id));
-  if (!u) return res.json({ error: 'user not found' });
-  if (u.region === region) return res.json({ success: true, user: formatUserForFrontend(u) });
-  const rate = await refreshRate();
-  const oldRegion = u.region; const oldBalance = u.balance;
-  let newBalance = oldBalance;
-  if (oldRegion === 'SA' && region === 'USA') newBalance = oldBalance / rate;
-  else if (oldRegion === 'USA' && region === 'SA') newBalance = oldBalance * rate;
-  const updated = await updateUser(parseInt(user_id), { region, currency: region === 'USA' ? '$' : 'R', balance: parseFloat(newBalance.toFixed(2)) });
-  res.json({ success: true, user: formatUserForFrontend(updated) });
+app.post('/api/admin/withdraw', async (req, res) => {
+  if (req.body.key !== ADMIN_SECRET) return res.json({ success: false, error: 'Wrong key' });
+  const { id, action } = req.body;
+  const { data: w } = await supabase.from('withdraws').select('*').eq('id', id).single(); if (!w) return res.json({ success: false, error: 'Not found' });
+  if (action === 'approve') { await supabase.from('withdraws').update({ status: 'approved' }).eq('id', id); if (bot) bot.sendMessage(w.user_id, `✅ APPROVED! ${w.xrp.toFixed(2)} XRP`).catch(()=>{}); }
+  if (action === 'pay') { await supabase.from('withdraws').update({ status: 'paid' }).eq('id', id); const { data: u } = await supabase.from('users').select('*').eq('id', w.user_id).single(); if (u) await supabase.from('users').update({ paid_out: (u.paid_out || 0) + w.xrp, payment: Math.max(0, (u.payment || 0) - w.amount_diamonds) }).eq('id', w.user_id); if (bot) bot.sendMessage(w.user_id, `✅ PAID! 💸 ${w.xrp.toFixed(2)} XRP`).catch(()=>{}); }
+  if (action === 'reject') { await supabase.from('withdraws').update({ status: 'rejected' }).eq('id', id); const { data: u } = await supabase.from('users').select('*').eq('id', w.user_id).single(); if (u) await supabase.from('users').update({ diamonds: u.diamonds + w.amount_diamonds, payment: Math.max(0, (u.payment || 0) - w.amount_diamonds) }).eq('id', w.user_id); if (bot) bot.sendMessage(w.user_id, `❌ REJECTED - ${w.amount_diamonds} 💎 refunded.`).catch(()=>{}); }
+  res.json({ success: true });
 });
-app.post('/api/watch', async (req, res) => {
-  const { user_id } = req.body;
-  let u = await getUser(parseInt(user_id));
-  if (!u) return res.json({ error: 'user not found' });
-  if (u.dailyDate !== todayStr()) { u.dailyAds = 0; u.dailyDate = todayStr(); }
-  const perAd = getPerAd(u);
-  if ((u.dailyAds || 0) >= perAd.dailyLimit) return res.json({ error: `Daily limit reached! ${u.vip_level} = ${perAd.dailyLimit}/day.`, dailyAds: u.dailyAds, dailyLimit: perAd.dailyLimit });
-  const updated = await updateUser(parseInt(user_id), { balance: parseFloat((u.balance + perAd.cash).toFixed(2)), coins: u.coins + perAd.coins, total_ads: (u.total_ads || 0) + 1, total_earned: parseFloat(((u.total_earned || 0) + perAd.cash).toFixed(2)), dailyAds: (u.dailyAds || 0) + 1, dailyDate: todayStr() });
-  res.json({ success: true, earnedCash: parseFloat(perAd.cash.toFixed(2)), earnedCoins: perAd.coins, earnedUSD: perAd.usd, dailyAds: updated.dailyAds, dailyLimit: perAd.dailyLimit, dailyLeft: perAd.dailyLimit - updated.dailyAds, balance: updated.balance });
+// TASKS
+app.get('/api/tasks/:userId', async (req, res) => {
+  const { data: tasks } = await supabase.from('tasks').select('*');
+  const { data: u } = await supabase.from('users').select('*').eq('id', req.params.userId).single();
+  const done = u?.tasks_done || {};
+  // Daily tasks reset check: if tasks_done has date != today, reset daily ones
+  const today = new Date().toISOString().slice(0, 10);
+  res.json({ tasks: (tasks || []).map(t => ({ ...t, done: !!done[t.id], doneDate: done[t.id] })), today, userStreak: u?.streak || 0, userTasksDone: done });
 });
-app.post('/api/daily', async (req, res) => {
-  const { user_id } = req.body;
-  let u = await getUser(parseInt(user_id));
-  if (!u) return res.json({ error: 'user not found' });
-  if (u.lastDaily === todayStr()) return res.json({ error: 'Already claimed today!' });
-  const isSA = u.region === 'SA';
-  const bonusCash = isSA ? 0.05 * USDT_TO_ZAR : 0.05;
-  const updated = await updateUser(parseInt(user_id), { balance: parseFloat((u.balance + bonusCash).toFixed(2)), coins: u.coins + 20, streak: (u.streak || 0) + 1, lastDaily: todayStr() });
-  res.json({ success: true, bonusCash: parseFloat(bonusCash.toFixed(2)), bonusCoins: 20, streak: updated.streak, balance: updated.balance });
+app.post('/api/tasks/claim', async (req, res) => {
+  const { userId, taskId } = req.body;
+  const { data: t } = await supabase.from('tasks').select('*').eq('id', taskId).single(); if (!t) return res.json({ success: false, error: 'Task not found' });
+  const { data: u } = await supabase.from('users').select('*').eq('id', userId).single(); if (!u) return res.json({ success: false, error: 'User not found' });
+  const done = u.tasks_done || {}; if (done[taskId]) return res.json({ success: false, error: 'Already claimed' });
+  // Verify logic for real tasks
+  if (t.type === 'mine') { const { count } = await supabase.from('rewards_log').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('source', 'mine').gte('created_at', new Date().toISOString().slice(0, 10)); if ((count || 0) < 10) return res.json({ success: false, error: `Mine ${10 - count} more times today` }); }
+  if (t.type === 'boost') { const { count } = await supabase.from('rewards_log').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('source', 'boost').gte('created_at', new Date().toISOString().slice(0, 10)); if ((count || 0) < 2) return res.json({ success: false, error: `Watch ${2 - count} more Boost ads today` }); }
+  if (t.type === 'invite') { if ((u.referrals || 0) < 1) return res.json({ success: false, error: 'Invite 1 friend first' }); }
+  done[taskId] = new Date().toISOString().slice(0, 10);
+  await supabase.from('users').update({ tasks_done: done, diamonds: u.diamonds + t.reward }).eq('id', userId);
+  res.json({ success: true, diamonds: u.diamonds + t.reward, reward: t.reward });
 });
-app.post('/api/convert', async (req, res) => {
-  const { user_id } = req.body;
-  let u = await getUser(parseInt(user_id));
-  if (!u) return res.json({ error: 'user not found' });
-  if ((u.coins || 0) < 1000) return res.json({ error: `Need 1000 Coins. You have ${u.coins}.` });
-  const thousands = Math.floor(u.coins / 1000);
-  const cashValue = u.region === 'SA' ? thousands * USDT_TO_ZAR : thousands * 1;
-  const updated = await updateUser(parseInt(user_id), { balance: parseFloat((u.balance + cashValue).toFixed(2)), coins: u.coins - (thousands * 1000), total_earned: parseFloat(((u.total_earned || 0) + cashValue).toFixed(2)) });
-  res.json({ success: true, converted: parseFloat(cashValue.toFixed(2)), balance: updated.balance });
+app.get('/api/user/:id', async (req, res) => {
+  const { energy, user } = await checkEnergy(req.params.id);
+  if (!user) return res.json({ diamonds: 300, energy: 100, xrp: 0, factory_level: 0, vip_level: 'FREE', streak: 0 });
+  const updated = await updateStreak(user);
+  const c = collect(updated);
+  const newDiamonds = updated.diamonds + c.diamondsEarned;
+  if (c.diamondsEarned > 0) await supabase.from('users').update({ diamonds: newDiamonds, last_claim: new Date().toISOString() }).eq('id', user.id);
+  res.json({ diamonds: newDiamonds, energy, xrp: updated.paid_out || 0, factory_level: updated.factory_level || 0, vip_level: updated.vip_level || 'FREE', robots: updated.robots || {}, perHour: calcPerHour(updated), minWithdraw: getMinWithdraw(updated), streak: updated.streak || 0, streakBonus: updated.streakBonus || 0 });
 });
-
-// ===== WITHDRAW - WALT VERSION - NO PayPal, NO TRC20 ✅ =====
-app.post('/api/withdraw', async (req, res) => {
-  const { user_id, method, wallet } = req.body;
-  let u = await getUser(parseInt(user_id));
-  if (!u) return res.json({ error: 'user not found' });
-
-  let cleanMethod = (method || '').trim();
-  if (cleanMethod === 'USDT TRC20' || cleanMethod.toLowerCase().includes('trc20')) {
-    return res.json({ error: '❌ USDT TRC20 is REMOVED. Please select Dollars (USDT) - Walt. TRC20 address (T...) is NOT accepted.' });
-  }
-  if (cleanMethod.toLowerCase().includes('paypal')) {
-    return res.json({ error: '❌ PayPal is REMOVED. Please select Dollars (USDT) - Walt, Gram - Walt, Capitec / Bank or Airtime.' });
-  }
-  if (cleanMethod === 'USDT (TON) - Telegram Wallet' || cleanMethod === 'Telegram Wallet') cleanMethod = 'Dollars (USDT) - Walt';
-  if (cleanMethod === 'Gram Wallet (TON)' || cleanMethod === 'Gram Wallet') cleanMethod = 'Gram - Walt';
-  if (!cleanMethod) cleanMethod = 'Dollars (USDT) - Walt';
-
-  const perAd = getPerAd(u);
-  const minUSDT = perAd.minWithdrawUSDT;
-  const minCash = u.region === 'SA' ? minUSDT * USDT_TO_ZAR : minUSDT;
-  if (u.balance < minCash) return res.json({ error: `Min withdraw is $${minUSDT} USDT (${u.currency}${minCash.toFixed(2)}). You have ${u.currency}${u.balance.toFixed(2)}.` });
-  if (!wallet || wallet.trim().length < 4) return res.json({ error: 'Enter your wallet / bank details' });
-
-  const walletTrim = wallet.trim();
-  if (cleanMethod === 'Dollars (USDT) - Walt' || cleanMethod === 'Gram - Walt') {
-    if (!walletTrim.startsWith('UQ')) {
-      return res.json({ error: '❌ Wrong address! Walt addresses start with UQ... You pasted a T... (TRC20) address. Go to Walt > Dollars > Deposit > Copy UQ... address.' });
-    }
-  }
-  if (walletTrim.startsWith('T') && (cleanMethod.includes('Walt') || cleanMethod.includes('Dollars') || cleanMethod.includes('Gram'))) {
-    return res.json({ error: '❌ That is a TRC20 address (starts with T). Walt uses TON - must start with UQ...' });
-  }
-
-  const usdtAmount = u.region === 'SA' ? (u.balance / USDT_TO_ZAR) : u.balance;
-  const zarAmount = u.region === 'SA' ? u.balance : u.balance * USDT_TO_ZAR;
-  const w = { id: withdrawals.length + 1, user_id: parseInt(user_id), username: u.username, first_name: u.first_name, method: cleanMethod, wallet: walletTrim, amountCash: parseFloat(u.balance.toFixed(2)), usdtAmount: parseFloat(usdtAmount.toFixed(2)), zarAmount: parseFloat(zarAmount.toFixed(2)), region: u.region, vip_level: u.vip_level, status: 'pending', created_at: new Date().toISOString() };
-  withdrawals.push(w);
-  await sbInsert('withdrawals', w);
-  await updateUser(parseInt(user_id), { balance: 0 });
-  try { if (bot && ADMIN_ID) bot.telegram.sendMessage(ADMIN_ID, `💸 NEW WITHDRAW - WALT\nUser: ${u.first_name} (@${u.username}) ID: ${u.user_id}\nAmount: ${u.currency}${w.amountCash} = $${w.usdtAmount} USDT = R${w.zarAmount}\nMethod: ${w.method}\nWallet: ${walletTrim}\n⚠️ Send on TON network only - Walt address must start with UQ...\n${w.method.includes('Dollars') ? 'Send USDT (Dollars) on TON' : w.method.includes('Gram') ? 'Send GRAM on TON' : ''}`); } catch (e) {}
-  res.json({ success: true, usdtAmount: w.usdtAmount, zarAmount: w.zarAmount });
-});
-
-app.get('/api/vip-plans', async (req, res) => { res.json(getVipPlans(req.query.region || 'SA')); });
-
-// ===== VIP WITH TELEGRAM STARS ⭐ - VIA FETCH - FORCED NUMBER =====
-app.post('/api/vip-stars-invoice', async (req, res) => {
-  const { user_id, plan } = req.body;
-  console.log('VIP invoice request:', user_id, plan, typeof plan);
-  let u = await getUser(parseInt(user_id));
-  if (!u) return res.json({ error: 'user not found - send /start in bot first' });
-  if (!BOT_TOKEN) return res.json({ error: 'Bot not connected' });
+app.post('/api/mine', async (req, res) => {
   try {
-    const planClean = String(plan || 'VIP').trim();
-    // ✅ FORCE NUMBER - This is the fix for "amount must be a Number"
-    const starsRaw = VIP_STARS_MAP[planClean];
-    const stars = Math.floor(Number(starsRaw || 250));
-    console.log('Plan:', planClean, 'Stars raw:', starsRaw, 'Stars final:', stars, 'Type:', typeof stars);
-    if (!Number.isInteger(stars) || stars <= 0) {
-      return res.json({ error: 'Invalid stars amount: ' + stars });
-    }
-    const perAdText = planClean === 'VIP' ? '$0.025' : planClean === 'VIP PRO' ? '$0.05' : '$0.10';
-    const payload = `vip_${planClean}_${user_id}_${Date.now()}`;
-    const bodyToSend = {
-      chat_id: parseInt(user_id),
-      title: `Shaya Watch ${planClean}`,
-      description: `${planClean} - 30 Days - ${perAdText}/ad - 20/day - $20 Min Withdraw`,
-      payload: payload,
-      provider_token: '',
-      currency: 'XTR',
-      prices: [{ label: `${planClean} - 30 Days`, amount: stars }],
-      start_parameter: `vip_${planClean}`
-    };
-    console.log('Sending to Telegram:', JSON.stringify(bodyToSend));
-    const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendInvoice`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(bodyToSend)
-    });
-    const tgData = await tgRes.json();
-    console.log('Telegram reply:', JSON.stringify(tgData));
-    if (!tgData.ok) {
-      return res.json({ error: 'Could not send invoice. Make sure you pressed /start in @ShayaWatchAllBot first. Error: ' + (tgData.description || 'Telegram error') });
-    }
-    console.log(`Stars invoice sent: ${user_id} ${planClean} ${stars} ⭐`);
-    res.json({ success: true, stars, plan: planClean });
-  } catch (e) {
-    console.log('Stars invoice failed', e.message);
-    res.json({ error: 'Could not send invoice. Error: ' + e.message });
-  }
+    const { userId, username } = req.body; const { energy, user } = await checkEnergy(userId);
+    if (energy <= 0) return res.json({ success: false, error: 'No Energy! Watch Boost.', energy: 0 });
+    if (user && user.last_mine) { const diff = Date.now() - new Date(user.last_mine).getTime(); if (diff < MINE_COOLDOWN_MS) return res.json({ success: false, error: 'Too fast! Wait ' + Math.ceil((MINE_COOLDOWN_MS - diff) / 1000) + 's', energy }); }
+    const mult = isVip(user || {}) ? VIP_PLANS[user.vip_level].mult : 1; const gain = 1 * mult; const newDiamonds = (user?.diamonds || 0) + gain; const newEnergy = energy - 1;
+    if (!user) await supabase.from('users').insert({ id: userId, username, diamonds: gain, energy: newEnergy, last_mine: new Date().toISOString(), last_regen: new Date().toISOString() });
+    else await supabase.from('users').update({ diamonds: newDiamonds, energy: newEnergy, last_mine: new Date().toISOString() }).eq('id', userId);
+    await supabase.from('rewards_log').insert({ user_id: userId, source: 'mine', amount: gain });
+    res.json({ success: true, diamonds: newDiamonds, energy: newEnergy, gain });
+  } catch(e) { res.json({ success: false, error: e.message }); }
 });
-
-app.post('/api/request-vip', async (req, res) => {
-  const { user_id, plan, method, proof } = req.body;
-  let u = await getUser(parseInt(user_id));
-  if (!u) return res.json({ error: 'user not found' });
-  const p = getVipPlans(u.region);
-  if (!p) return res.json({ error: 'Invalid plan' });
-  const reqObj = { id: vipRequests.length + 1, user_id: parseInt(user_id), username: u.username, first_name: u.first_name, plan, price: p.price, priceUSD: p.priceUSD, region: u.region, method: method || 'Stars', proof: proof || '', status: 'pending', created_at: new Date().toISOString() };
-  vipRequests.push(reqObj); await sbInsert('vip_requests', reqObj);
-  res.json({ success: true, price: p.price, plan });
+// BOOST - ONLY OnclickA, NO Offerwall
+app.post('/api/boost', async (req, res) => {
+  const { user_id, adShown } = req.body;
+  if (!adShown) return res.json({ success: false, error: '❌ No ad was shown. Watch a full ad to get +2 💎.' });
+  const { data: u } = await supabase.from('users').select('*').eq('id', user_id).single(); if (!u) return res.json({ success: false, error: 'User not found' });
+  await supabase.from('users').update({ diamonds: u.diamonds + 2, energy: Math.min(100, (u.energy || 0) + 20) }).eq('id', user_id);
+  await supabase.from('rewards_log').insert({ user_id, source: 'boost', amount: 2 });
+  res.json({ success: true, earned: 2, diamonds: u.diamonds + 2, energy: Math.min(100, (u.energy || 0) + 20) });
 });
-app.get('/api/tasks', (req, res) => res.json(tasksList));
-app.get('/api/leaderboard', async (req, res) => {
-  const all = Array.from(users.values()).sort((a, b) => (b.balance + (b.coins / 1000) * (b.region === 'SA' ? USDT_TO_ZAR : 1)) - (a.balance + (a.coins / 1000) * (a.region === 'SA' ? USDT_TO_ZAR : 1))).slice(0, 20).map(u => ({ user_id: u.user_id, username: u.username, first_name: u.first_name, region: u.region, vip_level: u.vip_level, balance: u.balance, coins: u.coins }));
-  res.json(all);
-});
-app.post('/api/offerwall-credit', async (req, res) => {
-  const { user_id, amount, source } = req.body;
-  let u = await getUser(parseInt(user_id));
-  if (!u) return res.json({ error: 'user not found' });
-  const coinsToAdd = Math.floor(parseFloat(amount) || 0);
-  if (coinsToAdd <= 0) return res.json({ error: 'Invalid amount' });
-  const updated = await updateUser(parseInt(user_id), { coins: (u.coins || 0) + coinsToAdd, total_earned: (u.total_earned || 0) + (coinsToAdd / 1000) });
-  offerwallRewards.push({ user_id: parseInt(user_id), amount: coinsToAdd, source: source || 'giga-offerwall-9114', created_at: new Date().toISOString() });
-  res.json({ success: true, coinsAdded: coinsToAdd, user: formatUserForFrontend(updated) });
-});
-async function fetchYouTube(query, region, maxResults = 12) {
-  if (!YOUTUBE_API_KEY) return [];
-  try {
-    const regionCode = region === 'SA' ? 'ZA' : 'US';
-    const url = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=${maxResults}&q=${encodeURIComponent(query)}&regionCode=${regionCode}&key=${YOUTUBE_API_KEY}`;
-    const res = await fetch(url); const d = await res.json();
-    if (!d.items) return [];
-    return d.items.map(it => ({ id: it.id.videoId, title: it.snippet.title, channel: it.snippet.channelTitle, thumb: it.snippet.thumbnails?.medium?.url || '', views: 'Trending', url: `https://www.youtube.com/watch?v=${it.id.videoId}` }));
-  } catch (e) { return []; }
-}
-app.get('/api/videos/trending', async (req, res) => { const region = req.query.region || 'SA'; res.json(await fetchYouTube(region === 'SA' ? 'Amapiano trending South Africa 2026' : 'Trending USA Hip Hop 2026', region)); });
-app.get('/api/videos/music', async (req, res) => { const region = req.query.region || 'SA'; res.json(await fetchYouTube(region === 'SA' ? 'Amapiano Kabza De Small DJ Maphorisa' : 'Hip Hop Music Videos 2026', region)); });
-app.get('/api/videos/search', async (req, res) => { res.json(await fetchYouTube(req.query.q || 'Amapiano', req.query.region || 'SA')); });
-app.get('/api/admin/pending', (req, res) => { res.json({ withdrawals: withdrawals.filter(w => w.status === 'pending'), vipRequests: vipRequests.filter(v => v.status === 'pending') }); });
-
-// ===== TELEGRAM BOT HANDLERS =====
-if (bot) {
-  bot.start(async (ctx) => {
-    const user_id = ctx.from.id;
-    const payload = ctx.startPayload || '';
-    let referred_by = null;
-    if (payload.startsWith('ref_')) referred_by = payload.replace('ref_', '');
-    let u = await getUser(user_id);
-    if (!u) u = await createUser(user_id, { username: ctx.from.username || '', first_name: ctx.from.first_name || '', referred_by: referred_by ? parseInt(referred_by) : null });
-    const rate = await refreshRate();
-    await ctx.replyWithMarkdown(`👋 Welcome to *SHAYA WATCH* ${u.first_name}!\n\n🔥 *EARN PLANS*\n• FREE: $0.01/ad • 10/day • $50 Min\n• VIP: $0.025/ad • 20/day • $20 Min • 250 ⭐\n• VIP PRO: $0.05/ad • 20/day • $20 Min • 500 ⭐\n• VIP ELITE: $0.10/ad • 20/day • $20 Min • 1000 ⭐\n\n💱 1 USDT = R${rate.toFixed(2)} LIVE\n\nTap below to open the app 👇`, { reply_markup: { inline_keyboard: [[{ text: '🚀 OPEN SHAYA WATCH', web_app: { url: WEBAPP_URL } }]] } });
-  });
-  bot.command('balance', async (ctx) => {
-    let u = await getUser(ctx.from.id);
-    if (!u) return ctx.reply('Send /start first');
-    const f = formatUserForFrontend(u);
-    ctx.reply(`💰 Balance: ${f.currency}${f.balance.toFixed(2)} = $${f.usdtBalance} USDT\n🪙 Coins: ${f.coins}\n📺 Ads Today: ${f.dailyAds}/${f.dailyLimit}\n👑 VIP: ${f.vip_level}`);
-  });
-  bot.command('approvevip', async (ctx) => {
-    if (ctx.from.id !== ADMIN_ID) return ctx.reply('Admin only');
-    const parts = ctx.message.text.split(' ');
-    const targetId = parseInt(parts[1]);
-    const planName = parts.slice(2).join(' ') || 'VIP';
-    let u = await getUser(targetId);
-    if (!u) return ctx.reply('User not found');
-    const until = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    await updateUser(targetId, { vip_level: planName, vip_until: until });
-    ctx.reply(`✅ Approved ${planName} for ${u.first_name} (${targetId}) until ${until}`);
-    try { await ctx.telegram.sendMessage(targetId, `🎉 Your ${planName} is ACTIVE until ${until}!`); } catch (e) {}
-  });
-  bot.command('paywithdraw', async (ctx) => {
-    if (ctx.from.id !== ADMIN_ID) return ctx.reply('Admin only');
-    const id = parseInt(ctx.message.text.split(' ')[1]);
-    const w = withdrawals.find(x => x.id === id);
-    if (!w) return ctx.reply('Withdraw not found');
-    w.status = 'paid';
-    ctx.reply(`✅ Marked withdraw #${id} as PAID`);
-    try { await ctx.telegram.sendMessage(w.user_id, `✅ Your withdraw of $${w.usdtAmount} USDT has been PAID!`); } catch (e) {}
-  });
-  bot.command('stats', async (ctx) => {
-    if (ctx.from.id !== ADMIN_ID) return;
-    ctx.reply(`📊 STATS\nUsers: ${users.size}\nWithdraws Paid: ${withdrawals.filter(w => w.status === 'paid').length}\nPending: ${withdrawals.filter(w => w.status === 'pending').length}\nRate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}`);
-  });
-  bot.on('pre_checkout_query', async (ctx) => { try { await ctx.answerPreCheckoutQuery(true); } catch (e) {} });
-  bot.on('successful_payment', async (ctx) => {
-    const pay = ctx.message.successful_payment;
-    const payload = pay.invoice_payload || '';
-    let plan = 'VIP';
-    if (payload.includes('VIP PRO')) plan = 'VIP PRO';
-    else if (payload.includes('VIP ELITE')) plan = 'VIP ELITE';
-    else if (payload.includes('VIP')) plan = 'VIP';
-    const user_id = ctx.from.id;
-    const starsPaid = pay.total_amount;
-    const until = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-    let u = await getUser(user_id);
-    if (!u) u = await createUser(user_id, { username: ctx.from.username || '', first_name: ctx.from.first_name || '' });
-    await updateUser(user_id, { vip_level: plan, vip_until: until });
-    console.log(`⭐ STARS PAID: ${user_id} ${plan} ${starsPaid} Stars - Activated until ${until}`);
-    await ctx.reply(`🎉 VIP ACTIVATED!\n\n👑 Plan: ${plan}\n⭐ Paid: ${starsPaid} Stars\n📅 Until: ${until}\n\nGo back to the app and refresh!`, { reply_markup: { inline_keyboard: [[{ text: '🚀 OPEN SHAYA WATCH', web_app: { url: WEBAPP_URL } }]] } });
-    if (ADMIN_ID) { try { await ctx.telegram.sendMessage(ADMIN_ID, `⭐ STARS RECEIVED!\nUser: ${ctx.from.first_name} (@${ctx.from.username}) ID: ${user_id}\nPlan: ${plan}\nStars: ${starsPaid} ⭐\nUntil: ${until}`); } catch (e) {} }
-  });
-  bot.launch().then(() => console.log('Bot launched @ShayaWatchAllBot')).catch(e => console.log('Bot launch failed', e.message));
-  process.once('SIGINT', () => bot.stop('SIGINT'));
-  process.once('SIGTERM', () => bot.stop('SIGTERM'));
-} else {
-  console.log('⚠️ BOT_TOKEN not set - bot disabled, API still works');
-}
-
-// ===== START SERVER =====
-app.listen(PORT, () => {
-  console.log(`✅ Shaya Watch running on port ${PORT}`);
-  console.log(`WebApp: ${WEBAPP_URL}`);
-  console.log(`Giga Ad: 9114 | Offerwall: 9114 | OnclickA: 472254 | VIP Stars: 250/500/1000`);
-});
+app.post('/api/hire', async (req, res) => { const { user_id, robot } = req.body; const r = ROBOTS[robot]; if (!r) return res.json({ success: false, error: 'No robot' }); const { data: u } = await supabase.from('users').select('*').eq('id', user_id).single(); if (u.diamonds < r.price) return res.json({ success: false, error: 'Not enough' }); const robots = { ...(u.robots || {}), [robot]: ((u.robots || {})[robot] || 0) + 1 }; await supabase.from('users').update({ diamonds: u.diamonds - r.price, robots }).eq('id', user_id); res.json({ success: true, diamonds: u.diamonds - r.price, robots }); });
+app.post('/api/shop-buy', async (req, res) => { const { userId, item } = req.body; const { data: u } = await supabase.from('users').select('*').eq('id', userId).single(); if (!u) return res.json({ success: false, error: 'User not found' }); if (item === 'energy_50') { if (u.diamonds < 50) return res.json({ success: false, error: 'Need 50 💎' }); await supabase.from('users').update({ diamonds: u.diamonds - 50, energy: Math.min(100, (u.energy || 0) + 50) }).eq('id', userId); return res.json({ success: true, diamonds: u.diamonds - 50, energy: Math.min(100, (u.energy || 0) + 50) }); } if (item === 'factory') { const cost = 200 + (u.factory_level || 0) * 200; if (u.diamonds < cost) return res.json({ success: false, error: 'Need ' + cost + ' 💎' }); await supabase.from('users').update({ diamonds: u.diamonds - cost, factory_level: (u.factory_level || 0) + 1 }).eq('id', userId); return res.json({ success: true, diamonds: u.diamonds - cost, factory_level: (u.factory_level || 0) + 1 }); } if (item === 'factory_claim') { const earn = (u.factory_level || 0) * 5; if (earn <= 0) return res.json({ success: false, error: 'Buy Factory first!' }); await supabase.from('users').update({ diamonds: u.diamonds + earn }).eq('id', userId); return res.json({ success: true, diamonds: u.diamonds + earn, earned: earn }); } res.json({ success: false, error: 'Unknown' }); });
+app.post('/api/bonus', async (req, res) => { const { data: u } = await supabase.from('users').select('*').eq('id', req.body.user_id).single(); if (u.bonus_last && Date.now() - new Date(u.bonus_last).getTime() < 86400000) return res.json({ success: false, error: 'Already claimed' }); await supabase.from('users').update({ bonus_last: new Date().toISOString(), diamonds: u.diamonds + 50 }).eq('id', u.id); res.json({ success: true, diamonds: u.diamonds + 50 }); });
+app.post('/api/add-diamonds', async (req, res) => { const { userId, username, amount, source, rewardId } = req.body; if (!userId || !amount) return res.json({ success: false }); if (rewardId) { const { data: ex } = await supabase.from('rewards_log').select('id').eq('reward_id', rewardId).single(); if (ex) return res.json({ success: false, error: 'Already credited' }); } const { data: u } = await supabase.from('users').select('*').eq('id', userId).single(); if (!u) { await supabase.from('users').insert({ id: userId, username, diamonds: amount }); return res.json({ success: true, newBalance: amount }); } await supabase.from('users').update({ diamonds: u.diamonds + amount }).eq('id', userId); await supabase.from('rewards_log').insert({ user_id: userId, source: source || 'unknown', amount, reward_id: rewardId || null }); res.json({ success: true, newBalance: u.diamonds + amount }); });
+app.post('/api/withdraw', async (req, res) => { const { user_id, method, wallet } = req.body; const { data: u } = await supabase.from('users').select('*').eq('id', user_id).single(); const minW = getMinWithdraw(u); if (u.diamonds < minW) return res.json({ success: false, error: `Min ${minW} 💎. You have ${u.diamonds} 💎.` }); if (!wallet) return res.json({ success: false, error: 'Enter wallet' }); if ((method || '').includes('Walt') && !wallet.startsWith('UQ')) return res.json({ success: false, error: '❌ Walt must start with UQ...' }); const xrp = u.diamonds / 1000; const isAuto = xrp <= AUTO_APPROVE_LIMIT; const { data: wd } = await supabase.from('withdraws').insert({ user_id: u.id, username: u.username, amount_diamonds: u.diamonds, xrp, method, wallet, status: isAuto ? 'auto_approved' : 'pending_review' }).select().single(); await supabase.from('users').update({ payment: (u.payment || 0) + u.diamonds, diamonds: 0 }).eq('id', u.id); if (bot && ADMIN_ID) bot.sendMessage(ADMIN_ID, `${isAuto ? '💸 AUTO' : '🛑 REVIEW'} WITHDRAW #${wd.id}\n${xrp.toFixed(2)} XRP\nWallet: ${wallet}`).catch(()=>{}); res.json({ success: true, xrp, message: isAuto ? `✅ AUTO-APPROVED! ${xrp.toFixed(2)} XRP` : `🛑 MANUAL REVIEW! ${xrp.toFixed(2)} XRP` }); });
+app.post('/api/vip-buy', async (req, res) => { const { userId, level } = req.body; const p = VIP_PLANS[level]; if (!p) return res.json({ success: false, error: 'Bad level' }); try { const link = await bot.createInvoiceLink(`${level} - Shaya XRP Miner 30 days`, `${level} - 30 Days - ${p.mult}x`, `vip_${level}`, '', 'XTR', [{ label: level, amount: p.stars }]); res.json({ success: true, invoiceLink: link }); } catch(e) { res.json({ success: false, error: e.message }); } });
+app.get('/api/leaderboard', async (req, res) => { const { data } = await supabase.from('users').select('username,first_name,diamonds,paid_out,streak').order('diamonds', { ascending: false }).limit(10); res.json(data || []); });
+app.listen(PORT, () => console.log('Shaya V5 Admin + Streak + Tasks running on ' + PORT));
