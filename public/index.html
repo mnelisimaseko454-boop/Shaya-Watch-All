@@ -3,571 +3,391 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shaya Watch Bot</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://ad.gigapub.tech/script?id=9114"></script>
-<script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-  if (!window.loadOfferWallSDK) {
-    const script = document.createElement('script');
-    script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=9114';
-    script.async = true; document.head.appendChild(script);
-  }
-});
-</script>
-<script>
-var ONCLICKA_SPOT_ID = "472254";
-var GIGA_APP_ID = "9114";
-var GIGA_OFFERWALL_PROJECT_ID = "9114";
-var adClickCount = 0;
-var onclickaShow = null;
-var gigaOfferWallSDK = null;
-window.initCdTma?.({ id: '472254' }).then(show => { window.show = show; onclickaShow = show; }).catch(e => console.log('OnclickA init failed', e));
-(window.loadGigaSDKCallbacks || (window.loadGigaSDKCallbacks = [])).push(() => {
-  window.loadOfferWallSDK({ projectId: '9114' })
-  .then(sdk => { window.gigaOfferWallSDK = sdk; gigaOfferWallSDK = sdk; sdk.on('rewardClaim', async (data) => { await creditUserReward(data.userId, data.amount); try{ await sdk.confirmReward(data.rewardId, data.hash); }catch(e){} }); })
-  .catch(error => { console.error('Error loading Offerwall SDK:', error); });
-});
-async function creditUserReward(gigaUserId, amount){
-  try{
-    var res = await fetch('/api/offerwall-credit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: userId, amount: amount, source: 'giga-offerwall-9114' }) });
-    var d = await res.json();
-    if(d.success){ var r2 = await fetch('/api/user/' + userId); user = await r2.json(); updateUI(); document.getElementById('adStatus').innerText = '🎉 Offerwall: +' + amount + ' Coins credited!'; alert('🎉 Offerwall Reward: +' + amount + ' Coins!'); return true; }
-    if(user){ user.coins = (user.coins||0) + Math.floor(amount); updateUI(); alert('🎉 Offerwall: +' + Math.floor(amount) + ' Coins!'); }
-    return true;
-  }catch(e){ if(user){ user.coins = (user.coins||0) + Math.floor(amount); updateUI(); } return true; }
-}
-function openOfferWall(){ if(window.gigaOfferWallSDK){ window.gigaOfferWallSDK.open(); } else { alert('Offerwall still loading... wait 3 sec and try again.'); } }
-function closeOfferWall(){ if(window.gigaOfferWallSDK) window.gigaOfferWallSDK.close(); }
-async function checkOffers(){ if(!window.gigaOfferWallSDK) return alert('Offerwall still loading...'); try{ var offers = await window.gigaOfferWallSDK.getOffers(); alert('Offers - Available: ' + offers.available + ' | Active: ' + offers.active); }catch(e){ alert('Could not fetch offers: ' + e.message); } }
-async function checkPendingRewards(){ if(!window.gigaOfferWallSDK) return; try{ var pending = await window.gigaOfferWallSDK.pending(); if(pending && pending.length){ alert('You have ' + pending.length + ' pending rewards! Claiming...'); for(var r of pending){ await creditUserReward(r.userId, r.amount); await window.gigaOfferWallSDK.confirmReward(r.rewardId, r.hash); } } else { alert('No pending rewards.'); } }catch(e){ console.log(e); } }
-async function triggerAdNetworks(){ adClickCount++; var onclickaFirst = (adClickCount % 2 === 1); if(onclickaFirst){ var ok = await tryOnclickA(); if(!ok) await tryGiga(); } else { var gOk = await tryGiga(); if(!gOk) await tryOnclickA(); } return true; }
-async function tryOnclickA(){ try{ if(onclickaShow){ await onclickaShow(); return true; } if(window.show){ await window.show(); return true; } return false; }catch(e){ return false; } }
-async function tryGiga(){ try{ if(window.showGiga){ await window.showGiga(); return true; } return false; }catch(e){ return false; } }
-document.addEventListener('DOMContentLoaded', function(){ var btn = document.getElementById('rewards-button'); if(btn) btn.addEventListener('click', openOfferWall); });
-</script>
+<title>Shaya Watch - Earn Cash + Coins</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
-body{background:#0a0a0a;color:#fff;padding:12px;padding-bottom:90px}
-.header{display:flex;justify-content:space-between;align-items:center;background:#1a1a1a;padding:12px;border-radius:14px}
-.header h1{font-size:20px;color:#FFD700}.header h1 span{color:#fff;font-size:12px;display:block}
-.toggle{display:flex;background:#222;border-radius:20px;padding:3px}.toggle button{border:none;padding:8px 14px;border-radius:18px;cursor:pointer;font-weight:bold}.toggle button.active{background:#FFD700;color:#000}
-.card{background:#1a1a1a;border-radius:16px;padding:14px;margin-top:12px;border:1px solid #333}
-.balance{font-size:34px;font-weight:900;color:#FFD700}.coins{color:#aaa;font-size:14px}
-.bigbtn{background:#FFD700;color:#000;border:none;width:100%;padding:16px;border-radius:14px;font-size:18px;font-weight:900;cursor:pointer;margin-top:10px}.bigbtn:disabled{background:#555;color:#999}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.mini{background:#222;border:1px solid #333;border-radius:12px;padding:12px;text-align:center;cursor:pointer}.mini b{display:block;font-size:16px}.mini span{font-size:12px;color:#aaa}
-.vip{background:linear-gradient(135deg,#FFD700,#ff8c00);color:#000;border-radius:16px;padding:14px;margin-top:12px}.vip button{background:#000;color:#FFD700;border:none;padding:10px 14px;border-radius:10px;font-weight:bold;margin-top:8px;width:100%}
-.vipcard{background:#222;border:1px solid #FFD700;border-radius:12px;padding:12px;margin-top:8px;color:#fff}.vipcard.active{border-color:#00ff88;background:#0f2a1a}
-.task{background:#222;padding:10px;border-radius:10px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}.task button{background:#FFD700;border:none;padding:8px 12px;border-radius:8px;font-weight:bold}
-.nav{position:fixed;bottom:0;left:0;right:0;background:#111;display:flex;justify-content:space-around;padding:12px;border-top:1px solid #333}.nav div{text-align:center;font-size:12px;cursor:pointer}.nav div.active{color:#FFD700}
-input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#222;color:#fff;margin-top:8px}
-.hidden{display:none !important}.leader{padding:8px 0;border-bottom:1px solid #222;display:flex;justify-content:space-between}
-.ytbtn{background:#222;color:#fff;border:1px solid #333;padding:8px 12px;border-radius:8px;cursor:pointer}.ytbtn.active{background:#FFD700;color:#000;border:none;font-weight:bold}
-.usdtbox{background:#0f2a1a;border:1px solid #00ff88;border-radius:12px;padding:12px;margin-top:12px}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;flex-direction:column}.modal.hidden{display:none !important}.modal-head{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#111}.modal-head button{background:#FFD700;border:none;padding:8px 14px;border-radius:8px;font-weight:bold}.modal iframe{flex:1;width:100%;border:none;background:#000}
-.ytcard{display:flex;gap:10px;margin:8px 0;background:#222;padding:8px;border-radius:10px;cursor:pointer}.ytcard img{width:110px;border-radius:8px;object-fit:cover}
-.progress{height:10px;background:#333;border-radius:10px;overflow:hidden;margin-top:8px}.progress div{height:100%;background:#FFD700;transition:width .3s}
-.offerbox{background:linear-gradient(135deg,#7b2fff,#00c6ff);border-radius:16px;padding:14px;margin-top:12px;color:#fff}.offerbox button{background:#FFD700;color:#000;border:none;padding:12px;border-radius:10px;font-weight:900;width:100%;margin-top:8px}.offerbox button.small{background:#222;color:#fff;border:1px solid #fff;padding:8px;font-size:12px}
-.wallet-hint{background:#0f2a1a;border:1px solid #00ff88;border-radius:10px;padding:10px;margin-top:8px;font-size:12px;color:#aaffcc}
-.quiz-opt{width:100%;padding:12px;margin:6px 0;background:#fff;color:#000;border:none;border-radius:10px;text-align:left}
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:#0a0a0a;color:#fff;padding:12px;padding-bottom:80px}
+.top{display:flex;justify-content:space-between;align-items:center;background:#111;padding:12px;border-radius:12px}
+.top b{color:#FFD700;font-size:18px}
+.top span{font-size:12px;color:#aaa}
+.card{background:#151515;border:1px solid #222;border-radius:14px;padding:14px;margin-top:12px}
+.card h3{color:#FFD700;margin-bottom:8px;font-size:15px}
+.big{font-size:28px;font-weight:bold}
+.small{color:#aaa;font-size:12px;margin-top:4px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.btn{border:none;padding:14px;border-radius:12px;font-weight:bold;cursor:pointer;width:100%;font-size:14px}
+.btn-gold{background:#FFD700;color:#000}
+.btn-dark{background:#222;color:#fff;border:1px solid #333}
+.btn-green{background:#00c853;color:#fff}
+.btn-blue{background:#2196F3;color:#fff}
+input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#111;color:#fff;margin-top:8px}
+label{font-size:12px;color:#aaa}
+.badge{display:inline-block;background:#FFD700;color:#000;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:bold}
+.adbox{background:#111;border:1px solid #FFD700;border-radius:14px;padding:14px;margin-top:12px;text-align:center}
+#ad-slot{min-height:90px;background:#000;border-radius:10px;margin:8px 0;overflow:hidden}
+#ad-status{color:#aaa;font-size:12px;margin-top:6px}
+.task{border:1px solid #222;padding:10px;border-radius:10px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
+.tabs{position:fixed;bottom:0;left:0;right:0;background:#111;display:flex;border-top:1px solid #222}
+.tabs button{flex:1;background:none;border:none;color:#aaa;padding:14px;font-weight:bold}
+.tabs button.active{color:#FFD700}
+.hidden{display:none}
+.vip-row{border:1px solid #222;padding:10px;border-radius:10px;margin-top:8px}
 </style>
 </head>
 <body>
-<div class="header"><div><h1>SHAYA WATCH BOT <span>Trending SA Videos • Music • Lifestyle • Earn</span></h1></div><div class="toggle"><button id="btnSA" onclick="setRegion('SA')">🇿🇦 SA</button><button id="btnUSA" onclick="setRegion('USA')">🇺🇸 USA</button></div></div>
-<div id="loginCard" class="card" style="display:none">
-  <h3>👋 Welcome — No Telegram Needed!</h3>
-  <p style="font-size:13px;color:#ccc">Enter your name. This device will remember you. Coins saved to Supabase.</p>
-  <input id="nameInput" placeholder="Your name, e.g. Thabo" />
-  <button class="bigbtn" onclick="saveWebsiteUser()">START EARNING →</button>
-  <p style="font-size:11px;margin-top:8px;color:#aaa">Already have Telegram? Open @ShayaWatchAllBot and tap OPEN.</p>
+
+<div class="top">
+  <div><b>👁️ SHAYA WATCH</b><br><span id="userName">Loading...</span></div>
+  <div style="text-align:right"><span class="badge" id="vipBadge">FREE</span><br><span id="levelText">Level 1/20</span></div>
 </div>
-<div id="page-home">
+
+<!-- BALANCE -->
 <div class="card">
-<div style="display:flex;justify-content:space-between"><span>💰 Cash Balance</span><span id="vipBadge">FREE</span></div>
-<div class="balance" id="balance">Loading...</div>
-<div class="coins" id="coins">🪙 Loading...</div>
-<div class="coins" id="pointsLine" style="color:#FFD700">⭐ Points: 0 (For VIP)</div>
-<div class="coins" id="usdtValue" style="color:#00ff88">💱 = $0.00 USDT</div>
-<div class="coins" id="statsLine">Ads: 0 | Referrals: 0 | Streak: 0 days</div>
-<div class="coins" id="vipUntilLine" style="color:#FFD700"></div>
-<div class="coins" id="unlockedLine" style="color:#aaa"></div>
-<div style="margin-top:10px;background:#222;padding:10px;border-radius:10px">
-<b id="dailyLabel">📺 Ads Today: 0 / 10</b>
-<div class="progress"><div id="dailyBar" style="width:0%"></div></div>
-<p id="dailyLeftLabel" style="font-size:12px;color:#aaa;margin-top:4px">10 left today</p>
-<p id="minWithdrawLabel" style="font-size:12px;color:#FFD700;margin-top:4px">Min: R350 / $20 — Airtime/Data NO LIMIT</p>
+  <h3>💰 YOUR BALANCE</h3>
+  <div class="big" id="balance">R0.00</div>
+  <div class="small">≈ <span id="usdtBal">$0 USDT</span> • 1 USDT = R<span id="rate">16.59</span> LIVE</div>
+  <div class="grid">
+    <div style="background:#1a1a1a;padding:10px;border-radius:10px"><b id="coins">0</b><br><span class="small">Coins</span></div>
+    <div style="background:#1a1a1a;padding:10px;border-radius:10px"><b id="points">0</b><br><span class="small">Points</span></div>
+    <div style="background:#1a1a1a;padding:10px;border-radius:10px"><b id="adsToday">0/10</b><br><span class="small">Ads Today</span></div>
+    <div style="background:#1a1a1a;padding:10px;border-radius:10px"><b id="referrals">0</b><br><span class="small">Referrals</span></div>
+  </div>
+  <div class="small" style="margin-top:8px">Min Withdraw: <b style="color:#fff">R350 / $20 HARD LOCK</b> • Airtime: <b style="color:#fff">110 Coins = R1 NO LIMIT</b></div>
+  <div class="grid" style="margin-top:10px">
+    <button class="btn btn-gold" onclick="showTab('earn')">📺 EARN</button>
+    <button class="btn btn-green" onclick="showTab('withdraw')">💸 WITHDRAW</button>
+  </div>
 </div>
-<button class="bigbtn" id="watchBtn" onclick="watchAd()">▶️ WATCH AD & EARN</button>
-<p style="text-align:center;font-size:12px;color:#aaa;margin-top:8px" id="rateLine">You Earn: $0.01 per ad</p>
-<p id="adStatus" style="text-align:center;margin-top:6px;color:#0f0"></p>
+
+<!-- EARN TAB -->
+<div id="tab-earn">
+  <!-- ===== ADS - ONCLICKA MAIN + GIGA BACKUP + OFFERWALL ===== -->
+  <div class="adbox">
+    <h3 style="color:#FFD700">📺 WATCH AD TO EARN</h3>
+    <div class="small">Per Ad: <b id="perAd" style="color:#fff">R0.17 + 5 Coins</b> • <span id="dailyLeft">10 left today</span></div>
+    <div id="ad-slot">
+      <div style="padding:30px;color:#888">Tap WATCH AD below - OnclickA will load first</div>
+    </div>
+    <button class="btn btn-gold" onclick="watchAd()">▶ WATCH AD + EARN</button>
+    <button class="btn btn-dark" onclick="openOfferwall()" style="margin-top:8px">🎁 NO AD? OPEN OFFERWALL - ALWAYS AVAILABLE</button>
+    <div id="ad-status">Ads ready: OnclickA 472254 + Giga 9114 backup</div>
+    <div class="small" style="margin-top:6px">If OnclickA has no ad, Giga loads automatically in 5 sec.</div>
+  </div>
+
+  <!-- OFFERWALL BOX -->
+  <div class="card">
+    <h3>🎁 OFFERWALL - GIGA 9114</h3>
+    <div class="small">Complete tasks, surveys, app installs = Coins. Always available even when ads are empty.</div>
+    <button class="btn btn-blue" onclick="openOfferwall()" style="margin-top:10px">OPEN OFFERWALL 9114</button>
+    <div id="offerwallList"></div>
+  </div>
+
+  <!-- DAILY + QUIZ -->
+  <div class="card">
+    <h3>🎁 DAILY BONUS + QUIZ</h3>
+    <button class="btn btn-gold" onclick="claimDaily()">🎁 CLAIM DAILY BONUS +20 COINS</button>
+    <button class="btn btn-dark" onclick="playQuiz()" style="margin-top:8px">🧠 PLAY QUIZ (Unlock after 10 ads)</button>
+    <div id="quizBox" style="margin-top:10px"></div>
+  </div>
+
+  <!-- TASKS -->
+  <div class="card">
+    <h3>✅ TASKS</h3>
+    <div id="tasksBox">Loading tasks...</div>
+  </div>
 </div>
-<div class="offerbox">
-<b>🎯 OFFERWALL - Earn More Coins</b>
-<p style="font-size:13px;margin-top:4px">Complete offers, install apps, surveys → Get Coins → Convert to Cash. 1000 Coins = $1</p>
-<button id="rewards-button" onclick="openOfferWall()">🎁 OPEN OFFERS & EARN COINS</button>
-<div style="display:flex;gap:8px;margin-top:8px">
-<button class="small" style="flex:1" onclick="checkOffers()">Check Offers</button>
-<button class="small" style="flex:1" onclick="checkPendingRewards()">Pending Rewards</button>
-<button class="small" style="flex:1" onclick="closeOfferWall()">Close Wall</button>
+
+<!-- VIP TAB -->
+<div id="tab-vip" class="hidden">
+  <div class="card">
+    <h3>👑 VIP - 20 LEVELS - 30 DAYS</h3>
+    <div class="small">FREE: $0.01/ad - 10/day • KING: $0.025/ad - 20/day • Min R350 / $20</div>
+    <div id="vipList">Loading VIP...</div>
+  </div>
+  <div class="card">
+    <h3>🏦 TOPUP - FIRST TOPUP DOUBLE!</h3>
+    <div class="small">Send to Capitec <b style="color:#fff">1893275807</b> • Ref: Your Name • Then request below</div>
+    <label>Choose Package</label>
+    <select id="topupPkg">
+      <option value="p29">R29 - 500 Coins + 500 Points</option>
+      <option value="p79">R79 - 1500 Coins + 1500 Points</option>
+      <option value="p179">R179 - 4000 Coins + 4000 Points</option>
+      <option value="p349">R349 - 9000 Coins + 9000 Points</option>
+      <option value="p699">R699 - 20000 Coins + 20000 Points</option>
+    </select>
+    <input id="topupProof" placeholder="Proof - e.g. Capitec SMS / Name + Amount">
+    <button class="btn btn-gold" onclick="requestTopup()" style="margin-top:10px">SEND TOPUP REQUEST</button>
+    <div class="small" style="margin-top:6px">First topup under 500 coins = DOUBLE! Admin checks Capitec then approves.</div>
+  </div>
+  <div class="card">
+    <h3>🪙 BUY COINS / POINTS WITH STARS</h3>
+    <div class="grid">
+      <button class="btn btn-dark" onclick="buyStars('coins','c500s')">500 Coins - 70 ⭐</button>
+      <button class="btn btn-dark" onclick="buyStars('coins','c1500s')">1500 Coins - 170 ⭐</button>
+      <button class="btn btn-dark" onclick="buyStars('points','pt500s')">500 Points - 70 ⭐</button>
+      <button class="btn btn-dark" onclick="buyStars('points','pt1500s')">1500 Points - 170 ⭐</button>
+    </div>
+  </div>
 </div>
-<p style="font-size:11px;margin-top:6px">Powered by Giga Offerwall (9114 ACTIVE) • Rewards auto-credit</p>
+
+<!-- WITHDRAW TAB -->
+<div id="tab-withdraw" class="hidden">
+  <div class="card">
+    <h3>💸 WITHDRAW</h3>
+    <label>Method</label>
+    <select id="wdMethod" onchange="updateWdHint()">
+      <option value="Dollars (USDT) - Walt">Dollars (USDT) - Walt (UQ...)</option>
+      <option value="Gram - Walt">Gram - Walt (UQ...)</option>
+      <option value="Capitec / Bank">Capitec / Bank - R350</option>
+      <option value="Airtime">Airtime - 110 Coins = R1 - NO LIMIT</option>
+      <option value="Data">Data - 110 Coins = R1 - NO LIMIT</option>
+    </select>
+    <div class="small" id="wdHint">Min R350 HARD LOCK. Walt address must start with UQ...</div>
+    <input id="wdWallet" placeholder="Walt UQ... / Capitec Account / Phone Number">
+    <input id="wdAmount" type="number" placeholder="For Airtime/Data: Amount in R e.g. 10 (Leave empty for full balance)">
+    <input id="wdNetwork" placeholder="Network for Airtime/Data: e.g. MTN / Vodacom / Telkom">
+    <button class="btn btn-green" onclick="requestWithdraw()" style="margin-top:10px">REQUEST WITHDRAW</button>
+    <div id="wdMsg" class="small" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <h3>🔄 CONVERT COINS</h3>
+    <div class="small">1000 Coins = Cash. Tap to convert all.</div>
+    <button class="btn btn-dark" onclick="convertCoins()" style="margin-top:8px">CONVERT 1000+ COINS TO CASH</button>
+  </div>
 </div>
-<div class="grid">
-<div class="mini" onclick="claimDaily()"><b>🎁 Daily Bonus</b><span>Claim Every Day</span></div>
-<div class="mini" onclick="convertCoins()"><b>🪙 Convert Coins</b><span>Coins → Cash</span></div>
+
+<!-- LEADERBOARD TAB -->
+<div id="tab-leader" class="hidden">
+  <div class="card"><h3>🏆 LEADERBOARD - TOP 20</h3><div id="leaderBox">Loading...</div></div>
+  <div class="card">
+    <h3>🔗 INVITE FRIENDS</h3>
+    <div class="small">Share your link = +50 Coins + Cash per friend (SA: R8.30, USA: $0.10)</div>
+    <input id="refLink" readonly>
+    <button class="btn btn-gold" onclick="copyRef()" style="margin-top:8px">COPY INVITE LINK</button>
+  </div>
 </div>
-<div class="card"><h3>🧠 Daily Quiz — +Coins</h3><p style="font-size:12px;color:#aaa">Need 3+ correct. Unlocks after 10 ads. Coins can be withdrawn.</p><div id="quizLockBox"></div><div id="quizArea"><button class="bigbtn" style="background:#25D366" onclick="startQuiz()">🧠 START QUIZ</button></div></div>
-<div class="usdtbox">
-<b>💱 CONVERT USDT → RAND (LIVE)</b>
-<p style="font-size:12px;color:#aaa;margin-top:4px" id="usdtRateLine">Rate: 1 USDT = R16.59</p>
-<input id="usdtInput" type="number" placeholder="Enter USDT e.g. 20" oninput="convertUSDTInput()">
-<div style="font-size:18px;font-weight:bold;margin-top:8px;color:#00ff88" id="usdtResult">= R0.00</div>
-<div style="display:flex;gap:8px;margin-top:8px">
-<button onclick="setUSDT(1)" style="flex:1;background:#222;color:#fff;border:1px solid #333;padding:8px;border-radius:8px">1 USDT</button>
-<button onclick="setUSDT(20)" style="flex:1;background:#FFD700;color:#000;border:none;padding:8px;border-radius:8px;font-weight:bold">$20 USDT</button>
-<button onclick="setUSDT(50)" style="flex:1;background:#222;color:#fff;border:1px solid #333;padding:8px;border-radius:8px">$50 USDT</button>
+
+<div class="tabs">
+  <button id="btn-earn" class="active" onclick="showTab('earn')">📺 Earn</button>
+  <button id="btn-vip" onclick="showTab('vip')">👑 VIP</button>
+  <button id="btn-withdraw" onclick="showTab('withdraw')">💸 Withdraw</button>
+  <button id="btn-leader" onclick="showTab('leader')">🏆 Top</button>
 </div>
-<p style="font-size:11px;color:#aaa;margin-top:6px" id="usdtExamples">20 USDT = R331.80 • 50 USDT = R829.50</p>
-</div>
-<div class="vip"><h3>👑 VIP — 20 LEVELS - 30 DAYS - PAY WITH ⭐ STARS / COINS / POINTS</h3><p>Upgrade to earn more + cheaper withdraw • Can't jump, unlocked stays unlocked • Min: SA R350 / USA $20 | Airtime/Data NO LIMIT</p><div id="vipPlansList"></div></div>
-<div class="card"><h3>🏦 Topup — Send Money To Capitec</h3>
-<div style="background:#000;padding:12px;border-radius:12px;margin:10px 0;font-size:15px;line-height:1.8;text-align:center">
-<b>🏦 Capitec Bank</b><br><span style="font-size:22px;letter-spacing:2px;color:#FFD700"><b>1893275807</b></span><br>Reference: <b id="bankRef">Your Name / ID</b>
-</div>
-<div id="packages"></div>
-<div style="margin-top:12px;border-top:1px solid #333;padding-top:12px">
-  <h4>🪙 Buy Coins Separately</h4>
-  <div id="buyCoinsList"><p style="color:#aaa;font-size:12px">Loading coins packages...</p></div>
-  <h4 style="margin-top:12px">⭐ Buy Points Separately</h4>
-  <div id="buyPointsList"><p style="color:#aaa;font-size:12px">Loading points packages...</p></div>
-  <p style="font-size:11px;color:#aaa">Bank: Send to Capitec 1893275807 → Admin presses ✅ Approve<br>Stars: Instant, no bank needed</p>
-</div>
-<input id="proofInput" placeholder="Paste EFT ref / proof" />
-<button class="bigbtn" onclick="requestTopup()">📤 SEND TOPUP REQUEST</button>
-<p style="font-size:11px;margin-top:6px">You get Coins + Points. Coins can withdraw. Points buy VIP.</p>
-</div>
-<div class="card">
-<b id="ytTitle">🔥 TRENDING ON YOUTUBE - SA</b>
-<p style="font-size:11px;color:#00ff88">▶️ Videos play INSIDE this Mini App - no redirect</p>
-<div style="display:flex;gap:8px;margin:8px 0">
-<button id="ytTrendingBtn" class="ytbtn active" onclick="loadVideos('trending')">Trending</button>
-<button id="ytMusicBtn" class="ytbtn" onclick="loadVideos('music')">Music</button>
-<input id="ytSearch" placeholder="Search Amapiano..." style="flex:1;margin:0">
-<button onclick="searchVideos()" style="background:#FFD700;border:none;padding:8px 12px;border-radius:8px">🔍</button>
-</div>
-<div id="ytList">Loading videos...</div>
-</div>
-<div class="card"><b>🎯 TASKS - Earn Extra — Tap Do, Then Claim</b><div id="tasksList">Loading tasks...</div></div>
-<div class="card"><b>🏆 LEADERBOARD</b><div id="leaderboard">Loading...</div></div>
-</div>
-<div id="page-invite" class="hidden"><div class="card"><h3>👥 INVITE FRIENDS</h3><p id="inviteReward" style="margin:8px 0">Reward per friend</p><p style="background:#222;padding:10px;border-radius:10px;word-break:break-all" id="inviteLink">Loading...</p><button class="bigbtn" onclick="copyLink()">📋 COPY LINK</button><button class="bigbtn" style="background:#25D366" onclick="shareWhatsApp()">📲 SHARE TO WHATSAPP</button></div></div>
-<div id="page-withdraw" class="hidden"><div class="card"><h3>💸 WITHDRAW</h3>
-<p style="font-size:12px;color:#FFD700">Capitec / WALT: Min R350 (SA) / $20 (USA) • Airtime / Data: NO LIMIT</p>
-<p id="withdrawInfo" style="margin:8px 0">Min: R350 (SA) / $20 (USA) — Airtime/Data No Limit</p>
-<p id="withdrawUSDTInfo" style="font-size:13px;color:#00ff88">Your balance: R0 / R350 • Coins: 0</p>
-<select id="withdrawMethod" onchange="updateWithdrawInfo()">
-<option value="Dollars (USDT) - Walt">💵 Dollars (USDT) - Walt — Min R350 / $20</option>
-<option value="Gram - Walt">👛 Gram - Walt — Min R350 / $20</option>
-<option value="Capitec / Bank">🏦 Capitec / Bank — R350 (SA) / $20 (USA)</option>
-<option value="Airtime">📱 Airtime — NO LIMIT</option>
-<option value="data">📶 Data — NO LIMIT</option>
-</select>
-<div id="airtimeAmountBox" style="display:none;margin-top:8px">
-  <label style="font-size:13px">Choose Amount (No Limit):</label>
-  <select id="withdrawAmount">
-    <option value="5">R5 — 500 Coins</option>
-    <option value="10">R10 — 1000 Coins</option>
-    <option value="20">R20 — 2000 Coins</option>
-    <option value="30">R30 — 3000 Coins</option>
-    <option value="50">R50 — 5000 Coins</option>
-    <option value="100">R100 — 10000 Coins</option>
-  </select>
-</div>
-<select id="withdrawNetwork" style="display:none"><option value="MTN">MTN</option><option value="Vodacom">Vodacom</option><option value="Cell C">Cell C</option><option value="Telkom">Telkom</option></select>
-<input id="walletInput" placeholder="Paste your Walt Dollars address - starts with UQ...">
-<div class="wallet-hint" id="withdrawHintBox">
-<b id="withdrawHintTitle">💵 Dollars (USDT) - Walt</b>
-<p id="withdrawHint" style="margin-top:4px">In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted). WALT = Telegram Wallet @wallet.</p>
-</div>
-<button class="bigbtn" onclick="requestWithdraw()">✅ REQUEST WITHDRAWAL</button>
-<p id="withdrawStatus" style="margin-top:8px;color:#0f0"></p>
-<p style="font-size:11px;color:#aaa;margin-top:8px">Airtime + Data = NO LIMIT, both can be used. 100 Coins = R1.<br>Capitec + WALT = R350 / $20 Min.</p>
-</div></div>
-<div id="ytModal" class="modal hidden" style="display:none">
-<div class="modal-head"><span id="ytModalTitle" style="font-size:13px;flex:1;padding-right:8px">Playing...</span><button onclick="closeVideo()">✕ CLOSE</button></div>
-<iframe id="ytPlayer" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
-<div style="padding:12px;background:#111;text-align:center"><button onclick="watchAdFromVideo()" style="background:#FFD700;border:none;padding:12px 18px;border-radius:10px;font-weight:900;width:100%">▶️ FINISH VIDEO & EARN</button><p style="font-size:11px;color:#aaa;margin-top:6px">Watch 5 sec in Mini App, then claim. FREE 10/day, VIP 20/day.</p></div>
-</div>
-<div class="nav"><div class="active" onclick="showPage('home')">🏠<br>Home</div><div onclick="showPage('invite')">👥<br>Invite</div><div onclick="showPage('withdraw')">💸<br>Withdraw</div></div>
+
 <script>
-let userId = new URLSearchParams(window.location.search).get('start') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || new URLSearchParams(window.location.search).get('user_id');
-let deviceId = null;
-let userName = 'friend';
-let isTelegram = !!(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
-if(isTelegram){ userName = window.Telegram.WebApp.initDataUnsafe.user.first_name || 'friend'; deviceId = 'tg_' + userId; }
-else {
-  deviceId = localStorage.getItem('shaya_device_id');
-  if(!deviceId){ deviceId = 'web_' + Math.random().toString(36).slice(2,12); localStorage.setItem('shaya_device_id', deviceId); }
-  userId = localStorage.getItem('shaya_userId') || deviceId;
-  userName = localStorage.getItem('shaya_userName') || '';
-  if(!userName){ document.addEventListener('DOMContentLoaded', ()=>{ document.getElementById('loginCard').style.display='block'; }); }
-}
-function saveWebsiteUser(){
-  const name=document.getElementById('nameInput').value.trim();
-  if(!name){ alert('Enter your name'); return; }
-  userName=name; userId=deviceId;
-  localStorage.setItem('shaya_userId', userId); localStorage.setItem('shaya_userName', userName); localStorage.setItem('shaya_device_id', deviceId);
-  document.getElementById('loginCard').style.display='none';
-  document.getElementById('bankRef').textContent=userName+' - '+userId;
-  loadUser();
-}
-if(userId) document.getElementById('bankRef').textContent=userName+' - '+userId;
-let user = null;
-let region='SA';
-let currentYtType='trending';
-let USDT_TO_ZAR=16.59;
-let currentVideo=null;
-let quiz=[], qIndex=0, qScore=0, selectedPackage='p29';
-if(window.Telegram?.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
-document.addEventListener('DOMContentLoaded', function(){ var m=document.getElementById('ytModal'); if(m){ m.classList.add('hidden'); m.style.display='none'; } });
-// ===== VIP FIX - BUTTONS NOW PRESSABLE =====
-function buyVip(level, payWith){
-  if(level === (user?.level||1)){
-    alert('You already have this level! Buy Level ' + ((user?.level||1)+1) + ' next.');
-    return;
-  }
-  if(level > (user?.level||1)+1){
-    alert('🔒 Locked! Buy Level ' + ((user?.level||1)+1) + ' first. You cannot jump.');
-    return;
-  }
-  if(payWith==='stars'){ payVipWithStars(level); return; }
-  var lvlNames = ['Free','Starter','Bronze','Bronze+','Silver','Silver+','Gold','Gold+','Platinum','Platinum+','Diamond','Diamond+','Ruby','Ruby+','Emerald','Emerald+','Sapphire','Sapphire+','Master','KING'];
-  var lvlName = lvlNames[level-1];
-  if(!confirm('Buy Level ' + level + ' ' + lvlName + ' with ' + payWith + '?\nTap OK to buy.')) return;
-  fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'levelup', targetLevel:level, payWith})}).then(r=>r.json()).then(d=>{ alert(d.msg); loadUser(); });
-}
-async function payVipWithStars(level){
-  if(!userId || String(userId).startsWith('web_')){
-    alert('⭐ Stars only work in Telegram.\n\n1. Open @ShayaWatchAllBot\n2. Type /vip\n3. Tap Buy Stars there\n\nOr buy with Coins / Points here.');
-    try{ window.open('https://t.me/ShayaWatchAllBot', '_blank'); }catch(e){}
-    return;
-  }
-  const res = await fetch('/api/vip-stars-invoice', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: userId, targetLevel: level }) });
-  const d = await res.json();
-  if(d.success){ alert('✅ Check your Telegram chat!\nBot sent you an invoice for ' + d.stars + ' ⭐ for ' + d.plan + '.\nTap PAY in chat. VIP activates automatically.'); try{ window.Telegram.WebApp.openTelegramLink('https://t.me/ShayaWatchAllBot'); }catch(e){} }
-  else { alert(d.error || 'Could not create Stars invoice. Press /start in @ShayaWatchAllBot first.'); }
-}
-function saveToPhone(){ if(!user||!userId) return; try{ localStorage.setItem('shaya_backup_'+userId, JSON.stringify({balance:user.balance, coins:user.coins, total_ads:user.total_ads, referrals:user.referrals, streak:user.streak, region:user.region, vip_level:user.vip_level, total_earned:user.total_earned})); }catch(e){} }
-function getPhoneBackup(){ try{ return JSON.parse(localStorage.getItem('shaya_backup_'+userId)); }catch(e){ return null; } }
-async function loadUser(){
-  if(!userId){
-    document.getElementById('balance').innerHTML = '<a href="https://t.me/ShayaWatchAllBot" style="color:#FFD700;font-size:18px;text-decoration:none">👉 TAP HERE TO OPEN IN TELEGRAM BOT</a>';
-    renderFallbackBuyButtons();
-    loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans();
-    return;
-  }
-  const backup=getPhoneBackup();
-  if(backup){ const cur=backup.region==='USA'?'$':'R'; document.getElementById('balance').innerText=cur + backup.balance.toFixed(2); region=backup.region||'SA'; }
+// ===== USER ID - from Telegram WebApp or URL =====
+let currentUserId = '';
+let currentUser = null;
+function getUserId(){
   try{
-    const res=await fetch('/api/user/' + userId); user=await res.json(); if(user.error) return;
-    region=user.region||region||'SA'; if(user.usdtToZar) USDT_TO_ZAR=user.usdtToZar;
-    updateUI(); saveToPhone(); refreshRate(); loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans();
-  }catch(e){
-    renderFallbackBuyButtons();
-    loadTasks(); loadLeaderboard(); loadVideos(currentYtType);
-  }
-}
-function updateUI(){
-  if(!user) return;
-  const perAd=user.perAd||{cash:0.01, coins:5, usd:0.01, dailyLimit:10, minWithdrawUSDT:20};
-  const dailyLimit=user.dailyLimit||perAd.dailyLimit||10;
-  const dailyAds=user.dailyAds||0;
-  const dailyLeft=user.dailyLeft!==undefined?user.dailyLeft:dailyLimit-dailyAds;
-  const minLabel = region==='SA' ? 'R350' : '$20';
-  const minCash = region==='SA' ? 350 : 20;
-  document.getElementById('balance').innerText=user.currency + user.balance.toFixed(2);
-  document.getElementById('coins').innerText='🪙 ' + user.coins + ' Coins ($' + (user.coins/1000).toFixed(2) + ') • 1000 = $1';
-  document.getElementById('pointsLine').innerText='⭐ Points: ' + (user.points||0) + ' (For VIP) • Level ' + (user.level||1) + '/20 • ' + (user.levelName||'Free');
-  const usdtVal=region==='SA'?(user.balance/USDT_TO_ZAR).toFixed(4):user.balance.toFixed(4);
-  document.getElementById('usdtValue').innerText='💱 = $' + usdtVal + ' USDT (1 USDT = R' + USDT_TO_ZAR.toFixed(2) + ' LIVE)';
-  document.getElementById('statsLine').innerText='Ads: ' + user.total_ads + ' | Referrals: ' + user.referrals + ' | Streak: ' + user.streak + ' days';
-  document.getElementById('vipBadge').innerText=user.vip_level;
-  document.getElementById('vipUntilLine').innerText=user.vip_until ? '👑 ' + user.vip_level + ' until ' + user.vip_until + ' • $' + perAd.usd + '/ad • ' + dailyLimit + '/day' : '👑 FREE • $0.01/ad • 10/day • ' + minLabel + ' Min | Airtime/Data NO LIMIT';
-  document.getElementById('unlockedLine').innerText='Unlocked: ' + (user.unlockedLevels||[1]).join(', ') + (user.levelExpiresAt ? ' • Expires in ' + user.expiresInDays + ' days' : '');
-  document.getElementById('rateLine').innerText='You Earn: $' + perAd.usd + ' (' + user.currency + perAd.cash.toFixed(2) + ') + ' + perAd.coins + ' Coins • ' + dailyLimit + '/day';
-  document.getElementById('dailyLabel').innerText='📺 Ads Today: ' + dailyAds + ' / ' + dailyLimit + ' (' + user.vip_level + ')';
-  document.getElementById('dailyBar').style.width=(dailyAds/dailyLimit*100) + '%';
-  document.getElementById('dailyBar').style.background=dailyAds>=dailyLimit?'#ff4444':'#FFD700';
-  document.getElementById('dailyLeftLabel').innerText=dailyAds>=dailyLimit ? '❌ Limit reached! ' + (user.vip_level==='FREE' ? 'Upgrade to VIP for 20/day' : 'Come back tomorrow.') : dailyLeft + ' left today • Max $' + (dailyLeft*perAd.usd).toFixed(2) + ' more today';
-  document.getElementById('minWithdrawLabel').innerText='Min: ' + minLabel + ' (Capitec/WALT) • Airtime/Data NO LIMIT • Coins: ' + user.withdrawMin + ' = ' + minLabel;
-  const btn=document.getElementById('watchBtn');
-  if(dailyAds>=dailyLimit){ btn.disabled=true; btn.innerText='❌ DAILY LIMIT (' + dailyAds + '/' + dailyLimit + ')'; } else { btn.disabled=false; btn.innerText='▶️ WATCH AD & EARN'; }
-  document.getElementById('inviteReward').innerText=region==='SA' ? 'Reward: $0.50 (R' + (0.50*USDT_TO_ZAR).toFixed(2) + ') + 50 Coins per friend' : 'Reward: $0.10 + 10 Coins per friend';
-  document.getElementById('withdrawInfo').innerText='Min: ' + minLabel + ' (Capitec/WALT) • Airtime/Data NO LIMIT • Or ' + user.withdrawMin + ' Coins = ' + minLabel;
-  document.getElementById('withdrawUSDTInfo').innerText='Your balance: ' + user.currency + user.balance.toFixed(2) + ' / ' + minLabel + ' needed • Coins: ' + user.coins + ' / ' + user.withdrawMin + ' for ' + minLabel + ' • Airtime/Data: 500 Coins = R5 NO LIMIT';
-  document.getElementById('usdtRateLine').innerText='Rate: 1 USDT = R' + USDT_TO_ZAR.toFixed(2) + ' • LIVE';
-  document.getElementById('usdtExamples').innerText='20 USDT = R' + (20*USDT_TO_ZAR).toFixed(2) + ' • 50 USDT = R' + (50*USDT_TO_ZAR).toFixed(2) + ' • $0.01 = R' + (0.01*USDT_TO_ZAR).toFixed(2);
-  document.getElementById('btnSA').className=region==='SA'?'active':'';
-  document.getElementById('btnUSA').className=region==='USA'?'active':'';
-  document.getElementById('ytTitle').innerText=region==='SA'?'🔥 TRENDING ON YOUTUBE - SA':'🔥 TRENDING ON YOUTUBE - USA';
-  document.getElementById('inviteLink').innerText='https://t.me/ShayaWatchAllBot?start=ref_' + userId;
-  document.getElementById('quizLockBox').innerHTML=user.quizUnlocked?'':'<div style="background:#5a1a1a;padding:10px;border-radius:10px;font-size:13px">🔒 Quiz Locked — Watch ' + user.quizNeed + ' more ads. You have ' + user.total_ads + '/10 ads.</div>';
-  saveToPhone();
-}
-function renderFallbackBuyButtons(){
-  var coinsHtml = ''
-    + '<button class="bigbtn" onclick="buyCoinsBank(\'c500\')">🪙 500 Coins — R20 (Bank)</button>'
-    + '<button class="bigbtn" onclick="buyCoinsBank(\'c1500\')">🪙 1500 Coins — R50 (Bank)</button>'
-    + '<button class="bigbtn" onclick="buyCoinsBank(\'c5000\')">🪙 5000 Coins — R150 (Bank)</button>'
-    + '<button class="bigbtn" onclick="buyCoinsBank(\'c15000\')">🪙 15000 Coins — R400 (Bank)</button>'
-    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'c500s\')">🪙 500 Coins — 70 ⭐ (Instant)</button>'
-    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'c1500s\')">🪙 1500 Coins — 170 ⭐ (Instant)</button>'
-    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'c5000s\')">🪙 5000 Coins — 500 ⭐ (Instant)</button>';
-  var pointsHtml = ''
-    + '<button class="bigbtn" onclick="buyPointsBank(\'pt500\')">⭐ 500 Points — R20 (Bank)</button>'
-    + '<button class="bigbtn" onclick="buyPointsBank(\'pt1500\')">⭐ 1500 Points — R50 (Bank)</button>'
-    + '<button class="bigbtn" onclick="buyPointsBank(\'pt5000\')">⭐ 5000 Points — R150 (Bank)</button>'
-    + '<button class="bigbtn" onclick="buyPointsBank(\'pt15000\')">⭐ 15000 Points — R400 (Bank)</button>'
-    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'pt500s\')">⭐ 500 Points — 70 ⭐ (Instant)</button>'
-    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'pt1500s\')">⭐ 1500 Points — 170 ⭐ (Instant)</button>'
-    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'pt5000s\')">⭐ 5000 Points — 500 ⭐ (Instant)</button>';
-  var c = document.getElementById('buyCoinsList');
-  var p = document.getElementById('buyPointsList');
-  if(c) c.innerHTML = coinsHtml;
-  if(p) p.innerHTML = pointsHtml;
-}
-async function loadVipPlans(){
-  renderFallbackBuyButtons();
-  try{
-    const res=await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'info'})});
-    const d=await res.json();
-    if(!d.levels) return;
-    let html='';
-    for(let i=1;i<=20;i++){
-      const lv=d.levels[i];
-      const isCurrent=i===d.level;
-      const isUnlocked=(d.unlockedLevels||[1]).includes(i);
-      const isNext = i === (d.level+1);
-      const canBuy = isNext || (isUnlocked && i>d.level);
-      const isLocked=!isUnlocked && !isNext;
-      const minLabel = region==='SA' ? 'R350' : '$20';
-      let btnHtml = '';
-      if(isCurrent){
-        btnHtml = '<div style="background:#000;color:#FFD700;padding:10px;border-radius:10px;text-align:center;margin-top:6px;font-weight:bold">✅ YOU ARE HERE</div>';
-      } else if(canBuy){
-        btnHtml = '<div style="display:flex;gap:6px;margin-top:6px"><button onclick="buyVip(' + i + ',\'coins\')" style="flex:1">Buy Coins</button><button onclick="buyVip(' + i + ',\'points\')" style="flex:1;background:#25D366;color:#fff">Buy Points</button><button onclick="buyVip(' + i + ',\'stars\')" style="flex:1;background:#7b2fff;color:#fff">⭐ Stars</button></div><p style="font-size:11px;color:#FFD700;margin-top:4px">👆 Tap to buy Level ' + i + '</p>';
-      } else {
-        btnHtml = '<div style="background:#555;color:#fff;padding:10px;border-radius:10px;text-align:center;margin-top:6px">🔒 Buy Level ' + d.level + ' first</div>';
-      }
-      const lockText = isCurrent ? '✅ ACTIVE' : isNext ? '✅ NEXT - TAP TO BUY' : isLocked ? '🔒 LOCKED - Buy previous first' : '✅ UNLOCKED';
-      html+='<div class="vipcard ' + (isCurrent?'active':'') + '"><b>' + i + '. ' + lv.name + ' ' + (isCurrent?'✅ ACTIVE':'') + '</b><br><small>$' + lv.adUSD + '/ad • ' + lv.adLimit + '/day • ' + minLabel + ' Min • 30 Days • Withdraw ' + lv.withdrawMin + ' Coins = ' + minLabel + '</small><br><b>' + lv.coinsCost + ' Coins / ' + lv.pointsCost + ' Points / ⭐ ' + lv.starsCost + ' Stars</b><br><small>' + lockText + '</small><br>' + btnHtml + '</div>';
+    const url = new URLSearchParams(window.location.search);
+    if(url.get('user_id')) return url.get('user_id');
+    if(url.get('id')) return url.get('id');
+    if(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user){
+      return String(window.Telegram.WebApp.initDataUnsafe.user.id);
     }
-    document.getElementById('vipPlansList').innerHTML=html;
-    if(d.packages) document.getElementById('packages').innerHTML=d.packages.map(p=>'<label style="display:block;background:#1E3A6E;padding:10px;border-radius:10px;margin:6px 0"><input type="radio" name="pkg" value="' + p.id + '" ' + (p.id==='p29'?'checked':'') + ' onchange="selectedPackage=\'' + p.id + '\'"> <b>' + p.label + '</b></label>').join('');
-    if(d.buyCoins && d.buyPoints){
-      document.getElementById('buyCoinsList').innerHTML = d.buyCoins.map(p=>'<button class="bigbtn" onclick="buyCoinsBank(\'' + p.id + '\')">🪙 ' + p.coins + ' Coins — R' + p.price + ' (Bank)</button>').join('') + (d.buyCoinsStars||[]).map(p=>'<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'' + p.id + '\')">🪙 ' + p.coins + ' Coins — ' + p.stars + ' ⭐ (Instant)</button>').join('');
-      document.getElementById('buyPointsList').innerHTML = d.buyPoints.map(p=>'<button class="bigbtn" onclick="buyPointsBank(\'' + p.id + '\')">⭐ ' + p.points + ' Points — R' + p.price + ' (Bank)</button>').join('') + (d.buyPointsStars||[]).map(p=>'<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'' + p.id + '\')">⭐ ' + p.points + ' Points — ' + p.stars + ' ⭐ (Instant)</button>').join('');
-    }
-  }catch(e){ console.log('vip load failed, using fallback', e); }
-}
-async function refreshRate(){ try{ const res=await fetch('/api/rate'); const d=await res.json(); if(d.usdtToZar){ USDT_TO_ZAR=d.usdtToZar; convertUSDTInput(); if(user) updateUI(); } }catch(e){} }
-setInterval(refreshRate, 30*60*1000);
-async function convertUSDTInput(){
-  const usdt=parseFloat(document.getElementById('usdtInput').value||0);
-  if(usdt>0){ try{ const res=await fetch('/api/convert-usdt?usdt=' + usdt); const d=await res.json(); document.getElementById('usdtResult').innerText='= R' + d.zar + ' (Live)'; return; }catch(e){} }
-  document.getElementById('usdtResult').innerText='= R' + (usdt*USDT_TO_ZAR).toFixed(2);
-}
-function setUSDT(v){ document.getElementById('usdtInput').value=v; convertUSDTInput(); }
-function updateWithdrawInfo(){
-  const m=document.getElementById('withdrawMethod').value;
-  const minLabel = region==='SA' ? 'R350' : '$20';
-  const walletInput=document.getElementById('walletInput');
-  const hintEl=document.getElementById('withdrawHint');
-  const hintTitle=document.getElementById('withdrawHintTitle');
-  const isAirtime = m==='Airtime';
-  const isData = m==='data';
-  document.getElementById('withdrawNetwork').style.display = (isAirtime || isData) ? 'block' : 'none';
-  document.getElementById('airtimeAmountBox').style.display = (isAirtime || isData) ? 'block' : 'none';
-  document.getElementById('withdrawHintBox').style.display = (m.includes('Walt')) ? 'block' : 'none';
-  if(m === 'Dollars (USDT) - Walt'){
-    if(walletInput) walletInput.placeholder='Paste your Walt Dollars address - starts with UQ...';
-    if(hintTitle) hintTitle.innerText='💵 Dollars (USDT) - Walt';
-    if(hintEl) hintEl.innerText='Min: ' + minLabel + ' • In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted). WALT = @wallet.';
-  } else if(m === 'Gram - Walt'){
-    if(walletInput) walletInput.placeholder='Paste your Walt Gram address - starts with UQ...';
-    if(hintTitle) hintTitle.innerText='👛 Gram - Walt';
-    if(hintEl) hintEl.innerText='Min: ' + minLabel + ' • In Walt: Tap Gram > Deposit > Copy UQ... address.';
-  } else if(m === 'Capitec / Bank'){
-    if(walletInput) walletInput.placeholder='Your Capitec Account Number (R350 / $20 via Coins)';
-    if(hintTitle) hintTitle.innerText='🏦 Capitec / Bank — R350 / $20 Min';
-    if(hintEl) hintEl.innerText='Uses Coins: ' + (user?.withdrawMin||21000) + ' Coins = ' + minLabel + '.';
-  } else if(isAirtime){
-    if(walletInput) walletInput.placeholder='Phone number for Airtime e.g. 071...';
-    if(hintTitle) hintTitle.innerText='📱 Airtime — NO LIMIT';
-    if(hintEl) hintEl.innerText='NO LIMIT! Choose R5 / R10 / R20 etc. 100 Coins = R1. You have ' + (user?.coins||0) + ' Coins.';
-  } else if(isData){
-    if(walletInput) walletInput.placeholder='Phone number for Data e.g. 071...';
-    if(hintTitle) hintTitle.innerText='📶 Data — NO LIMIT';
-    if(hintEl) hintEl.innerText='NO LIMIT! Choose R5 / R10 / R20 etc. 100 Coins = R1. Data valid 24h. You have ' + (user?.coins||0) + ' Coins.';
+  }catch(e){}
+  let saved = localStorage.getItem('shaya_user_id');
+  if(!saved){
+    saved = 'web_' + Math.random().toString(36).slice(2,10);
+    localStorage.setItem('shaya_user_id', saved);
   }
+  return saved;
 }
-async function setRegion(newRegion){
-  if(region===newRegion) return;
-  const oldBalance=user?user.balance:0; const oldRegion=region;
+currentUserId = getUserId();
+window.currentUserId = currentUserId;
+
+async function loadBalance(){
   try{
-    const res=await fetch('/api/set-region',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId,region:newRegion})});
-    const d=await res.json(); if(d.success&&d.user){ user=d.user; region=newRegion; updateUI(); alert('✅ Region: ' + oldRegion + ' → ' + newRegion + '\nBalance: ' + (oldRegion==='SA'?'R':'$') + oldBalance.toFixed(2) + ' → ' + (newRegion==='SA'?'R':'$') + user.balance.toFixed(2)); }
-  }catch(e){ alert('Region change failed, try again'); }
-  loadVideos(currentYtType); loadVipPlans();
+    const r = await fetch('/api/user/' + currentUserId);
+    const d = await r.json();
+    if(d.error){ document.getElementById('userName').innerText = 'Send /start in @ShayaWatchAllBot first'; return; }
+    currentUser = d;
+    document.getElementById('userName').innerText = (d.name || 'Friend') + ' • ' + d.region;
+    document.getElementById('balance').innerText = d.currency + parseFloat(d.balance||0).toFixed(2);
+    document.getElementById('usdtBal').innerText = '$' + (d.usdtBalance||0) + ' USDT';
+    document.getElementById('rate').innerText = d.usdtToZar || 16.59;
+    document.getElementById('coins').innerText = d.coins;
+    document.getElementById('points').innerText = d.points;
+    document.getElementById('adsToday').innerText = d.dailyAds + '/' + d.dailyLimit;
+    document.getElementById('referrals').innerText = d.referrals;
+    document.getElementById('vipBadge').innerText = d.vip_level;
+    document.getElementById('levelText').innerText = 'Level ' + d.level + '/20 • ' + d.levelName;
+    document.getElementById('perAd').innerText = d.currency + d.perAd.cash.toFixed(2) + ' + ' + d.perAd.coins + ' Coins';
+    document.getElementById('dailyLeft').innerText = d.dailyLeft + ' left today';
+    const ref = 'https://t.me/ShayaWatchAllBot?start=ref_' + currentUserId;
+    document.getElementById('refLink').value = ref;
+    loadTasks();
+  }catch(e){ console.log(e); }
 }
-function showPage(p){
-  document.getElementById('page-home').classList.toggle('hidden',p!=='home');
-  document.getElementById('page-invite').classList.toggle('hidden',p!=='invite');
-  document.getElementById('page-withdraw').classList.toggle('hidden',p!=='withdraw');
-  if(p==='withdraw') updateWithdrawInfo();
-}
-async function watchAd(){
-  const limit = user?.dailyLimit || (user?.vip_level==='FREE'?10:20);
-  if(user && (user.dailyAds||0)>=limit){ alert('❌ Daily limit reached! ' + user.vip_level + ' = ' + limit + '/day. Upgrade to VIP for 20/day.'); return; }
-  const btn=document.getElementById('watchBtn'); btn.disabled=true; btn.innerText='⏳ Loading Ad... Please Watch';
-  document.getElementById('adStatus').innerText='Ad playing... please watch full ad';
-  await triggerAdNetworks();
-  setTimeout(async ()=>{
-    const res=await fetch('/api/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})});
-    const data=await res.json();
-    if(data.success){ const r2=await fetch('/api/user/' + userId); user=await r2.json(); if(user.usdtToZar) USDT_TO_ZAR=user.usdtToZar; updateUI(); loadVipPlans(); document.getElementById('adStatus').innerText='✅ +$' + data.earnedUSD + ' (' + user.currency + data.earnedCash.toFixed(2) + ') + ' + data.earnedCoins + ' Coins! Ads: ' + data.dailyAds + '/' + data.dailyLimit + ' • ' + data.dailyLeft + ' left'; }
-    else { document.getElementById('adStatus').innerText=data.error; if(data.dailyAds>=limit) updateUI(); }
-    if(!user || (user.dailyAds||0)<limit){ btn.disabled=false; btn.innerText='▶️ WATCH AD & EARN'; }
+
+// ===== ADS - ONCLICKA MAIN + GIGA BACKUP =====
+const ONCLICKA_ZONE = 472254;
+const GIGA_PUBLISHER = 9114;
+const OFFERWALL_ID = 9114;
+
+function watchAd(){
+  document.getElementById('ad-status').innerText = 'Loading OnclickA ad (472254)...';
+  window.__onclickaFilled = false;
+  try{ loadOnclickaAd(); }catch(e){ loadGigaAd(); }
+  setTimeout(function(){
+    if(!window.__onclickaFilled){
+      document.getElementById('ad-status').innerText = 'OnclickA no fill - Loading Giga backup (9114)...';
+      loadGigaAd();
+    }
   }, 5000);
 }
-async function startQuiz(){
-  const res=await fetch('/api/earn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:userId, name:userName, device_id:deviceId, action:'quiz'})});
-  const d=await res.json(); if(d.msg && !d.quiz){ document.getElementById('quizArea').innerHTML='<p>' + d.msg + '</p>'; return; }
-  quiz=d.quiz; qIndex=0; qScore=0; showQ();
+function loadOnclickaAd(){
+  const slot = document.getElementById('ad-slot');
+  slot.innerHTML = '';
+  const s = document.createElement('script');
+  s.src = 'https://onclicka.com/ad.js';
+  s.setAttribute('data-zone', ONCLICKA_ZONE);
+  s.onload = function(){ window.__onclickaFilled = true; document.getElementById('ad-status').innerText = 'OnclickA ad loaded - Crediting...'; creditAd('onclicka'); };
+  s.onerror = function(){ loadGigaAd(); };
+  slot.appendChild(s);
+  // Fallback visual if script shows nothing - still allow click to earn after 3s
+  setTimeout(function(){ if(!window.__onclickaFilled){ /* keep waiting for 5s timer */ } }, 3000);
 }
-function showQ(){ const q=quiz[qIndex]; document.getElementById('quizArea').innerHTML='<p><b>Q' + (qIndex+1) + '/5: ' + q.q + '</b></p>' + q.options.map((o,i)=>'<button class="quiz-opt" onclick="answerQ(' + i + ')">' + o + '</button>').join(''); }
-function answerQ(i){ if(quiz[qIndex].answer===i) qScore++; qIndex++; if(qIndex<quiz.length) showQ(); else finishQuiz(); }
-async function finishQuiz(){ const res=await fetch('/api/earn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:userId, name:userName, device_id:deviceId, action:'quiz_done', score:qScore})}); const d=await res.json(); document.getElementById('quizArea').innerHTML='<p>' + d.msg + '</p><button class="bigbtn" style="background:#25D366" onclick="startQuiz()">🧠 PLAY AGAIN TOMORROW</button>'; loadUser(); }
-async function claimDaily(){ const res=await fetch('/api/daily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})}); const d=await res.json(); alert(d.success ? '🎁 Daily: +' + user.currency + d.bonusCash.toFixed(2) + ' + ' + d.bonusCoins + ' Coins | Streak: ' + d.streak : d.error); loadUser(); }
-async function convertCoins(){ const res=await fetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})}); const d=await res.json(); alert(d.success ? '✅ Converted +' + user.currency + d.converted.toFixed(2) : d.error); loadUser(); }
-function copyLink(){ navigator.clipboard.writeText(document.getElementById('inviteLink').innerText); alert('Link copied!'); }
-function shareWhatsApp(){ const link=document.getElementById('inviteLink').innerText; window.open('https://wa.me/?text=' + encodeURIComponent('Join Shaya Watch Bot! FREE $0.01/ad, VIP $0.025/ad! ' + link)); }
-async function requestTopup(){
-  const proof=document.getElementById('proofInput').value.trim();
-  if(!proof){ alert('Paste EFT proof first'); return; }
-  const res=await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'topup_request', packageId:selectedPackage, proof})});
-  const d=await res.json(); alert(d.msg);
+function loadGigaAd(){
+  const slot = document.getElementById('ad-slot');
+  slot.innerHTML = '';
+  document.getElementById('ad-status').innerText = 'Loading Giga backup ad (9114)...';
+  const iframe = document.createElement('iframe');
+  iframe.src = 'https://giga.pub/?p=' + GIGA_PUBLISHER + '&user=' + currentUserId;
+  iframe.style.width = '100%';
+  iframe.style.height = '250px';
+  iframe.style.border = 'none';
+  iframe.style.borderRadius = '10px';
+  iframe.onload = function(){ document.getElementById('ad-status').innerText = 'Giga backup loaded - Crediting...'; creditAd('giga'); };
+  slot.appendChild(iframe);
 }
-async function buyCoinsBank(pkgId){
-  const proof = prompt('Paste EFT proof for Capitec 1893275807:');
-  if(!proof) return;
-  const res = await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'topup_request', packageId:pkgId, proof})});
-  const d = await res.json(); alert(d.msg);
+function openOfferwall(){
+  const url = 'https://offerwall.giga.pub/?p=' + OFFERWALL_ID + '&user=' + currentUserId;
+  window.open(url, '_blank');
+  document.getElementById('ad-status').innerText = 'Offerwall 9114 opened - Complete tasks to earn';
+  // Also show offerwall list
+  document.getElementById('offerwallList').innerHTML = '<div class="task"><span>Offerwall opened in new tab - Complete any task</span><button class="btn btn-gold" style="width:auto;padding:8px 14px" onclick="openOfferwall()">OPEN AGAIN</button></div>';
 }
-async function buyPointsBank(pkgId){
-  const proof = prompt('Paste EFT proof for Capitec 1893275807:');
-  if(!proof) return;
-  const res = await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'topup_request', packageId:pkgId, proof})});
-  const d = await res.json(); alert(d.msg);
+async function creditAd(source){
+  try{
+    const res = await fetch('/api/watch', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: currentUserId, source: source })});
+    const d = await res.json();
+    if(d.error){ document.getElementById('ad-status').innerText = d.error; return; }
+    document.getElementById('ad-status').innerText = '✅ Earned +' + d.earnedCoins + ' Coins + ' + d.earnedCash + ' from ' + source;
+    loadBalance();
+  }catch(e){ document.getElementById('ad-status').innerText = 'Credit failed - try again'; }
 }
-async function buyWithStars(type, pkgId){
-  const res = await fetch('/api/buy-stars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, type, packageId:pkgId})});
-  const d = await res.json(); alert(d.success ? '✅ Check Telegram chat for Stars invoice (' + d.stars + ' ⭐)' : d.error);
+
+// ===== DAILY / QUIZ / TASKS =====
+async function claimDaily(){
+  const r = await fetch('/api/daily', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_id: currentUserId})});
+  const d = await r.json(); alert(d.success ? 'Daily claimed! +' + d.bonusCoins + ' Coins' : d.error); loadBalance();
 }
-async function requestWithdraw(){
-  const method=document.getElementById('withdrawMethod').value;
-  const wallet=document.getElementById('walletInput').value.trim();
-  const network=document.getElementById('withdrawNetwork').value;
-  const amount=document.getElementById('withdrawAmount') ? document.getElementById('withdrawAmount').value : 5;
-  if(!wallet) return alert('Enter your wallet / number first');
-  if(method.toLowerCase().includes('paypal') || method.toLowerCase().includes('trc20')){ return alert('❌ PayPal and USDT TRC20 are REMOVED.'); }
-  if(method === 'Dollars (USDT) - Walt' || method === 'Gram - Walt'){
-    if(!wallet.startsWith('UQ')){ return alert('❌ Wrong address! Walt addresses start with UQ...'); }
-  }
-  let backendMethod = method;
-  if(method==='Capitec / Bank') backendMethod='capitec';
-  if(method==='Airtime') backendMethod='airtime';
-  if(method==='data') backendMethod='data';
-  const res=await fetch('/api/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, userId:userId, name:userName, method:backendMethod, wallet:wallet, detail:wallet, network, amount: parseInt(amount)})});
-  const d=await res.json();
-  document.getElementById('withdrawStatus').innerText=d.success ? '✅ Request sent! ' + (d.msg||'') + ' Admin pays in 24h.' : (d.error||d.msg||'Failed');
-  if(d.success) loadUser();
+async function playQuiz(){
+  const r = await fetch('/api/earn', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId: currentUserId, action:'quiz'})});
+  const d = await r.json();
+  if(d.locked || d.msg){ document.getElementById('quizBox').innerHTML = '<div class="small">'+(d.msg||'Locked')+'</div>'; return; }
+  let html = '<b>Quiz - Answer all 5:</b>';
+  d.quiz.forEach(function(q,i){ html += '<div style="margin-top:10px"><b>'+(i+1)+'. '+q.q+'</b>'; q.options.forEach(function(o,oi){ html += '<button class="btn btn-dark" style="margin-top:6px" onclick="answerQuiz('+i+','+oi+',this)">'+o+'</button>'; }); html += '</div>'; });
+  html += '<button class="btn btn-gold" style="margin-top:10px" onclick="submitQuiz()">SUBMIT QUIZ</button>';
+  document.getElementById('quizBox').innerHTML = html;
+  window._quizAnswers = {};
+  window._quizData = d.quiz;
+}
+function answerQuiz(qi, oi, el){ window._quizAnswers[qi]=oi; el.style.background='#FFD700'; el.style.color='#000'; }
+async function submitQuiz(){
+  let score=0; window._quizData.forEach(function(q,i){ if(window._quizAnswers[i]===q.answer) score++; });
+  const r = await fetch('/api/earn', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId: currentUserId, action:'quiz_done', score: score})});
+  const d = await r.json(); alert(d.msg); loadBalance();
 }
 async function loadTasks(){
   try{
-    const res=await fetch('/api/tasks?user_id=' + userId); const tasks=await res.json();
-    if(!Array.isArray(tasks) || tasks.length===0) throw new Error('no tasks');
-    document.getElementById('tasksList').innerHTML=tasks.map(t=>{
-      if(t.done){
-        return '<div class="task"><span>✅ ' + t.title + '<br><small>+' + t.reward_cash + ' + ' + t.reward_coins + ' Coins — DONE</small></span><button disabled style="background:#555;color:#fff">✅ Done</button></div>';
-      }
-      return '<div class="task"><span>' + t.title + '<br><small>+' + t.reward_cash + ' + ' + t.reward_coins + ' Coins — ' + t.progress + '</small></span><div style="display:flex;gap:6px"><button onclick="doTask(' + t.id + ')">Do</button><button onclick="claimTask(' + t.id + ')" style="background:#00ff88">Claim</button></div></div>';
-    }).join('');
-  }catch(e){
-    document.getElementById('tasksList').innerHTML='<div class="task"><span>Join Shaya Earn Network<br><small>+0.05 + 20 Coins — Join group, then Claim</small></span><div style="display:flex;gap:6px"><button onclick="doTask(1)">Do</button><button onclick="claimTask(1)" style="background:#00ff88">Claim</button></div></div><div class="task"><span>Invite 3 Friends<br><small>+0.1 + 50 Coins — 0/3 friends</small></span><div style="display:flex;gap:6px"><button onclick="doTask(2)">Do</button><button onclick="claimTask(2)" style="background:#00ff88">Claim</button></div></div><div class="task"><span>Share Shaya Watch on WhatsApp<br><small>+0.05 + 10 Coins</small></span><div style="display:flex;gap:6px"><button onclick="doTask(3)">Do</button><button onclick="claimTask(3)" style="background:#00ff88">Claim</button></div></div>';
+    const r = await fetch('/api/tasks?user_id=' + currentUserId); const list = await r.json();
+    let html='';
+    list.forEach(function(t){
+      html += '<div class="task"><div><b>'+t.title+'</b><br><span class="small">+'+t.reward_coins+' Coins • '+t.progress+'</span></div><button class="btn btn-gold" style="width:auto;padding:8px 14px" onclick="claimTask('+t.id+')">'+(t.done?'Done':'Claim')+'</button></div>';
+    });
+    document.getElementById('tasksBox').innerHTML = html || 'No tasks';
+    // Offerwall tasks in earn box
+    document.getElementById('offerwallList').innerHTML = '<div class="task"><span>Join Group - +20 Coins</span><button class="btn btn-dark" style="width:auto" onclick="window.open(\'https://t.me/ShayaEarnNetwork\')">JOIN</button></div>';
+  }catch(e){}
+}
+async function claimTask(id){
+  const r = await fetch('/api/complete-task', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_id: currentUserId, taskId: id})});
+  const d = await r.json(); alert(d.msg || d.error); loadBalance();
+}
+async function convertCoins(){
+  const r = await fetch('/api/convert', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_id: currentUserId})});
+  const d = await r.json(); alert(d.success ? 'Converted +'+d.converted : d.error); loadBalance();
+}
+
+// ===== VIP / TOPUP =====
+async function loadVip(){
+  const r = await fetch('/api/vip', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId: currentUserId, action:'info'})});
+  const d = await r.json();
+  let html='';
+  for(let i=1;i<=20;i++){
+    const l = d.levels[i];
+    html += '<div class="vip-row"><b>'+i+'. '+l.name+'</b> - $'+l.adUSD+'/ad - '+l.adLimit+'/day<br><span class="small">'+l.coinsCost+' Coins / '+l.pointsCost+' Points / '+l.starsCost+' Stars</span><br><button class="btn btn-gold" style="margin-top:6px" onclick="levelUp('+i+')">LEVEL UP TO '+l.name+'</button></div>';
   }
+  document.getElementById('vipList').innerHTML = html;
 }
-function doTask(taskId){
-  if(taskId===1){ window.open('https://t.me/ShayaEarnNetwork', '_blank'); alert('Join the group, then tap CLAIM!'); }
-  else if(taskId===2){ showPage('invite'); alert('Copy your invite link, invite 3 friends, then tap CLAIM!'); }
-  else if(taskId===3){ shareWhatsApp(); alert('Shared! Now tap CLAIM!'); }
-  fetch('/api/task-click',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, taskId})}).catch(()=>{});
+async function levelUp(target){
+  const payWith = confirm('Pay with Coins? OK = Coins, Cancel = Points') ? 'coins' : 'points';
+  const r = await fetch('/api/vip', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId: currentUserId, action:'levelup', targetLevel: target, payWith: payWith})});
+  const d = await r.json(); alert(d.msg); loadBalance();
 }
-async function claimTask(taskId){
-  const res=await fetch('/api/complete-task',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, taskId})});
-  const d=await res.json();
-  if(d.success){ alert(d.msg); loadUser(); loadTasks(); }
-  else { alert(d.error); loadTasks(); }
+async function requestTopup(){
+  const pkg = document.getElementById('topupPkg').value;
+  const proof = document.getElementById('topupProof').value;
+  if(!proof) return alert('Enter proof - your name + amount');
+  const r = await fetch('/api/vip', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId: currentUserId, action:'topup_request', packageId: pkg, proof: proof})});
+  const d = await r.json(); alert(d.msg);
 }
-async function loadLeaderboard(){
-  try{
-    const res=await fetch('/api/leaderboard'); const list=await res.json();
-    if(!Array.isArray(list) || list.length===0){ document.getElementById('leaderboard').innerHTML='<p style="color:#aaa;font-size:12px">No users yet. Be the first to earn!</p>'; return; }
-    document.getElementById('leaderboard').innerHTML=list.map((u,i)=>'<div class="leader"><span>' + (i+1) + '. ' + (u.first_name||u.username) + ' (' + u.region + ') ' + (u.vip_level!=='FREE'?'👑':'') + '</span><span>' + u.balance.toFixed(2) + ' + ' + u.coins + ' Coins</span></div>').join('');
-  }catch(e){ document.getElementById('leaderboard').innerHTML='<p style="color:#aaa;font-size:12px">Leaderboard offline. Earn to appear here.</p>'; }
+async function buyStars(type, pkgId){
+  const r = await fetch('/api/buy-stars', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_id: currentUserId, type: type, packageId: pkgId})});
+  const d = await r.json(); alert(d.success ? 'Stars invoice sent in Telegram - Check @ShayaWatchAllBot' : d.error);
 }
-function openVideo(v){
-  var vidId = v.id;
-  if(typeof vidId === 'object' && vidId !== null) vidId = vidId.videoId;
-  if(!vidId || vidId === 'undefined'){ alert('Video ID missing - opening on YouTube instead.'); window.open(v.url || 'https://www.youtube.com', '_blank'); return; }
-  currentVideo = v;
-  document.getElementById('ytModalTitle').innerText = v.title || 'Playing...';
-  var embedUrl = 'https://www.youtube.com/embed/' + vidId + '?autoplay=1&rel=0&playsinline=1';
-  document.getElementById('ytPlayer').src = embedUrl;
-  var m = document.getElementById('ytModal'); m.classList.remove('hidden'); m.style.display = 'flex';
+
+// ===== WITHDRAW =====
+function updateWdHint(){
+  const m = document.getElementById('wdMethod').value;
+  if(m==='Airtime' || m==='Data') document.getElementById('wdHint').innerText = 'Airtime/Data: 110 Coins = R1. NO LIMIT. Enter R amount + phone.';
+  else if(m.indexOf('Capitec')!==-1) document.getElementById('wdHint').innerText = 'Capitec: Need level withdrawMin coins for R350. Enter Capitec account.';
+  else document.getElementById('wdHint').innerText = 'Walt: Min R350 HARD LOCK. Address must start with UQ...';
 }
-function closeVideo(){ document.getElementById('ytPlayer').src = ''; var m = document.getElementById('ytModal'); m.classList.add('hidden'); m.style.display = 'none'; }
-async function watchAdFromVideo(){ closeVideo(); await watchAd(); }
-function renderVideos(videos){
-  if(!videos || !videos.length){
-    videos = [
-      { id: 'dQw4w9WgXcQ', title: 'Amapiano Mix 2026 - Best of Amapiano', channel: 'Shaya Watch', thumb: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg', views: '1M', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
-      { id: 'kXYiU_JCYtU', title: 'Amapiano Hits - Kabza De Small x DJ Maphorisa', channel: 'Amapiano', thumb: 'https://i.ytimg.com/vi/kXYiU_JCYtU/mqdefault.jpg', views: '500K', url: 'https://www.youtube.com/watch?v=kXYiU_JCYtU' },
-    ];
-    document.getElementById('ytList').innerHTML = '<p style="font-size:11px;color:#FFD700">⚠️ YouTube API Key missing - Showing fallback videos. Add YOUTUBE_API_KEY in Render to get live trending.</p>' + videos.map((v,i)=>'<div class="ytcard" onclick=\'openVideo(' + JSON.stringify(v).replace(/'/g,"&#39;") + ')\'><img src="' + v.thumb + '"><div><b style="font-size:13px">' + v.title.slice(0,60) + '</b><br><small>' + v.channel + ' • ' + v.views + ' views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>').join('');
-    return;
-  }
-  document.getElementById('ytList').innerHTML = videos.map((v,i)=>{
-    var safeId = (typeof v.id === 'object' && v.id) ? v.id.videoId : v.id;
-    var safeV = { ...v, id: safeId };
-    return '<div class="ytcard" onclick=\'openVideo(' + JSON.stringify(safeV).replace(/'/g,"&#39;") + ')\'><img src="' + v.thumb + '"><div><b style="font-size:13px">' + (v.title||'').slice(0,60) + '</b><br><small>' + v.channel + ' • ' + v.views + ' views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>';
-  }).join('');
+async function requestWithdraw(){
+  const method = document.getElementById('wdMethod').value;
+  const wallet = document.getElementById('wdWallet').value;
+  const amount = document.getElementById('wdAmount').value;
+  const network = document.getElementById('wdNetwork').value;
+  const r = await fetch('/api/withdraw', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_id: currentUserId, method: method, wallet: wallet, amount: amount, network: network})});
+  const d = await r.json();
+  document.getElementById('wdMsg').innerText = d.success ? (d.msg || 'Withdraw sent!') : d.error;
+  alert(d.success ? (d.msg || 'Sent!') : d.error);
+  loadBalance();
 }
-async function loadVideos(type){
-  type = type || 'trending';
-  currentYtType=type;
-  document.getElementById('ytTrendingBtn').className=type==='trending'?'ytbtn active':'ytbtn';
-  document.getElementById('ytMusicBtn').className=type==='music'?'ytbtn active':'ytbtn';
-  document.getElementById('ytList').innerHTML='Loading videos...';
-  try{ const res=await fetch('/api/videos/' + type + '?region=' + region); const videos=await res.json(); renderVideos(videos); }catch(e){ renderVideos([]); }
+async function loadLeader(){
+  const r = await fetch('/api/leaderboard'); const list = await r.json();
+  let html='';
+  list.forEach(function(u,i){ html += '<div class="task"><span><b>'+(i+1)+'. '+(u.first_name||'Friend')+'</b> • '+u.vip_level+'</span><span>'+u.coins+' Coins</span></div>'; });
+  document.getElementById('leaderBox').innerHTML = html || 'No users yet';
 }
-async function searchVideos(){
-  const q=document.getElementById('ytSearch').value||(region==='SA'?'Amapiano':'Hip Hop');
-  try{ const res=await fetch('/api/videos/search?q=' + encodeURIComponent(q) + '&region=' + region); const videos=await res.json(); renderVideos(videos); }catch(e){ renderVideos([]); }
+function copyRef(){
+  const el = document.getElementById('refLink'); el.select(); document.execCommand('copy'); alert('Invite link copied!');
 }
-renderFallbackBuyButtons();
-loadUser();
+function showTab(name){
+  ['earn','vip','withdraw','leader'].forEach(function(t){
+    document.getElementById('tab-'+t).classList.add('hidden');
+    document.getElementById('btn-'+t).classList.remove('active');
+  });
+  document.getElementById('tab-'+name).classList.remove('hidden');
+  document.getElementById('btn-'+name).classList.add('active');
+  if(name==='vip') loadVip();
+  if(name==='leader') loadLeader();
+}
+loadBalance();
 </script>
 </body>
-  </html>
+</html>
