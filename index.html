@@ -1,21 +1,21 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shaya Watch</title>
+<title>Shaya Watch Bot</title>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <!-- ===== GIGA AD - ID 9114 - ACTIVE ✅ ===== -->
 <script src="https://ad.gigapub.tech/script?id=9114"></script>
 <!-- ===== ONCLICKA TMA - ID 472254 ✅ ===== -->
 <script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
-<!-- ===== GIGA OFFERWALL - PROJECT 9114 - ACTIVE ✅ - LOAD ONCE ===== -->
+<!-- ===== GIGA OFFERWALL - PROJECT 9114 - ACTIVE ✅ ===== -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
   if (!window.loadOfferWallSDK) {
     const script = document.createElement('script');
     script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=9114';
-    script.async = true;
-    document.head.appendChild(script);
+    script.async = true; document.head.appendChild(script);
   }
 });
 </script>
@@ -34,15 +34,14 @@ window.initCdTma?.({ id: '472254' }).then(show => { window.show = show; onclicka
     console.log('Giga Offerwall Ready - 9114 ACTIVE');
     try{ console.log('Has Offers:', sdk.hasOffers()); }catch(e){}
     sdk.on('rewardClaim', async (data) => {
-      console.log('Reward claim received:', data);
       await creditUserReward(data.userId, data.amount);
-      try{ await sdk.confirmReward(data.rewardId, data.hash); }catch(e){ console.log('confirmReward failed', e); }
+      try{ await sdk.confirmReward(data.rewardId, data.hash); }catch(e){}
     });
   }).catch(error => { console.error('Error loading Offerwall SDK:', error); });
 });
 async function creditUserReward(gigaUserId, amount){
   try{
-    var res = await fetch('/api/offerwall-credit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: parseInt(userId), amount: amount, source: 'giga-offerwall-9114' }) });
+    var res = await fetch('/api/offerwall-credit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: userId, amount: amount, source: 'giga-offerwall-9114' }) });
     var d = await res.json();
     if(d.success){ var r2 = await fetch('/api/user/' + userId); user = await r2.json(); updateUI(); document.getElementById('adStatus').innerText = '🎉 Offerwall: +' + amount + ' Coins credited!'; alert('🎉 Offerwall Reward: +' + amount + ' Coins!'); return true; }
     if(user){ user.coins = (user.coins||0) + Math.floor(amount); updateUI(); alert('🎉 Offerwall: +' + Math.floor(amount) + ' Coins!'); }
@@ -51,10 +50,8 @@ async function creditUserReward(gigaUserId, amount){
 }
 function openOfferWall(){ if(window.gigaOfferWallSDK){ window.gigaOfferWallSDK.open(); } else { alert('Offerwall still loading... wait 3 sec and try again.'); } }
 function closeOfferWall(){ if(window.gigaOfferWallSDK) window.gigaOfferWallSDK.close(); }
-function openOffer(offerId){ if(window.gigaOfferWallSDK) window.gigaOfferWallSDK.openOffer(offerId); }
 async function checkOffers(){ if(!window.gigaOfferWallSDK) return alert('Offerwall still loading...'); try{ var offers = await window.gigaOfferWallSDK.getOffers(); alert('Offers - Available: ' + offers.available + ' | Active: ' + offers.active); }catch(e){ alert('Could not fetch offers: ' + e.message); } }
 async function checkPendingRewards(){ if(!window.gigaOfferWallSDK) return; try{ var pending = await window.gigaOfferWallSDK.pending(); if(pending && pending.length){ alert('You have ' + pending.length + ' pending rewards! Claiming...'); for(var r of pending){ await creditUserReward(r.userId, r.amount); await window.gigaOfferWallSDK.confirmReward(r.rewardId, r.hash); } } else { alert('No pending rewards.'); } }catch(e){ console.log(e); } }
-async function checkMyRewards(){ if(!window.gigaOfferWallSDK) return; try{ var rewards = await window.gigaOfferWallSDK.getRewards(); alert('Total Rewards: ' + (rewards ? rewards.length : 0)); }catch(e){ console.log(e); } }
 async function triggerAdNetworks(){ adClickCount++; var onclickaFirst = (adClickCount % 2 === 1); if(onclickaFirst){ var ok = await tryOnclickA(); if(!ok) await tryGiga(); } else { var gOk = await tryGiga(); if(!gOk) await tryOnclickA(); } return true; }
 async function tryOnclickA(){ try{ if(onclickaShow){ await onclickaShow(); return true; } if(window.show){ await window.show(); return true; } return false; }catch(e){ return false; } }
 async function tryGiga(){ try{ if(window.showGiga){ await window.showGiga(); return true; } return false; }catch(e){ return false; } }
@@ -64,62 +61,49 @@ document.addEventListener('DOMContentLoaded', function(){ var btn = document.get
 *{margin:0;padding:0;box-sizing:border-box;font-family:Arial,sans-serif}
 body{background:#0a0a0a;color:#fff;padding:12px;padding-bottom:90px}
 .header{display:flex;justify-content:space-between;align-items:center;background:#1a1a1a;padding:12px;border-radius:14px}
-.header h1{font-size:20px;color:#FFD700}
-.header h1 span{color:#fff;font-size:12px;display:block}
-.toggle{display:flex;background:#222;border-radius:20px;padding:3px}
-.toggle button{border:none;padding:8px 14px;border-radius:18px;cursor:pointer;font-weight:bold}
-.toggle button.active{background:#FFD700;color:#000}
+.header h1{font-size:20px;color:#FFD700}.header h1 span{color:#fff;font-size:12px;display:block}
+.toggle{display:flex;background:#222;border-radius:20px;padding:3px}.toggle button{border:none;padding:8px 14px;border-radius:18px;cursor:pointer;font-weight:bold}.toggle button.active{background:#FFD700;color:#000}
 .card{background:#1a1a1a;border-radius:16px;padding:14px;margin-top:12px;border:1px solid #333}
-.balance{font-size:34px;font-weight:900;color:#FFD700}
-.coins{color:#aaa;font-size:14px}
-.bigbtn{background:#FFD700;color:#000;border:none;width:100%;padding:16px;border-radius:14px;font-size:18px;font-weight:900;cursor:pointer;margin-top:10px}
-.bigbtn:disabled{background:#555;color:#999}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
-.mini{background:#222;border:1px solid #333;border-radius:12px;padding:12px;text-align:center;cursor:pointer}
-.mini b{display:block;font-size:16px}
-.mini span{font-size:12px;color:#aaa}
-.vip{background:linear-gradient(135deg,#FFD700,#ff8c00);color:#000;border-radius:16px;padding:14px;margin-top:12px}
-.vip button{background:#000;color:#FFD700;border:none;padding:10px 14px;border-radius:10px;font-weight:bold;margin-top:8px;width:100%}
-.vipcard{background:#222;border:1px solid #FFD700;border-radius:12px;padding:12px;margin-top:8px;color:#fff}
-.vipcard.active{border-color:#00ff88;background:#0f2a1a}
-.task{background:#222;padding:10px;border-radius:10px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
-.task button{background:#FFD700;border:none;padding:8px 12px;border-radius:8px;font-weight:bold}
-.nav{position:fixed;bottom:0;left:0;right:0;background:#111;display:flex;justify-content:space-around;padding:12px;border-top:1px solid #333}
-.nav div{text-align:center;font-size:12px;cursor:pointer}
-.nav div.active{color:#FFD700}
+.balance{font-size:34px;font-weight:900;color:#FFD700}.coins{color:#aaa;font-size:14px}
+.bigbtn{background:#FFD700;color:#000;border:none;width:100%;padding:16px;border-radius:14px;font-size:18px;font-weight:900;cursor:pointer;margin-top:10px}.bigbtn:disabled{background:#555;color:#999}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}.mini{background:#222;border:1px solid #333;border-radius:12px;padding:12px;text-align:center;cursor:pointer}.mini b{display:block;font-size:16px}.mini span{font-size:12px;color:#aaa}
+.vip{background:linear-gradient(135deg,#FFD700,#ff8c00);color:#000;border-radius:16px;padding:14px;margin-top:12px}.vip button{background:#000;color:#FFD700;border:none;padding:10px 14px;border-radius:10px;font-weight:bold;margin-top:8px;width:100%}
+.vipcard{background:#222;border:1px solid #FFD700;border-radius:12px;padding:12px;margin-top:8px;color:#fff}.vipcard.active{border-color:#00ff88;background:#0f2a1a}
+.task{background:#222;padding:10px;border-radius:10px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}.task button{background:#FFD700;border:none;padding:8px 12px;border-radius:8px;font-weight:bold}
+.nav{position:fixed;bottom:0;left:0;right:0;background:#111;display:flex;justify-content:space-around;padding:12px;border-top:1px solid #333}.nav div{text-align:center;font-size:12px;cursor:pointer}.nav div.active{color:#FFD700}
 input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#222;color:#fff;margin-top:8px}
-.hidden{display:none !important}
-.leader{padding:8px 0;border-bottom:1px solid #222;display:flex;justify-content:space-between}
-.ytbtn{background:#222;color:#fff;border:1px solid #333;padding:8px 12px;border-radius:8px;cursor:pointer}
-.ytbtn.active{background:#FFD700;color:#000;border:none;font-weight:bold}
+.hidden{display:none !important}.leader{padding:8px 0;border-bottom:1px solid #222;display:flex;justify-content:space-between}
+.ytbtn{background:#222;color:#fff;border:1px solid #333;padding:8px 12px;border-radius:8px;cursor:pointer}.ytbtn.active{background:#FFD700;color:#000;border:none;font-weight:bold}
 .usdtbox{background:#0f2a1a;border:1px solid #00ff88;border-radius:12px;padding:12px;margin-top:12px}
-.modal{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;flex-direction:column}
-.modal.hidden{display:none !important}
-.modal-head{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#111}
-.modal-head button{background:#FFD700;border:none;padding:8px 14px;border-radius:8px;font-weight:bold}
-.modal iframe{flex:1;width:100%;border:none;background:#000}
-.ytcard{display:flex;gap:10px;margin:8px 0;background:#222;padding:8px;border-radius:10px;cursor:pointer}
-.ytcard img{width:110px;border-radius:8px;object-fit:cover}
-.progress{height:10px;background:#333;border-radius:10px;overflow:hidden;margin-top:8px}
-.progress div{height:100%;background:#FFD700;transition:width .3s}
-.offerbox{background:linear-gradient(135deg,#7b2fff,#00c6ff);border-radius:16px;padding:14px;margin-top:12px;color:#fff}
-.offerbox button{background:#FFD700;color:#000;border:none;padding:12px;border-radius:10px;font-weight:900;width:100%;margin-top:8px}
-.offerbox button.small{background:#222;color:#fff;border:1px solid #fff;padding:8px;font-size:12px}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;display:flex;flex-direction:column}.modal.hidden{display:none !important}.modal-head{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#111}.modal-head button{background:#FFD700;border:none;padding:8px 14px;border-radius:8px;font-weight:bold}.modal iframe{flex:1;width:100%;border:none;background:#000}
+.ytcard{display:flex;gap:10px;margin:8px 0;background:#222;padding:8px;border-radius:10px;cursor:pointer}.ytcard img{width:110px;border-radius:8px;object-fit:cover}
+.progress{height:10px;background:#333;border-radius:10px;overflow:hidden;margin-top:8px}.progress div{height:100%;background:#FFD700;transition:width .3s}
+.offerbox{background:linear-gradient(135deg,#7b2fff,#00c6ff);border-radius:16px;padding:14px;margin-top:12px;color:#fff}.offerbox button{background:#FFD700;color:#000;border:none;padding:12px;border-radius:10px;font-weight:900;width:100%;margin-top:8px}.offerbox button.small{background:#222;color:#fff;border:1px solid #fff;padding:8px;font-size:12px}
 .wallet-hint{background:#0f2a1a;border:1px solid #00ff88;border-radius:10px;padding:10px;margin-top:8px;font-size:12px;color:#aaffcc}
+.quiz-opt{width:100%;padding:12px;margin:6px 0;background:#fff;color:#000;border:none;border-radius:10px;text-align:left}
 </style>
 </head>
 <body>
+<div class="header"><div><h1>SHAYA WATCH BOT <span>Trending SA Videos • Music • Lifestyle • Earn</span></h1></div><div class="toggle"><button id="btnSA" onclick="setRegion('SA')">🇿🇦 SA</button><button id="btnUSA" onclick="setRegion('USA')">🇺🇸 USA</button></div></div>
 
-<div class="header"><div><h1>SHAYA WATCH <span>Trending SA Videos • Music • Lifestyle</span></h1></div><div class="toggle"><button id="btnSA" onclick="setRegion('SA')">🇿🇦 SA</button><button id="btnUSA" onclick="setRegion('USA')">🇺🇸 USA</button></div></div>
+<div id="loginCard" class="card" style="display:none">
+  <h3>👋 Welcome — No Telegram Needed!</h3>
+  <p style="font-size:13px;color:#ccc">Enter your name. This device will remember you. Coins saved to Supabase.</p>
+  <input id="nameInput" placeholder="Your name, e.g. Thabo" />
+  <button class="bigbtn" onclick="saveWebsiteUser()">START EARNING →</button>
+  <p style="font-size:11px;margin-top:8px;color:#aaa">Already have Telegram? Open @ShayaWatchAllBot and tap OPEN.</p>
+</div>
 
 <div id="page-home">
 <div class="card">
 <div style="display:flex;justify-content:space-between"><span>💰 Cash Balance</span><span id="vipBadge">FREE</span></div>
 <div class="balance" id="balance">Loading...</div>
 <div class="coins" id="coins">🪙 Loading...</div>
+<div class="coins" id="pointsLine" style="color:#FFD700">⭐ Points: 0 (For VIP)</div>
 <div class="coins" id="usdtValue" style="color:#00ff88">💱 = $0.00 USDT</div>
 <div class="coins" id="statsLine">Ads: 0 | Referrals: 0 | Streak: 0 days</div>
 <div class="coins" id="vipUntilLine" style="color:#FFD700"></div>
+<div class="coins" id="unlockedLine" style="color:#aaa"></div>
 <div style="margin-top:10px;background:#222;padding:10px;border-radius:10px">
 <b id="dailyLabel">📺 Ads Today: 0 / 10</b>
 <div class="progress"><div id="dailyBar" style="width:0%"></div></div>
@@ -148,6 +132,8 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <div class="mini" onclick="convertCoins()"><b>🪙 Convert Coins</b><span>Coins → Cash</span></div>
 </div>
 
+<div class="card"><h3>🧠 Daily Quiz — +Coins</h3><p style="font-size:12px;color:#aaa">Need 3+ correct. Unlocks after 10 ads. Coins can be withdrawn.</p><div id="quizLockBox"></div><div id="quizArea"><button class="bigbtn" style="background:#25D366" onclick="startQuiz()">🧠 START QUIZ</button></div></div>
+
 <div class="usdtbox">
 <b>💱 CONVERT USDT → RAND (LIVE)</b>
 <p style="font-size:12px;color:#aaa;margin-top:4px" id="usdtRateLine">Rate: 1 USDT = R16.59</p>
@@ -161,7 +147,17 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <p style="font-size:11px;color:#aaa;margin-top:6px" id="usdtExamples">20 USDT = R331.80 • 50 USDT = R829.50</p>
 </div>
 
-<div class="vip"><h3>👑 VIP PLANS - 30 DAYS - PAY WITH ⭐ STARS</h3><p>Upgrade to earn more + withdraw at $20 (not $50) • Stars go to Bot</p><div id="vipPlansList"></div></div>
+<div class="vip"><h3>👑 VIP — 20 LEVELS - 30 DAYS - PAY WITH ⭐ STARS / COINS / POINTS</h3><p>Upgrade to earn more + withdraw at $20 (not $50) • Can't jump, unlocked stays unlocked</p><div id="vipPlansList"></div></div>
+
+<div class="card"><h3>🏦 Topup — Send Money To Capitec</h3>
+<div style="background:#000;padding:12px;border-radius:12px;margin:10px 0;font-size:15px;line-height:1.8;text-align:center">
+<b>🏦 Capitec Bank</b><br><span style="font-size:22px;letter-spacing:2px;color:#FFD700"><b>1893275807</b></span><br>Reference: <b id="bankRef">Your Name / ID</b>
+</div>
+<div id="packages"></div>
+<input id="proofInput" placeholder="Paste EFT ref / proof" />
+<button class="bigbtn" onclick="requestTopup()">📤 SEND TOPUP REQUEST</button>
+<p style="font-size:11px;color:#aaa;margin-top:6px">You get Coins + Points. Coins can withdraw. Points buy VIP.</p>
+</div>
 
 <div class="card">
 <b id="ytTitle">🔥 TRENDING ON YOUTUBE - SA</b>
@@ -181,24 +177,26 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 
 <div id="page-invite" class="hidden"><div class="card"><h3>👥 INVITE FRIENDS</h3><p id="inviteReward" style="margin:8px 0">Reward per friend</p><p style="background:#222;padding:10px;border-radius:10px;word-break:break-all" id="inviteLink">Loading...</p><button class="bigbtn" onclick="copyLink()">📋 COPY LINK</button><button class="bigbtn" style="background:#25D366" onclick="shareWhatsApp()">📲 SHARE TO WHATSAPP</button></div></div>
 
-<!-- ===== WITHDRAW - WALT VERSION - NO PayPal, NO TRC20 ✅ ===== -->
 <div id="page-withdraw" class="hidden"><div class="card"><h3>💸 WITHDRAW</h3>
 <p id="withdrawInfo" style="margin:8px 0">Min: $50 FREE / $20 VIP</p>
 <p id="withdrawUSDTInfo" style="font-size:13px;color:#00ff88">Your balance in USDT: $0.00</p>
+<p style="font-size:12px;color:#FFD700">Two ways: Cash Balance (USDT) OR Coins (R10 / R5 Data)</p>
 <select id="withdrawMethod" onchange="updateWithdrawInfo()">
 <option value="Dollars (USDT) - Walt">💵 Dollars (USDT) - Walt</option>
 <option value="Gram - Walt">👛 Gram - Walt</option>
-<option value="Capitec / Bank">🏦 Capitec / Bank</option>
-<option value="Airtime">📱 Airtime</option>
+<option value="Capitec / Bank">🏦 Capitec / Bank — R10 (Coins)</option>
+<option value="Airtime">📱 Airtime — R10 (Coins)</option>
+<option value="data">📶 R5 1GB Data (24h) — Coins, Half Price</option>
 </select>
+<select id="withdrawNetwork" style="display:none"><option value="MTN">MTN</option><option value="Vodacom">Vodacom</option><option value="Cell C">Cell C</option><option value="Telkom">Telkom</option></select>
 <input id="walletInput" placeholder="Paste your Walt Dollars address - starts with UQ...">
 <div class="wallet-hint" id="withdrawHintBox">
 <b id="withdrawHintTitle">💵 Dollars (USDT) - Walt</b>
-<p id="withdrawHint" style="margin-top:4px">In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted).</p>
+<p id="withdrawHint" style="margin-top:4px">In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted). WALT = Telegram Wallet @wallet. USDT & GEM both inside WALT.</p>
 </div>
 <button class="bigbtn" onclick="requestWithdraw()">✅ REQUEST WITHDRAWAL</button>
 <p id="withdrawStatus" style="margin-top:8px;color:#0f0"></p>
-<p style="font-size:11px;color:#aaa;margin-top:8px">FREE: $50 Min • VIP: $20 Min • Payouts via Walt - Dollars (USDT) / Gram</p>
+<p style="font-size:11px;color:#aaa;margin-top:8px">FREE: $50 Min (Cash) / 3000 Coins = R10 • VIP: $20 Min / Less Coins • Payouts via Walt - Dollars (USDT) / Gram</p>
 </div></div>
 
 <div id="ytModal" class="modal hidden" style="display:none">
@@ -210,64 +208,57 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <div class="nav"><div class="active" onclick="showPage('home')">🏠<br>Home</div><div onclick="showPage('invite')">👥<br>Invite</div><div onclick="showPage('withdraw')">💸<br>Withdraw</div></div>
 
 <script>
-// ===== FIXED LINE 1 - userId + Chrome warning ✅ =====
 let userId = new URLSearchParams(window.location.search).get('start') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || new URLSearchParams(window.location.search).get('user_id');
-
-// If opened in browser, not in Telegram - show fix
-if(!userId){
-  document.addEventListener('DOMContentLoaded', ()=>{
-    document.getElementById('balance').innerHTML = '<a href="https://t.me/ShayaWatchAllBot" style="color:#FFD700;font-size:18px;text-decoration:none">👉 TAP HERE TO OPEN IN TELEGRAM BOT</a>';
-    document.getElementById('ytList').innerHTML = '⚠️ Open via @ShayaWatchAllBot - not in Chrome';
-    document.getElementById('tasksList').innerHTML = '⚠️ Open via @ShayaWatchAllBot';
-    document.getElementById('leaderboard').innerHTML = '⚠️ Open via @ShayaWatchAllBot';
-  });
+let deviceId = null;
+let userName = 'friend';
+let isTelegram = !!(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
+if(isTelegram){ userName = window.Telegram.WebApp.initDataUnsafe.user.first_name || 'friend'; deviceId = 'tg_' + userId; }
+else {
+  deviceId = localStorage.getItem('shaya_device_id');
+  if(!deviceId){ deviceId = 'web_' + Math.random().toString(36).slice(2,12); localStorage.setItem('shaya_device_id', deviceId); }
+  userId = localStorage.getItem('shaya_userId') || deviceId;
+  userName = localStorage.getItem('shaya_userName') || '';
+  if(!userName){ document.addEventListener('DOMContentLoaded', ()=>{ document.getElementById('loginCard').style.display='block'; }); }
 }
+function saveWebsiteUser(){
+  const name=document.getElementById('nameInput').value.trim();
+  if(!name){ alert('Enter your name'); return; }
+  userName=name; userId=deviceId;
+  localStorage.setItem('shaya_userId', userId); localStorage.setItem('shaya_userName', userName); localStorage.setItem('shaya_device_id', deviceId);
+  document.getElementById('loginCard').style.display='none';
+  document.getElementById('bankRef').textContent=userName+' - '+userId;
+  loadUser();
+}
+if(userId) document.getElementById('bankRef').textContent=userName+' - '+userId;
+
 let user = null;
 let region='SA';
 let currentYtType='trending';
 let USDT_TO_ZAR=16.59;
 let currentVideo=null;
+let quiz=[], qIndex=0, qScore=0, selectedPackage='p29';
 if(window.Telegram?.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
 document.addEventListener('DOMContentLoaded', function(){ var m=document.getElementById('ytModal'); if(m){ m.classList.add('hidden'); m.style.display='none'; } });
 
-// ===== VIP WITH TELEGRAM STARS ⭐ - FIXED =====
-let selectedVipPlan = '';
-const VIP_STARS = { 'VIP': 250, 'VIP PRO': 500, 'VIP ELITE': 1000 };
-function buyVip(plan){
-  selectedVipPlan = plan;
-  const stars = VIP_STARS || 250;
-  const perAd = plan === 'VIP' ? '$0.025/ad' : plan === 'VIP PRO' ? '$0.05/ad' : '$0.10/ad';
-  const html = `
-  <div id="vipStarsModal" style="position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">
-    <div style="background:#1a1a1a;border:1px solid #FFD700;border-radius:16px;padding:18px;width:100%;max-width:400px;text-align:center">
-      <h3 style="color:#FFD700">👑 BUY ${plan}</h3>
-      <div style="font-size:48px;margin:10px 0">⭐</div>
-      <div style="font-size:28px;font-weight:900;color:#FFD700">${stars} Stars</div>
-      <p style="margin:8px 0;font-size:13px;color:#aaa">${perAd} • 20/day • $20 Min • 30 Days</p>
-      <p style="font-size:12px;background:#222;padding:10px;border-radius:10px">1. Tap PAY WITH STARS below<br>2. Bot will send you a Stars invoice in chat<br>3. Pay with Stars in Telegram<br>4. VIP activates AUTOMATICALLY</p>
-      <button onclick="payVipWithStars()" style="background:#FFD700;color:#000;border:none;width:100%;padding:14px;border-radius:12px;font-weight:900;margin-top:10px">⭐ PAY ${stars} STARS</button>
-      <button onclick="document.getElementById('vipStarsModal').remove()" style="background:#333;color:#fff;border:none;width:100%;padding:12px;border-radius:12px;margin-top:8px">Cancel</button>
-    </div>
-  </div>`;
-  document.body.insertAdjacentHTML('beforeend', html);
+let selectedVipLevel = 2;
+function buyVip(level, payWith){
+  selectedVipLevel = level;
+  if(payWith==='stars'){ payVipWithStars(level); return; }
+  // Coins / Points via /api/vip
+  fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'levelup', targetLevel:level, payWith})}).then(r=>r.json()).then(d=>{ alert(d.msg); loadUser(); });
 }
-async function payVipWithStars(){
-  const plan = selectedVipPlan;
-  const stars = VIP_STARS || 250;
-  const modal = document.getElementById('vipStarsModal'); if(modal) modal.remove();
-  const res = await fetch('/api/vip-stars-invoice', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: parseInt(userId), plan }) });
+async function payVipWithStars(level){
+  const res = await fetch('/api/vip-stars-invoice', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: userId, targetLevel: level }) });
   const d = await res.json();
-  if(d.success){ alert(`✅ Check your Telegram chat!\nBot sent you an invoice for ${stars} ⭐ for ${plan}.\n\nTap PAY in the chat to pay with Stars.\nYour VIP will activate automatically after payment.`); try{ window.Telegram.WebApp.openTelegramLink('https://t.me/ShayaWatchAllBot'); }catch(e){} }
-  else { alert(d.error || 'Could not create Stars invoice. Make sure you pressed /start in @ShayaWatchAllBot first.'); }
+  if(d.success){ alert(`✅ Check your Telegram chat!\nBot sent you an invoice for ${d.stars} ⭐ for ${d.plan}.\nTap PAY in chat. VIP activates automatically.`); try{ window.Telegram.WebApp.openTelegramLink('https://t.me/ShayaWatchAllBot'); }catch(e){} }
+  else { alert(d.error || 'Could not create Stars invoice. Press /start in @ShayaWatchAllBot first.'); }
 }
 function saveToPhone(){ if(!user||!userId) return; try{ localStorage.setItem('shaya_backup_'+userId, JSON.stringify({balance:user.balance, coins:user.coins, total_ads:user.total_ads, referrals:user.referrals, streak:user.streak, region:user.region, vip_level:user.vip_level, total_earned:user.total_earned})); }catch(e){} }
 function getPhoneBackup(){ try{ return JSON.parse(localStorage.getItem('shaya_backup_'+userId)); }catch(e){ return null; } }
 
-// ===== FIXED LINE 2 - loadUser still loads public stuff in Chrome ✅ =====
 async function loadUser(){
   if(!userId){
-    document.getElementById('balance').innerText='Open via Telegram Bot';
-    // Still load public stuff even without login
+    document.getElementById('balance').innerHTML = '<a href="https://t.me/ShayaWatchAllBot" style="color:#FFD700;font-size:18px;text-decoration:none">👉 TAP HERE TO OPEN IN TELEGRAM BOT</a>';
     loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans();
     return;
   }
@@ -276,7 +267,6 @@ async function loadUser(){
   try{
     const res=await fetch(`/api/user/${userId}`); user=await res.json(); if(user.error) return;
     region=user.region||region||'SA'; if(user.usdtToZar) USDT_TO_ZAR=user.usdtToZar;
-    if(backup && user.balance===0 && user.coins===0 && (backup.balance>0||backup.coins>0)){ await fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId),...backup})}); const r2=await fetch(`/api/user/${userId}`); user=await r2.json(); region=user.region||region; }
     updateUI(); saveToPhone(); refreshRate(); loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans();
   }catch(e){}
 }
@@ -290,40 +280,50 @@ function updateUI(){
   const minCash=region==='SA'?minUSDT*USDT_TO_ZAR:minUSDT;
   document.getElementById('balance').innerText=`${user.currency}${user.balance.toFixed(2)}`;
   document.getElementById('coins').innerText=`🪙 ${user.coins} Coins ($${(user.coins/1000).toFixed(2)}) • 1000 = $1`;
+  document.getElementById('pointsLine').innerText=`⭐ Points: ${user.points||0} (For VIP) • Level ${user.level||1}/20 • ${user.levelName||'Free'}`;
   const usdtVal=region==='SA'?(user.balance/USDT_TO_ZAR).toFixed(4):user.balance.toFixed(4);
   document.getElementById('usdtValue').innerText=`💱 = $${usdtVal} USDT (1 USDT = R${USDT_TO_ZAR.toFixed(2)} LIVE)`;
   document.getElementById('statsLine').innerText=`Ads: ${user.total_ads} | Referrals: ${user.referrals} | Streak: ${user.streak} days`;
   document.getElementById('vipBadge').innerText=user.vip_level;
   document.getElementById('vipUntilLine').innerText=user.vip_until?`👑 ${user.vip_level} until ${user.vip_until} • $${perAd.usd}/ad • ${dailyLimit}/day`:`👑 FREE • $0.01/ad • 10/day • $50 Min`;
+  document.getElementById('unlockedLine').innerText=`Unlocked: ${(user.unlockedLevels||[1]).join(', ')}${user.levelExpiresAt?` • Expires in ${user.expiresInDays} days`:''}`;
   document.getElementById('rateLine').innerText=`You Earn: $${perAd.usd} (${user.currency}${perAd.cash.toFixed(2)}) + ${perAd.coins} Coins • ${dailyLimit}/day`;
   document.getElementById('dailyLabel').innerText=`📺 Ads Today: ${dailyAds} / ${dailyLimit} (${user.vip_level})`;
   document.getElementById('dailyBar').style.width=`${(dailyAds/dailyLimit*100)}%`;
   document.getElementById('dailyBar').style.background=dailyAds>=dailyLimit?'#ff4444':'#FFD700';
   document.getElementById('dailyLeftLabel').innerText=dailyAds>=dailyLimit?`❌ Limit reached! ${user.vip_level==='FREE'?'Upgrade to VIP for 20/day':'Come back tomorrow.'}`:`${dailyLeft} left today • Max $${(dailyLeft*perAd.usd).toFixed(2)} more today`;
-  document.getElementById('minWithdrawLabel').innerText=`Min Withdraw: $${minUSDT} USDT (${user.vip_level}) ${user.vip_level==='FREE'?'• Upgrade to VIP for $20 Min':''}`;
+  document.getElementById('minWithdrawLabel').innerText=`Min Withdraw: $${minUSDT} USDT (${user.vip_level}) ${user.vip_level==='FREE'?'• Upgrade to VIP for $20 Min':''} • Coins: ${user.withdrawMin} = R10`;
   const btn=document.getElementById('watchBtn');
   if(dailyAds>=dailyLimit){ btn.disabled=true; btn.innerText=`❌ DAILY LIMIT (${dailyAds}/${dailyLimit})`; } else { btn.disabled=false; btn.innerText='▶️ WATCH AD & EARN'; }
   document.getElementById('inviteReward').innerText=region==='SA'?`Reward: $0.50 (R${(0.50*USDT_TO_ZAR).toFixed(2)}) + 50 Coins per friend`:`Reward: $0.10 + 10 Coins per friend`;
-  document.getElementById('withdrawInfo').innerText=`Min: $${minUSDT} USDT = ${region==='SA'?'R'+minCash.toFixed(2):'$'+minUSDT} (${user.vip_level})`;
-  document.getElementById('withdrawUSDTInfo').innerText=`Your balance in USDT: $${usdtVal} / $${minUSDT}.00 needed`;
+  document.getElementById('withdrawInfo').innerText=`Min: $${minUSDT} USDT = ${region==='SA'?'R'+minCash.toFixed(2):'$'+minUSDT} (${user.vip_level}) • Or ${user.withdrawMin} Coins = R10`;
+  document.getElementById('withdrawUSDTInfo').innerText=`Your balance in USDT: $${usdtVal} / $${minUSDT}.00 needed • Coins: ${user.coins} / ${user.withdrawMin} for R10`;
   document.getElementById('usdtRateLine').innerText=`Rate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)} • LIVE`;
   document.getElementById('usdtExamples').innerText=`20 USDT = R${(20*USDT_TO_ZAR).toFixed(2)} • 50 USDT = R${(50*USDT_TO_ZAR).toFixed(2)} • $0.01 = R${(0.01*USDT_TO_ZAR).toFixed(2)}`;
   document.getElementById('btnSA').className=region==='SA'?'active':'';
   document.getElementById('btnUSA').className=region==='USA'?'active':'';
   document.getElementById('ytTitle').innerText=region==='SA'?'🔥 TRENDING ON YOUTUBE - SA':'🔥 TRENDING ON YOUTUBE - USA';
   document.getElementById('inviteLink').innerText=`https://t.me/ShayaWatchAllBot?start=ref_${userId}`;
+  document.getElementById('quizLockBox').innerHTML=user.quizUnlocked?'':`<div style="background:#5a1a1a;padding:10px;border-radius:10px;font-size:13px">🔒 Quiz Locked — Watch ${user.quizNeed} more ads. You have ${user.total_ads}/10 ads.</div>`;
   saveToPhone();
 }
 async function loadVipPlans(){
   try{
-    const res=await fetch(`/api/vip-plans?region=${region}`); const plans=await res.json();
-    const order=['VIP','VIP PRO','VIP ELITE'];
-    const emojis={'VIP':'👑','VIP PRO':'💎','VIP ELITE':'🔥'};
-    document.getElementById('vipPlansList').innerHTML=order.map(k=>{
-      const p=plans[k]; const isActive=user&&user.vip_level===k;
-      return `<div class="vipcard ${isActive?'active':''}"><b>${emojis[k]} ${k} ${isActive?'✅ ACTIVE':''}</b><br><small>$${p.perAdUSD}/ad • ${p.dailyLimit}/day • $${p.minWithdrawUSDT} Min • 30 Days</small><br><b>⭐ ${VIP_STARS[k]} Stars</b><br><small>${user?.currency||'R'}${p.price.toFixed(2)} ($${p.priceUSD}) value</small><br><button onclick="buyVip('${k}')" style="margin-top:6px">${isActive?'✅ YOUR PLAN':'⭐ BUY '+k+' - '+VIP_STARS[k]+' STARS'}</button></div>`;
-    }).join('');
-  }catch(e){}
+    const res=await fetch(`/api/vip?x=1`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'info'})});
+    const d=await res.json();
+    // d.levels is LEVELS object 1..20
+    let html='';
+    for(let i=1;i<=20;i++){
+      const lv=d.levels[i];
+      const isCurrent=i===d.level;
+      const isUnlocked=(d.unlockedLevels||[1]).includes(i);
+      const canBuy=isUnlocked && i>d.level;
+      const isLocked=!isUnlocked;
+      html+=`<div class="vipcard ${isCurrent?'active':''}"><b>${i}. ${lv.name} ${isCurrent?'✅ ACTIVE':''}</b><br><small>$${lv.adUSD}/ad • ${lv.adLimit}/day • $${lv.minWithdrawUSDT} Min • 30 Days • Withdraw ${lv.withdrawMin}=R10</small><br><b>${lv.coinsCost} Coins / ${lv.pointsCost} Points / ⭐ ${lv.starsCost} Stars</b><br><small>${isLocked?'🔒 LOCKED - Buy previous first':isUnlocked?'✅ UNLOCKED':''}</small><br><div style="display:flex;gap:6px;margin-top:6px"><button onclick="buyVip(${i},'coins')" ${!canBuy?'disabled':''} style="flex:1">Buy Coins</button><button onclick="buyVip(${i},'points')" ${!canBuy?'disabled':''} style="flex:1;background:#25D366;color:#fff">Buy Points</button><button onclick="buyVip(${i},'stars')" ${!canBuy?'disabled':''} style="flex:1;background:#7b2fff;color:#fff">⭐ Stars</button></div></div>`;
+    }
+    document.getElementById('vipPlansList').innerHTML=html;
+    document.getElementById('packages').innerHTML=d.packages.map(p=>`<label style="display:block;background:#1E3A6E;padding:10px;border-radius:10px;margin:6px 0"><input type="radio" name="pkg" value="${p.id}" ${p.id==='p29'?'checked':''} onchange="selectedPackage='${p.id}'"> <b>${p.label}</b></label>`).join('');
+  }catch(e){ console.log(e); }
 }
 async function refreshRate(){ try{ const res=await fetch('/api/rate'); const d=await res.json(); if(d.usdtToZar){ USDT_TO_ZAR=d.usdtToZar; convertUSDTInput(); if(user) updateUI(); } }catch(e){} }
 setInterval(refreshRate, 30*60*1000);
@@ -333,8 +333,6 @@ async function convertUSDTInput(){
   document.getElementById('usdtResult').innerText=`= R${(usdt*USDT_TO_ZAR).toFixed(2)}`;
 }
 function setUSDT(v){ document.getElementById('usdtInput').value=v; convertUSDTInput(); }
-
-// ===== WITHDRAW - WALT VERSION ✅ =====
 function updateWithdrawInfo(){
   const m=document.getElementById('withdrawMethod').value;
   const minUSDT=user?.minWithdrawUSDT||50;
@@ -342,29 +340,35 @@ function updateWithdrawInfo(){
   const walletInput=document.getElementById('walletInput');
   const hintEl=document.getElementById('withdrawHint');
   const hintTitle=document.getElementById('withdrawHintTitle');
+  document.getElementById('withdrawNetwork').style.display = m==='data' ? 'block' : 'none';
+  document.getElementById('withdrawHintBox').style.display = (m.includes('Walt')||m.includes('USDT')||m.includes('Gram')) ? 'block' : 'none';
   if(m === 'Dollars (USDT) - Walt'){
     if(walletInput) walletInput.placeholder='Paste your Walt Dollars address - starts with UQ...';
     if(hintTitle) hintTitle.innerText='💵 Dollars (USDT) - Walt';
-    if(hintEl) hintEl.innerText=`Min: $${minUSDT} USDT = ${region==='SA'?'R'+minCash.toFixed(2):'$'+minUSDT} • In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted).`;
+    if(hintEl) hintEl.innerText=`Min: $${minUSDT} USDT = ${region==='SA'?'R'+minCash.toFixed(2):'$'+minUSDT} • In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted). WALT = @wallet.`;
   } else if(m === 'Gram - Walt'){
     if(walletInput) walletInput.placeholder='Paste your Walt Gram address - starts with UQ...';
     if(hintTitle) hintTitle.innerText='👛 Gram - Walt';
-    if(hintEl) hintEl.innerText=`Min: $${minUSDT} • In Walt: Tap Gram > Deposit > Copy UQ... address. Payout sent as GRAM. Note: GRAM price changes, Dollars is stable.`;
+    if(hintEl) hintEl.innerText=`Min: $${minUSDT} • In Walt: Tap Gram > Deposit > Copy UQ... address. Payout sent as GRAM.`;
   } else if(m === 'Capitec / Bank'){
-    if(walletInput) walletInput.placeholder='Enter Capitec / Bank Account Number + Name';
-    if(hintTitle) hintTitle.innerText='🏦 Capitec / Bank';
-    if(hintEl) hintEl.innerText=`Min: $${minUSDT} USDT = ${region==='SA'?'R'+minCash.toFixed(2):'$'+minUSDT} • Bank transfer - slower than Walt`;
+    if(walletInput) walletInput.placeholder='Your Capitec Account Number (for R10 via Coins)';
+    if(hintTitle) hintTitle.innerText='🏦 Capitec / Bank — Coins';
+    if(hintEl) hintEl.innerText=`Uses Coins: ${user?.withdrawMin||3000} Coins = R10. Topup account is 1893275807, withdraw goes to YOUR account.`;
   } else if(m === 'Airtime'){
     if(walletInput) walletInput.placeholder='Enter Phone Number for Airtime e.g. 071...';
-    if(hintTitle) hintTitle.innerText='📱 Airtime';
-    if(hintEl) hintEl.innerText=`Min: $${minUSDT} USDT • Airtime payout to your number`;
+    if(hintTitle) hintTitle.innerText='📱 Airtime — Coins';
+    if(hintEl) hintEl.innerText=`Uses Coins: ${user?.withdrawMin||3000} Coins = R10 Airtime.`;
+  } else if(m === 'data'){
+    if(walletInput) walletInput.placeholder='10-digit phone number for R5 1GB Data';
+    if(hintTitle) hintTitle.innerText='📶 R5 1GB Data (24h) — Coins';
+    if(hintEl) hintEl.innerText=`Uses Coins: ${Math.ceil((user?.withdrawMin||3000)/2)} Coins = R5 1GB Data, valid 24h. Choose network below.`;
   }
 }
 async function setRegion(newRegion){
   if(region===newRegion) return;
   const oldBalance=user?user.balance:0; const oldRegion=region;
   try{
-    const res=await fetch('/api/set-region',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId),region:newRegion})});
+    const res=await fetch('/api/set-region',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId,region:newRegion})});
     const d=await res.json(); if(d.success&&d.user){ user=d.user; region=newRegion; updateUI(); alert(`✅ Region: ${oldRegion} → ${newRegion}\nBalance: ${oldRegion==='SA'?'R':'$'}${oldBalance.toFixed(2)} → ${newRegion==='SA'?'R':'$'}${user.balance.toFixed(2)}`); }
   }catch(e){ alert('Region change failed, try again'); }
   loadVideos(currentYtType); loadVipPlans();
@@ -382,33 +386,55 @@ async function watchAd(){
   document.getElementById('adStatus').innerText='Ad playing... please watch full ad';
   await triggerAdNetworks();
   setTimeout(async ()=>{
-    const res=await fetch('/api/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId)})});
+    const res=await fetch('/api/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})});
     const data=await res.json();
     if(data.success){ const r2=await fetch(`/api/user/${userId}`); user=await r2.json(); if(user.usdtToZar) USDT_TO_ZAR=user.usdtToZar; updateUI(); loadVipPlans(); document.getElementById('adStatus').innerText=`✅ +$${data.earnedUSD} (${user.currency}${data.earnedCash.toFixed(2)}) + ${data.earnedCoins} Coins! Ads: ${data.dailyAds}/${data.dailyLimit} • ${data.dailyLeft} left`; }
     else { document.getElementById('adStatus').innerText=data.error; if(data.dailyAds>=limit) updateUI(); }
     if(!user || (user.dailyAds||0)<limit){ btn.disabled=false; btn.innerText='▶️ WATCH AD & EARN'; }
   }, 5000);
 }
-async function claimDaily(){ const res=await fetch('/api/daily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId)})}); const d=await res.json(); alert(d.success?`🎁 Daily: +${user.currency}${d.bonusCash.toFixed(2)} + ${d.bonusCoins} Coins | Streak: ${d.streak}`:d.error); loadUser(); }
-async function convertCoins(){ const res=await fetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId)})}); const d=await res.json(); alert(d.success?`✅ Converted +${user.currency}${d.converted.toFixed(2)}`:d.error); loadUser(); }
+// Quiz (Earn)
+async function startQuiz(){
+  const res=await fetch('/api/earn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:userId, name:userName, device_id:deviceId, action:'quiz'})});
+  const d=await res.json(); if(d.msg && !d.quiz){ document.getElementById('quizArea').innerHTML=`<p>${d.msg}</p>`; return; }
+  quiz=d.quiz; qIndex=0; qScore=0; showQ();
+}
+function showQ(){ const q=quiz[qIndex]; document.getElementById('quizArea').innerHTML=`<p><b>Q${qIndex+1}/5: ${q.q}</b></p>`+q.options.map((o,i)=>`<button class="quiz-opt" onclick="answerQ(${i})">${o}</button>`).join(''); }
+function answerQ(i){ if(quiz[qIndex].answer===i) qScore++; qIndex++; if(qIndex<quiz.length) showQ(); else finishQuiz(); }
+async function finishQuiz(){ const res=await fetch('/api/earn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:userId, name:userName, device_id:deviceId, action:'quiz_done', score:qScore})}); const d=await res.json(); document.getElementById('quizArea').innerHTML=`<p>${d.msg}</p><button class="bigbtn" style="background:#25D366" onclick="startQuiz()">🧠 PLAY AGAIN TOMORROW</button>`; loadUser(); }
+async function claimDaily(){ const res=await fetch('/api/daily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})}); const d=await res.json(); alert(d.success?`🎁 Daily: +${user.currency}${d.bonusCash.toFixed(2)} + ${d.bonusCoins} Coins | Streak: ${d.streak}`:d.error); loadUser(); }
+async function convertCoins(){ const res=await fetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})}); const d=await res.json(); alert(d.success?`✅ Converted +${user.currency}${d.converted.toFixed(2)}`:d.error); loadUser(); }
 function copyLink(){ navigator.clipboard.writeText(document.getElementById('inviteLink').innerText); alert('Link copied!'); }
-function shareWhatsApp(){ const link=document.getElementById('inviteLink').innerText; window.open(`https://wa.me/?text=${encodeURIComponent('Join Shaya Watch! FREE $0.01/ad, VIP $0.025/ad! '+link)}`); }
+function shareWhatsApp(){ const link=document.getElementById('inviteLink').innerText; window.open(`https://wa.me/?text=${encodeURIComponent('Join Shaya Watch Bot! FREE $0.01/ad, VIP $0.025/ad! '+link)}`); }
+async function requestTopup(){
+  const proof=document.getElementById('proofInput').value.trim();
+  if(!proof){ alert('Paste EFT proof first'); return; }
+  const res=await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'topup_request', packageId:selectedPackage, proof})});
+  const d=await res.json(); alert(d.msg);
+}
 async function requestWithdraw(){
   const method=document.getElementById('withdrawMethod').value;
   const wallet=document.getElementById('walletInput').value.trim();
+  const network=document.getElementById('withdrawNetwork').value;
   if(!wallet) return alert('Enter your wallet first');
   if(method.toLowerCase().includes('paypal') || method.toLowerCase().includes('trc20')){ return alert('❌ PayPal and USDT TRC20 are REMOVED. Please select Dollars (USDT) - Walt.'); }
   if(method === 'Dollars (USDT) - Walt' || method === 'Gram - Walt'){
     if(!wallet.startsWith('UQ')){ return alert('❌ Wrong address!\n\nWalt addresses start with UQ...\nYou pasted: ' + wallet.slice(0,12) + '...\n\nTRC20 (T...) is NOT accepted.\nGo to Walt > Dollars > Deposit > Copy UQ... address.'); }
     if(wallet.startsWith('T')){ return alert('❌ That is a TRC20 address (starts with T). Walt uses TON - must start with UQ...'); }
   }
-  const res=await fetch('/api/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:parseInt(userId),method,wallet})});
+  // Map Earn methods to backend
+  let backendMethod = method;
+  let detail = wallet;
+  if(method==='Capitec / Bank') backendMethod='capitec';
+  if(method==='Airtime') backendMethod='airtime';
+  if(method==='data') backendMethod='data';
+  const res=await fetch('/api/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, userId:userId, name:userName, method:backendMethod, wallet:detail, detail:detail, network})});
   const d=await res.json();
-  document.getElementById('withdrawStatus').innerText=d.success?`✅ Request sent! ${d.usdtAmount?`USDT: $${d.usdtAmount.toFixed(2)} = R${d.zarAmount.toFixed(2)}`:''} Admin pays in 24h.`:d.error;
+  document.getElementById('withdrawStatus').innerText=d.success?`✅ Request sent! ${d.usdtAmount?`USDT: $${d.usdtAmount.toFixed(2)} = R${d.zarAmount.toFixed(2)}`:d.msg||''} Admin pays in 24h.`:(d.error||d.msg||'Failed');
   if(d.success) loadUser();
 }
-async function loadTasks(){ const res=await fetch('/api/tasks'); const tasks=await res.json(); document.getElementById('tasksList').innerHTML=tasks.map(t=>`<div class="task"><span>${t.title}<br><small>+${t.reward_cash} + ${t.reward_coins} Coins</small></span><button onclick="window.open('${t.link}')">Do</button></div>`).join(''); }
-async function loadLeaderboard(){ const res=await fetch('/api/leaderboard'); const list=await res.json(); document.getElementById('leaderboard').innerHTML=list.map((u,i)=>`<div class="leader"><span>${i+1}. ${u.first_name||u.username} (${u.region}) ${u.vip_level!=='FREE'?'👑':''}</span><span>${u.balance.toFixed(2)} + ${u.coins} Coins</span></div>`).join(''); }
+async function loadTasks(){ try{ const res=await fetch('/api/tasks'); const tasks=await res.json(); document.getElementById('tasksList').innerHTML=tasks.map(t=>`<div class="task"><span>${t.title}<br><small>+${t.reward_cash} + ${t.reward_coins} Coins</small></span><button onclick="window.open('${t.link}')">Do</button></div>`).join(''); }catch(e){} }
+async function loadLeaderboard(){ try{ const res=await fetch('/api/leaderboard'); const list=await res.json(); document.getElementById('leaderboard').innerHTML=list.map((u,i)=>`<div class="leader"><span>${i+1}. ${u.first_name||u.username} (${u.region}) ${u.vip_level!=='FREE'?'👑':''}</span><span>${u.balance.toFixed(2)} + ${u.coins} Coins</span></div>`).join(''); }catch(e){} }
 function openVideo(v){
   var vidId = v.id; if(typeof vidId === 'object' && vidId !== null) vidId = vidId.videoId;
   if(!vidId || vidId === 'undefined'){ alert('Video ID missing - opening on YouTube instead.'); window.open(v.url || 'https://www.youtube.com', '_blank'); return; }
@@ -424,7 +450,6 @@ function renderVideos(videos){
     videos = [
       { id: 'dQw4w9WgXcQ', title: 'Amapiano Mix 2026 - Best of Amapiano', channel: 'Shaya Watch', thumb: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg', views: '1M', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
       { id: 'kXYiU_JCYtU', title: 'Amapiano Hits - Kabza De Small x DJ Maphorisa', channel: 'Amapiano', thumb: 'https://i.ytimg.com/vi/kXYiU_JCYtU/mqdefault.jpg', views: '500K', url: 'https://www.youtube.com/watch?v=kXYiU_JCYtU' },
-      { id: 'LXb3EKWsInQ', title: 'Trending SA Music Video 2026', channel: 'SA Music', thumb: 'https://i.ytimg.com/vi/LXb3EKWsInQ/mqdefault.jpg', views: '800K', url: 'https://www.youtube.com/watch?v=LXb3EKWsInQ' },
     ];
     document.getElementById('ytList').innerHTML = '<p style="font-size:11px;color:#FFD700">⚠️ YouTube API Key missing - Showing fallback videos. Add YOUTUBE_API_KEY in Render to get live trending.</p>' + videos.map((v,i)=>`<div class="ytcard" onclick='openVideo(${JSON.stringify(v).replace(/'/g,"&#39;")})'><img src="${v.thumb}"><div><b style="font-size:13px">${v.title.slice(0,60)}</b><br><small>${v.channel} • ${v.views} views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>`).join('');
     return;
