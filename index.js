@@ -1,8 +1,6 @@
-// ===== SHAYA WATCH BOT - FULL - FINAL - NO FIRST TOPUP BONUS =====
+// ===== SHAYA WATCH BOT - FULL - FINAL - NO FIRST TOPUP BONUS + WITHDRAW HISTORY =====
 // Bot: @ShayaWatchAllBot | Giga 9114 + Offerwall 9114 + OnclickA 472254
-// DAILY POST = YOUR EXACT CODE BELOW - NOT EDITED EXCEPT DOUBLE REMOVED
-// FIX: web_ IDs + No ?? + || mix + KING $0.025 + R350 lock
-// CHANGES APPLIED: 1) NO First Topup Bonus / DOUBLE anywhere  2) Daily Bonus = $0.003 / R0.05  3) Group ID default = -1003867683507
+// CHANGES: 1) NO First Topup Bonus / DOUBLE  2) Daily Bonus = $0.003 / R0.05  3) Group ID = -1003867683507  4) Withdraw History Approved/Declined
 const express = require('express');
 const path = require('path');
 const { Telegraf } = require('telegraf');
@@ -179,7 +177,7 @@ function getPerAd(u){ const lvl=getLevel(u); return { cash: u.region==='SA'? lvl
 let bot = null;
 if(BOT_TOKEN){ try{ bot = new Telegraf(BOT_TOKEN); console.log('Bot created - Shaya Watch Bot'); }catch(e){ console.log('Bot create failed', e.message); } }
 app.get('/health', function(req,res){ res.json({ok:true, bot:'Shaya Watch Bot', time:new Date().toISOString()}); });
-app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-bot-final-no-topup-bonus', giga:'9114', onclicka:'472254', minSA:'R350', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', king:'$0.025', groupPost:'ON', dailyBonusSA:'R0.05', dailyBonusUSA:'$0.003'}); });
+app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-bot-final-no-topup-bonus-withdraw-history', giga:'9114', onclicka:'472254', minSA:'R350', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', king:'$0.025', groupPost:'ON', dailyBonusSA:'R0.05', dailyBonusUSA:'$0.003'}); });
 app.get('/', function(req,res){ res.sendFile(path.join(__dirname, 'index.html')); });
 app.get('/api/rate', async function(req,res){ const r = await refreshRate(); res.json({usdtToZar:r, usdt:1, zar:r}); });
 app.get('/api/convert-usdt', async function(req,res){ const usdt=parseFloat(req.query.usdt || 0); const r=await refreshRate(); res.json({usdt:usdt, zar:(usdt*r).toFixed(2), rate:r}); });
@@ -338,6 +336,8 @@ app.post('/api/withdraw', async function(req,res){
     const needCoins = randAmount * 110;
     if((u.coins||0) < needCoins) return res.json({error:'Need '+needCoins+' coins for R'+randAmount+' '+(isAirtime?'Airtime':'Data')+' (110 Coins=R1). Balance: '+u.coins+' coins.'});
     await updateUser(u.id, {coins:u.coins-needCoins, pendingWithdraw:{method: isAirtime?'Airtime':'Data', detail: walletVal, network: b.network, amountLabel:'R'+randAmount+' '+(isAirtime?'Airtime':'Data'), need: needCoins, date: new Date().toISOString()}});
+    const wh1 = {id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, userKey:String(u.id), username:u.username, first_name:u.first_name, method:isAirtime?'Airtime':'Data', wallet:walletVal, detail:walletVal, network:b.network, amountCash:randAmount, amountLabel:'R'+randAmount+' '+(isAirtime?'Airtime':'Data'), coinsUsed:needCoins, need:needCoins, region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
+    withdrawals.push(wh1); await sbInsert('withdrawals', wh1);
     let methodLabel = isAirtime ? 'R'+randAmount+' Airtime' : 'R'+randAmount+' Data (24h)';
     if(ADMIN_ID && bot){
       await bot.telegram.sendMessage(ADMIN_ID, 'WITHDRAW REQUEST - NO LIMIT\n\nUser: '+u.name+' (@'+u.username+') ID:'+u.id+'\nMethod: '+methodLabel+' '+(b.network?'('+b.network+')':'')+'\nDetail: '+walletVal+'\nAmount: R'+randAmount+' - '+needCoins+' Coins (110 Coins=R1)\nLevel: '+lvl.name+' | Coins Left: '+(u.coins-needCoins)+'\n\nPay them, then press Paid below.', { reply_markup: { inline_keyboard: [[{ text:'Paid', callback_data:'approve_withdraw_'+u.id }],[{ text:'Reject', callback_data:'reject_withdraw_'+u.id }]] } }).catch(function(){});
@@ -350,6 +350,8 @@ app.post('/api/withdraw', async function(req,res){
     const amountLabel = u.region==='SA' ? 'R350' : '$20';
     if((u.coins||0)<needFinal) return res.json({error:'Need '+needFinal+' coins for '+amountLabel+'. Balance: '+u.coins+' coins. Min is '+(u.region==='SA'?'R350':'$20')+' HARD LOCK.'});
     await updateUser(u.id, {coins:u.coins-needFinal, pendingWithdraw:{method:'Capitec', detail: walletVal, network: b.network, amountLabel: amountLabel, need: needFinal, date: new Date().toISOString()}});
+    const wh2 = {id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, userKey:String(u.id), username:u.username, first_name:u.first_name, method:'Capitec / Bank', wallet:walletVal, detail:walletVal, network:b.network, amountCash:0, amountLabel:amountLabel, coinsUsed:needFinal, need:needFinal, region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
+    withdrawals.push(wh2); await sbInsert('withdrawals', wh2);
     if(ADMIN_ID && bot){
       await bot.telegram.sendMessage(ADMIN_ID, 'WITHDRAW REQUEST\n\nUser: '+u.name+' (@'+u.username+') ID:'+u.id+'\nMethod: Capitec Bank\nDetail: '+walletVal+'\nAmount: '+amountLabel+'\nLevel: '+lvl.name+' | Coins Left: '+(u.coins-needFinal)+'\n\nPay them, then press Paid below.', { reply_markup: { inline_keyboard: [[{ text:'Paid', callback_data:'approve_withdraw_'+u.id }],[{ text:'Reject', callback_data:'reject_withdraw_'+u.id }]] } }).catch(function(){});
     }
@@ -364,11 +366,18 @@ app.post('/api/withdraw', async function(req,res){
   }
   const usdtAmount=u.region==='SA'?(u.balance/USDT_TO_ZAR):u.balance;
   const zarAmount=u.region==='SA'?u.balance:u.balance*USDT_TO_ZAR;
-  const w={id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, username:u.username, first_name:u.first_name, method:cleanMethod, wallet:walletVal, amountCash:parseFloat(u.balance.toFixed(2)), usdtAmount:parseFloat(usdtAmount.toFixed(2)), zarAmount:parseFloat(zarAmount.toFixed(2)), region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
+  const w={id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, userKey:String(u.id), username:u.username, first_name:u.first_name, method:cleanMethod, wallet:walletVal, detail:walletVal, amountCash:parseFloat(u.balance.toFixed(2)), amountLabel:u.currency+u.balance.toFixed(2)+' = $'+usdtAmount.toFixed(2)+' USDT', usdtAmount:parseFloat(usdtAmount.toFixed(2)), zarAmount:parseFloat(zarAmount.toFixed(2)), region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
   withdrawals.push(w); await sbInsert('withdrawals', w);
   await updateUser(u.id, {balance:0, pendingWithdraw:{method:cleanMethod, detail:walletVal, network:b.network, amountLabel:u.currency+w.amountCash+' = $'+w.usdtAmount+' USDT', need:0, date:new Date().toISOString(), withdrawId:w.id}});
   if(bot && ADMIN_ID) bot.telegram.sendMessage(ADMIN_ID, 'NEW WITHDRAW - WALT\n\nUser: '+u.first_name+' (@'+u.username+') ID: '+u.id+'\nAmount: '+u.currency+w.amountCash+' = $'+w.usdtAmount+' USDT = R'+w.zarAmount+'\nMethod: '+w.method+'\nWallet: '+walletVal+'\n\nPay them, then press Paid.', { reply_markup: { inline_keyboard: [[{ text:'Paid', callback_data:'approve_withdraw_'+u.id }],[{ text:'Reject', callback_data:'reject_withdraw_'+u.id }]] } }).catch(function(){});
   res.json({success:true, usdtAmount:w.usdtAmount, zarAmount:w.zarAmount});
+});
+// ===== WITHDRAW HISTORY =====
+app.get('/api/withdraw-history', async function(req,res){
+  const uid = String(req.query.user_id || req.query.userId || '');
+  if(!uid) return res.json([]);
+  const list = withdrawals.filter(function(w){ return String(w.user_id)===uid || String(w.user_id)===String(parseInt(uid)) || (w.userKey && String(w.userKey)===uid); }).slice().reverse();
+  res.json(list.map(function(w){ return { id: w.id, method: w.method, detail: w.wallet || w.detail || '', amountCash: w.amountCash || 0, amountLabel: w.amountLabel || (w.amountCash ? ('R'+w.amountCash) : ''), coinsUsed: w.coinsUsed || w.need || 0, usdtAmount: w.usdtAmount || 0, status: w.status || 'pending', created_at: w.created_at || w.date || new Date().toISOString() }; }));
 });
 app.get('/api/tasks', async function(req,res){
   const userId = req.query.user_id || req.query.userId;
@@ -418,8 +427,6 @@ app.get('/api/videos/trending', async function(req,res){ res.json(await fetchYou
 app.get('/api/videos/music', async function(req,res){ res.json(await fetchYouTube(req.query.region==='SA'?'Amapiano Kabza De Small DJ Maphorisa':'Hip Hop Music Videos 2026', req.query.region||'SA')); });
 app.get('/api/videos/search', async function(req,res){ res.json(await fetchYouTube(req.query.q||'Amapiano', req.query.region||'SA')); });
 app.get('/api/admin/pending', function(req,res){ res.json({withdrawals:withdrawals.filter(function(w){ return w.status==='pending'; }), vipRequests:vipRequests.filter(function(v){ return v.status==='pending'; })}); });
-
-// ===== DAILY AUTO-POST TO GROUP =====
 const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID || '-1003867683507';
 const DAILY_POSTS = [
   "🔥 GOOD MORNING SHAYA FAMILY!\n\n📺 Watch Ads = Cash + Coins\n🧠 Quiz = +Coins (after 10 ads)\n🏦 Topup Capitec 1893275807 = Coins + Points\n👑 VIP: FREE $0.01/ad • KING $0.025/ad\n💸 Withdraw: Capitec R350 / WALT R350 / Airtime NO LIMIT (110 Coins=R1)\n\n👉 Open @ShayaWatchAllBot → OPEN SHAYA WATCH BOT",
@@ -439,7 +446,6 @@ async function sendDailyPost(){
 }
 setInterval(sendDailyPost, 6*60*60*1000);
 setTimeout(sendDailyPost, 60*1000);
-
 if(bot){
   bot.start(async function(ctx){
     const user_id=ctx.from.id; const payload=ctx.startPayload||''; let referred_by=null;
@@ -609,6 +615,7 @@ if(bot){
     }
     if(data.indexOf('approve_withdraw_')===0){
       const userId = data.replace('approve_withdraw_','');
+      for(let i=withdrawals.length-1;i>=0;i--){ if(String(withdrawals[i].user_id)===String(userId) || String(withdrawals[i].userKey)===String(userId)){ if(withdrawals[i].status==='pending'){ withdrawals[i].status='paid'; break; } } }
       try{ await ctx.answerCbQuery('Marked as Paid'); }catch(e){}
       try{ await ctx.editMessageText((ctx.callbackQuery.message && ctx.callbackQuery.message.text || 'Withdraw') + '\n\nPAID - Admin confirmed'); }catch(e){}
       const target=await getUser(userId); if(target) await updateUser(target.id, {pendingWithdraw:null});
@@ -617,6 +624,7 @@ if(bot){
     }
     if(data.indexOf('reject_withdraw_')===0){
       const userId = data.replace('reject_withdraw_','');
+      for(let i=withdrawals.length-1;i>=0;i--){ if(String(withdrawals[i].user_id)===String(userId) || String(withdrawals[i].userKey)===String(userId)){ if(withdrawals[i].status==='pending'){ withdrawals[i].status='rejected'; break; } } }
       const target=await getUser(userId);
       if(target && target.pendingWithdraw){ await updateUser(target.id, {coins:(target.coins||0)+(target.pendingWithdraw.need||0), pendingWithdraw:null}); }
       try{ await ctx.answerCbQuery('Rejected & Refunded'); }catch(e){}
