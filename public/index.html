@@ -138,9 +138,9 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <div id="packages"></div>
 <div style="margin-top:12px;border-top:1px solid #333;padding-top:12px">
   <h4>🪙 Buy Coins Separately</h4>
-  <div id="buyCoinsList"></div>
+  <div id="buyCoinsList"><p style="color:#aaa;font-size:12px">Loading coins packages...</p></div>
   <h4 style="margin-top:12px">⭐ Buy Points Separately</h4>
-  <div id="buyPointsList"></div>
+  <div id="buyPointsList"><p style="color:#aaa;font-size:12px">Loading points packages...</p></div>
   <p style="font-size:11px;color:#aaa">Bank: Send to Capitec 1893275807 → Admin presses ✅ Approve<br>Stars: Instant, no bank needed</p>
 </div>
 <input id="proofInput" placeholder="Paste EFT ref / proof" />
@@ -238,7 +238,7 @@ function buyVip(level, payWith){
 async function payVipWithStars(level){
   const res = await fetch('/api/vip-stars-invoice', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: userId, targetLevel: level }) });
   const d = await res.json();
-  if(d.success){ alert(`✅ Check your Telegram chat!\nBot sent you an invoice for ${d.stars} ⭐ for ${d.plan}.\nTap PAY in chat. VIP activates automatically.`); try{ window.Telegram.WebApp.openTelegramLink('https://t.me/ShayaWatchAllBot'); }catch(e){} }
+  if(d.success){ alert('✅ Check your Telegram chat!\nBot sent you an invoice for ' + d.stars + ' ⭐ for ' + d.plan + '.\nTap PAY in chat. VIP activates automatically.'); try{ window.Telegram.WebApp.openTelegramLink('https://t.me/ShayaWatchAllBot'); }catch(e){} }
   else { alert(d.error || 'Could not create Stars invoice. Press /start in @ShayaWatchAllBot first.'); }
 }
 function saveToPhone(){ if(!user||!userId) return; try{ localStorage.setItem('shaya_backup_'+userId, JSON.stringify({balance:user.balance, coins:user.coins, total_ads:user.total_ads, referrals:user.referrals, streak:user.streak, region:user.region, vip_level:user.vip_level, total_earned:user.total_earned})); }catch(e){} }
@@ -246,16 +246,20 @@ function getPhoneBackup(){ try{ return JSON.parse(localStorage.getItem('shaya_ba
 async function loadUser(){
   if(!userId){
     document.getElementById('balance').innerHTML = '<a href="https://t.me/ShayaWatchAllBot" style="color:#FFD700;font-size:18px;text-decoration:none">👉 TAP HERE TO OPEN IN TELEGRAM BOT</a>';
+    renderFallbackBuyButtons();
     loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans();
     return;
   }
   const backup=getPhoneBackup();
-  if(backup){ const cur=backup.region==='USA'?'$':'R'; document.getElementById('balance').innerText=`${cur}${backup.balance.toFixed(2)}`; region=backup.region||'SA'; }
+  if(backup){ const cur=backup.region==='USA'?'$':'R'; document.getElementById('balance').innerText=cur + backup.balance.toFixed(2); region=backup.region||'SA'; }
   try{
-    const res=await fetch(`/api/user/${userId}`); user=await res.json(); if(user.error) return;
+    const res=await fetch('/api/user/' + userId); user=await res.json(); if(user.error) return;
     region=user.region||region||'SA'; if(user.usdtToZar) USDT_TO_ZAR=user.usdtToZar;
     updateUI(); saveToPhone(); refreshRate(); loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans();
-  }catch(e){}
+  }catch(e){
+    renderFallbackBuyButtons();
+    loadTasks(); loadLeaderboard(); loadVideos(currentYtType);
+  }
 }
 function updateUI(){
   if(!user) return;
@@ -265,39 +269,63 @@ function updateUI(){
   const dailyLeft=user.dailyLeft!==undefined?user.dailyLeft:dailyLimit-dailyAds;
   const minLabel = region==='SA' ? 'R350' : '$20';
   const minCash = region==='SA' ? 350 : 20;
-  document.getElementById('balance').innerText=`${user.currency}${user.balance.toFixed(2)}`;
-  document.getElementById('coins').innerText=`🪙 ${user.coins} Coins ($${(user.coins/1000).toFixed(2)}) • 1000 = $1`;
-  document.getElementById('pointsLine').innerText=`⭐ Points: ${user.points||0} (For VIP) • Level ${user.level||1}/20 • ${user.levelName||'Free'}`;
+  document.getElementById('balance').innerText=user.currency + user.balance.toFixed(2);
+  document.getElementById('coins').innerText='🪙 ' + user.coins + ' Coins ($' + (user.coins/1000).toFixed(2) + ') • 1000 = $1';
+  document.getElementById('pointsLine').innerText='⭐ Points: ' + (user.points||0) + ' (For VIP) • Level ' + (user.level||1) + '/20 • ' + (user.levelName||'Free');
   const usdtVal=region==='SA'?(user.balance/USDT_TO_ZAR).toFixed(4):user.balance.toFixed(4);
-  document.getElementById('usdtValue').innerText=`💱 = $${usdtVal} USDT (1 USDT = R${USDT_TO_ZAR.toFixed(2)} LIVE)`;
-  document.getElementById('statsLine').innerText=`Ads: ${user.total_ads} | Referrals: ${user.referrals} | Streak: ${user.streak} days`;
+  document.getElementById('usdtValue').innerText='💱 = $' + usdtVal + ' USDT (1 USDT = R' + USDT_TO_ZAR.toFixed(2) + ' LIVE)';
+  document.getElementById('statsLine').innerText='Ads: ' + user.total_ads + ' | Referrals: ' + user.referrals + ' | Streak: ' + user.streak + ' days';
   document.getElementById('vipBadge').innerText=user.vip_level;
-  document.getElementById('vipUntilLine').innerText=user.vip_until?`👑 ${user.vip_level} until ${user.vip_until} • $${perAd.usd}/ad • ${dailyLimit}/day`:`👑 FREE • $0.01/ad • 10/day • ${minLabel} Min | Airtime/Data NO LIMIT`;
-  document.getElementById('unlockedLine').innerText=`Unlocked: ${(user.unlockedLevels||[1]).join(', ')}${user.levelExpiresAt?` • Expires in ${user.expiresInDays} days`:''}`;
-  document.getElementById('rateLine').innerText=`You Earn: $${perAd.usd} (${user.currency}${perAd.cash.toFixed(2)}) + ${perAd.coins} Coins • ${dailyLimit}/day`;
-  document.getElementById('dailyLabel').innerText=`📺 Ads Today: ${dailyAds} / ${dailyLimit} (${user.vip_level})`;
-  document.getElementById('dailyBar').style.width=`${(dailyAds/dailyLimit*100)}%`;
+  document.getElementById('vipUntilLine').innerText=user.vip_until ? '👑 ' + user.vip_level + ' until ' + user.vip_until + ' • $' + perAd.usd + '/ad • ' + dailyLimit + '/day' : '👑 FREE • $0.01/ad • 10/day • ' + minLabel + ' Min | Airtime/Data NO LIMIT';
+  document.getElementById('unlockedLine').innerText='Unlocked: ' + (user.unlockedLevels||[1]).join(', ') + (user.levelExpiresAt ? ' • Expires in ' + user.expiresInDays + ' days' : '');
+  document.getElementById('rateLine').innerText='You Earn: $' + perAd.usd + ' (' + user.currency + perAd.cash.toFixed(2) + ') + ' + perAd.coins + ' Coins • ' + dailyLimit + '/day';
+  document.getElementById('dailyLabel').innerText='📺 Ads Today: ' + dailyAds + ' / ' + dailyLimit + ' (' + user.vip_level + ')';
+  document.getElementById('dailyBar').style.width=(dailyAds/dailyLimit*100) + '%';
   document.getElementById('dailyBar').style.background=dailyAds>=dailyLimit?'#ff4444':'#FFD700';
-  document.getElementById('dailyLeftLabel').innerText=dailyAds>=dailyLimit?`❌ Limit reached! ${user.vip_level==='FREE'?'Upgrade to VIP for 20/day':'Come back tomorrow.'}`:`${dailyLeft} left today • Max $${(dailyLeft*perAd.usd).toFixed(2)} more today`;
-  document.getElementById('minWithdrawLabel').innerText=`Min: ${minLabel} (Capitec/WALT) • Airtime/Data NO LIMIT • Coins: ${user.withdrawMin} = ${minLabel}`;
+  document.getElementById('dailyLeftLabel').innerText=dailyAds>=dailyLimit ? '❌ Limit reached! ' + (user.vip_level==='FREE' ? 'Upgrade to VIP for 20/day' : 'Come back tomorrow.') : dailyLeft + ' left today • Max $' + (dailyLeft*perAd.usd).toFixed(2) + ' more today';
+  document.getElementById('minWithdrawLabel').innerText='Min: ' + minLabel + ' (Capitec/WALT) • Airtime/Data NO LIMIT • Coins: ' + user.withdrawMin + ' = ' + minLabel;
   const btn=document.getElementById('watchBtn');
-  if(dailyAds>=dailyLimit){ btn.disabled=true; btn.innerText=`❌ DAILY LIMIT (${dailyAds}/${dailyLimit})`; } else { btn.disabled=false; btn.innerText='▶️ WATCH AD & EARN'; }
-  document.getElementById('inviteReward').innerText=region==='SA'?`Reward: $0.50 (R${(0.50*USDT_TO_ZAR).toFixed(2)}) + 50 Coins per friend`:`Reward: $0.10 + 10 Coins per friend`;
-  document.getElementById('withdrawInfo').innerText=`Min: ${minLabel} (Capitec/WALT) • Airtime/Data NO LIMIT • Or ${user.withdrawMin} Coins = ${minLabel}`;
-  document.getElementById('withdrawUSDTInfo').innerText=`Your balance: ${user.currency}${user.balance.toFixed(2)} / ${minLabel} needed • Coins: ${user.coins} / ${user.withdrawMin} for ${minLabel} • Airtime/Data: 500 Coins = R5 NO LIMIT`;
-  document.getElementById('usdtRateLine').innerText=`Rate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)} • LIVE`;
-  document.getElementById('usdtExamples').innerText=`20 USDT = R${(20*USDT_TO_ZAR).toFixed(2)} • 50 USDT = R${(50*USDT_TO_ZAR).toFixed(2)} • $0.01 = R${(0.01*USDT_TO_ZAR).toFixed(2)}`;
+  if(dailyAds>=dailyLimit){ btn.disabled=true; btn.innerText='❌ DAILY LIMIT (' + dailyAds + '/' + dailyLimit + ')'; } else { btn.disabled=false; btn.innerText='▶️ WATCH AD & EARN'; }
+  document.getElementById('inviteReward').innerText=region==='SA' ? 'Reward: $0.50 (R' + (0.50*USDT_TO_ZAR).toFixed(2) + ') + 50 Coins per friend' : 'Reward: $0.10 + 10 Coins per friend';
+  document.getElementById('withdrawInfo').innerText='Min: ' + minLabel + ' (Capitec/WALT) • Airtime/Data NO LIMIT • Or ' + user.withdrawMin + ' Coins = ' + minLabel;
+  document.getElementById('withdrawUSDTInfo').innerText='Your balance: ' + user.currency + user.balance.toFixed(2) + ' / ' + minLabel + ' needed • Coins: ' + user.coins + ' / ' + user.withdrawMin + ' for ' + minLabel + ' • Airtime/Data: 500 Coins = R5 NO LIMIT';
+  document.getElementById('usdtRateLine').innerText='Rate: 1 USDT = R' + USDT_TO_ZAR.toFixed(2) + ' • LIVE';
+  document.getElementById('usdtExamples').innerText='20 USDT = R' + (20*USDT_TO_ZAR).toFixed(2) + ' • 50 USDT = R' + (50*USDT_TO_ZAR).toFixed(2) + ' • $0.01 = R' + (0.01*USDT_TO_ZAR).toFixed(2);
   document.getElementById('btnSA').className=region==='SA'?'active':'';
   document.getElementById('btnUSA').className=region==='USA'?'active':'';
   document.getElementById('ytTitle').innerText=region==='SA'?'🔥 TRENDING ON YOUTUBE - SA':'🔥 TRENDING ON YOUTUBE - USA';
-  document.getElementById('inviteLink').innerText=`https://t.me/ShayaWatchAllBot?start=ref_${userId}`;
-  document.getElementById('quizLockBox').innerHTML=user.quizUnlocked?'':`<div style="background:#5a1a1a;padding:10px;border-radius:10px;font-size:13px">🔒 Quiz Locked — Watch ${user.quizNeed} more ads. You have ${user.total_ads}/10 ads.</div>`;
+  document.getElementById('inviteLink').innerText='https://t.me/ShayaWatchAllBot?start=ref_' + userId;
+  document.getElementById('quizLockBox').innerHTML=user.quizUnlocked?'':'<div style="background:#5a1a1a;padding:10px;border-radius:10px;font-size:13px">🔒 Quiz Locked — Watch ' + user.quizNeed + ' more ads. You have ' + user.total_ads + '/10 ads.</div>';
   saveToPhone();
 }
+function renderFallbackBuyButtons(){
+  var coinsHtml = ''
+    + '<button class="bigbtn" onclick="buyCoinsBank(\'c500\')">🪙 500 Coins — R20 (Bank)</button>'
+    + '<button class="bigbtn" onclick="buyCoinsBank(\'c1500\')">🪙 1500 Coins — R50 (Bank)</button>'
+    + '<button class="bigbtn" onclick="buyCoinsBank(\'c5000\')">🪙 5000 Coins — R150 (Bank)</button>'
+    + '<button class="bigbtn" onclick="buyCoinsBank(\'c15000\')">🪙 15000 Coins — R400 (Bank)</button>'
+    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'c500s\')">🪙 500 Coins — 70 ⭐ (Instant)</button>'
+    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'c1500s\')">🪙 1500 Coins — 170 ⭐ (Instant)</button>'
+    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'c5000s\')">🪙 5000 Coins — 500 ⭐ (Instant)</button>';
+  var pointsHtml = ''
+    + '<button class="bigbtn" onclick="buyPointsBank(\'pt500\')">⭐ 500 Points — R20 (Bank)</button>'
+    + '<button class="bigbtn" onclick="buyPointsBank(\'pt1500\')">⭐ 1500 Points — R50 (Bank)</button>'
+    + '<button class="bigbtn" onclick="buyPointsBank(\'pt5000\')">⭐ 5000 Points — R150 (Bank)</button>'
+    + '<button class="bigbtn" onclick="buyPointsBank(\'pt15000\')">⭐ 15000 Points — R400 (Bank)</button>'
+    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'pt500s\')">⭐ 500 Points — 70 ⭐ (Instant)</button>'
+    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'pt1500s\')">⭐ 1500 Points — 170 ⭐ (Instant)</button>'
+    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'pt5000s\')">⭐ 5000 Points — 500 ⭐ (Instant)</button>';
+  var c = document.getElementById('buyCoinsList');
+  var p = document.getElementById('buyPointsList');
+  if(c) c.innerHTML = coinsHtml;
+  if(p) p.innerHTML = pointsHtml;
+}
 async function loadVipPlans(){
+  renderFallbackBuyButtons();
   try{
-    const res=await fetch(`/api/vip`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'info'})});
+    const res=await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'info'})});
     const d=await res.json();
+    if(!d.levels) return;
     let html='';
     for(let i=1;i<=20;i++){
       const lv=d.levels[i];
@@ -306,20 +334,22 @@ async function loadVipPlans(){
       const canBuy=isUnlocked && i>d.level;
       const isLocked=!isUnlocked;
       const minLabel = region==='SA' ? 'R350' : '$20';
-      html+=`<div class="vipcard ${isCurrent?'active':''}"><b>${i}. ${lv.name} ${isCurrent?'✅ ACTIVE':''}</b><br><small>$${lv.adUSD}/ad • ${lv.adLimit}/day • ${minLabel} Min • 30 Days • Withdraw ${lv.withdrawMin} Coins = ${minLabel}</small><br><b>${lv.coinsCost} Coins / ${lv.pointsCost} Points / ⭐ ${lv.starsCost} Stars</b><br><small>${isLocked?'🔒 LOCKED - Buy previous first':isUnlocked?'✅ UNLOCKED':''}</small><br><div style="display:flex;gap:6px;margin-top:6px"><button onclick="buyVip(${i},'coins')" ${!canBuy?'disabled':''} style="flex:1">Buy Coins</button><button onclick="buyVip(${i},'points')" ${!canBuy?'disabled':''} style="flex:1;background:#25D366;color:#fff">Buy Points</button><button onclick="buyVip(${i},'stars')" ${!canBuy?'disabled':''} style="flex:1;background:#7b2fff;color:#fff">⭐ Stars</button></div></div>`;
+      html+='<div class="vipcard ' + (isCurrent?'active':'') + '"><b>' + i + '. ' + lv.name + ' ' + (isCurrent?'✅ ACTIVE':'') + '</b><br><small>$' + lv.adUSD + '/ad • ' + lv.adLimit + '/day • ' + minLabel + ' Min • 30 Days • Withdraw ' + lv.withdrawMin + ' Coins = ' + minLabel + '</small><br><b>' + lv.coinsCost + ' Coins / ' + lv.pointsCost + ' Points / ⭐ ' + lv.starsCost + ' Stars</b><br><small>' + (isLocked?'🔒 LOCKED - Buy previous first':isUnlocked?'✅ UNLOCKED':'') + '</small><br><div style="display:flex;gap:6px;margin-top:6px"><button onclick="buyVip(' + i + ',\'coins\')" ' + (!canBuy?'disabled':'') + ' style="flex:1">Buy Coins</button><button onclick="buyVip(' + i + ',\'points\')" ' + (!canBuy?'disabled':'') + ' style="flex:1;background:#25D366;color:#fff">Buy Points</button><button onclick="buyVip(' + i + ',\'stars\')" ' + (!canBuy?'disabled':'') + ' style="flex:1;background:#7b2fff;color:#fff">⭐ Stars</button></div></div>';
     }
     document.getElementById('vipPlansList').innerHTML=html;
-    document.getElementById('packages').innerHTML=d.packages.map(p=>`<label style="display:block;background:#1E3A6E;padding:10px;border-radius:10px;margin:6px 0"><input type="radio" name="pkg" value="${p.id}" ${p.id==='p29'?'checked':''} onchange="selectedPackage='${p.id}'"> <b>${p.label}</b></label>`).join('');
-    document.getElementById('buyCoinsList').innerHTML = d.buyCoins.map(p=>`<button class="bigbtn" onclick="buyCoinsBank('${p.id}')">🪙 ${p.coins} Coins — R${p.price} (Bank)</button>`).join('') + d.buyCoinsStars.map(p=>`<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars('coins','${p.id}')">🪙 ${p.coins} Coins — ${p.stars} ⭐ (Instant)</button>`).join('');
-    document.getElementById('buyPointsList').innerHTML = d.buyPoints.map(p=>`<button class="bigbtn" onclick="buyPointsBank('${p.id}')">⭐ ${p.points} Points — R${p.price} (Bank)</button>`).join('') + d.buyPointsStars.map(p=>`<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars('points','${p.id}')">⭐ ${p.points} Points — ${p.stars} ⭐ (Instant)</button>`).join('');
-  }catch(e){ console.log(e); }
+    if(d.packages) document.getElementById('packages').innerHTML=d.packages.map(p=>'<label style="display:block;background:#1E3A6E;padding:10px;border-radius:10px;margin:6px 0"><input type="radio" name="pkg" value="' + p.id + '" ' + (p.id==='p29'?'checked':'') + ' onchange="selectedPackage=\'' + p.id + '\'"> <b>' + p.label + '</b></label>').join('');
+    if(d.buyCoins && d.buyPoints){
+      document.getElementById('buyCoinsList').innerHTML = d.buyCoins.map(p=>'<button class="bigbtn" onclick="buyCoinsBank(\'' + p.id + '\')">🪙 ' + p.coins + ' Coins — R' + p.price + ' (Bank)</button>').join('') + (d.buyCoinsStars||[]).map(p=>'<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'' + p.id + '\')">🪙 ' + p.coins + ' Coins — ' + p.stars + ' ⭐ (Instant)</button>').join('');
+      document.getElementById('buyPointsList').innerHTML = d.buyPoints.map(p=>'<button class="bigbtn" onclick="buyPointsBank(\'' + p.id + '\')">⭐ ' + p.points + ' Points — R' + p.price + ' (Bank)</button>').join('') + (d.buyPointsStars||[]).map(p=>'<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'' + p.id + '\')">⭐ ' + p.points + ' Points — ' + p.stars + ' ⭐ (Instant)</button>').join('');
+    }
+  }catch(e){ console.log('vip load failed, using fallback', e); }
 }
 async function refreshRate(){ try{ const res=await fetch('/api/rate'); const d=await res.json(); if(d.usdtToZar){ USDT_TO_ZAR=d.usdtToZar; convertUSDTInput(); if(user) updateUI(); } }catch(e){} }
 setInterval(refreshRate, 30*60*1000);
 async function convertUSDTInput(){
   const usdt=parseFloat(document.getElementById('usdtInput').value||0);
-  if(usdt>0){ try{ const res=await fetch(`/api/convert-usdt?usdt=${usdt}`); const d=await res.json(); document.getElementById('usdtResult').innerText=`= R${d.zar} (Live)`; return; }catch(e){} }
-  document.getElementById('usdtResult').innerText=`= R${(usdt*USDT_TO_ZAR).toFixed(2)}`;
+  if(usdt>0){ try{ const res=await fetch('/api/convert-usdt?usdt=' + usdt); const d=await res.json(); document.getElementById('usdtResult').innerText='= R' + d.zar + ' (Live)'; return; }catch(e){} }
+  document.getElementById('usdtResult').innerText='= R' + (usdt*USDT_TO_ZAR).toFixed(2);
 }
 function setUSDT(v){ document.getElementById('usdtInput').value=v; convertUSDTInput(); }
 function updateWithdrawInfo(){
@@ -336,23 +366,23 @@ function updateWithdrawInfo(){
   if(m === 'Dollars (USDT) - Walt'){
     if(walletInput) walletInput.placeholder='Paste your Walt Dollars address - starts with UQ...';
     if(hintTitle) hintTitle.innerText='💵 Dollars (USDT) - Walt';
-    if(hintEl) hintEl.innerText=`Min: ${minLabel} • In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted). WALT = @wallet.`;
+    if(hintEl) hintEl.innerText='Min: ' + minLabel + ' • In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted). WALT = @wallet.';
   } else if(m === 'Gram - Walt'){
     if(walletInput) walletInput.placeholder='Paste your Walt Gram address - starts with UQ...';
     if(hintTitle) hintTitle.innerText='👛 Gram - Walt';
-    if(hintEl) hintEl.innerText=`Min: ${minLabel} • In Walt: Tap Gram > Deposit > Copy UQ... address.`;
+    if(hintEl) hintEl.innerText='Min: ' + minLabel + ' • In Walt: Tap Gram > Deposit > Copy UQ... address.';
   } else if(m === 'Capitec / Bank'){
     if(walletInput) walletInput.placeholder='Your Capitec Account Number (R350 / $20 via Coins)';
     if(hintTitle) hintTitle.innerText='🏦 Capitec / Bank — R350 / $20 Min';
-    if(hintEl) hintEl.innerText=`Uses Coins: ${user?.withdrawMin||21000} Coins = ${minLabel}.`;
+    if(hintEl) hintEl.innerText='Uses Coins: ' + (user?.withdrawMin||21000) + ' Coins = ' + minLabel + '.';
   } else if(isAirtime){
     if(walletInput) walletInput.placeholder='Phone number for Airtime e.g. 071...';
     if(hintTitle) hintTitle.innerText='📱 Airtime — NO LIMIT';
-    if(hintEl) hintEl.innerText=`NO LIMIT! Choose R5 / R10 / R20 etc. 100 Coins = R1. You have ${user?.coins||0} Coins.`;
+    if(hintEl) hintEl.innerText='NO LIMIT! Choose R5 / R10 / R20 etc. 100 Coins = R1. You have ' + (user?.coins||0) + ' Coins.';
   } else if(isData){
     if(walletInput) walletInput.placeholder='Phone number for Data e.g. 071...';
     if(hintTitle) hintTitle.innerText='📶 Data — NO LIMIT';
-    if(hintEl) hintEl.innerText=`NO LIMIT! Choose R5 / R10 / R20 etc. 100 Coins = R1. Data valid 24h. You have ${user?.coins||0} Coins.`;
+    if(hintEl) hintEl.innerText='NO LIMIT! Choose R5 / R10 / R20 etc. 100 Coins = R1. Data valid 24h. You have ' + (user?.coins||0) + ' Coins.';
   }
 }
 async function setRegion(newRegion){
@@ -360,7 +390,7 @@ async function setRegion(newRegion){
   const oldBalance=user?user.balance:0; const oldRegion=region;
   try{
     const res=await fetch('/api/set-region',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId,region:newRegion})});
-    const d=await res.json(); if(d.success&&d.user){ user=d.user; region=newRegion; updateUI(); alert(`✅ Region: ${oldRegion} → ${newRegion}\nBalance: ${oldRegion==='SA'?'R':'$'}${oldBalance.toFixed(2)} → ${newRegion==='SA'?'R':'$'}${user.balance.toFixed(2)}`); }
+    const d=await res.json(); if(d.success&&d.user){ user=d.user; region=newRegion; updateUI(); alert('✅ Region: ' + oldRegion + ' → ' + newRegion + '\nBalance: ' + (oldRegion==='SA'?'R':'$') + oldBalance.toFixed(2) + ' → ' + (newRegion==='SA'?'R':'$') + user.balance.toFixed(2)); }
   }catch(e){ alert('Region change failed, try again'); }
   loadVideos(currentYtType); loadVipPlans();
 }
@@ -372,30 +402,30 @@ function showPage(p){
 }
 async function watchAd(){
   const limit = user?.dailyLimit || (user?.vip_level==='FREE'?10:20);
-  if(user && (user.dailyAds||0)>=limit){ alert(`❌ Daily limit reached! ${user.vip_level} = ${limit}/day. Upgrade to VIP for 20/day.`); return; }
+  if(user && (user.dailyAds||0)>=limit){ alert('❌ Daily limit reached! ' + user.vip_level + ' = ' + limit + '/day. Upgrade to VIP for 20/day.'); return; }
   const btn=document.getElementById('watchBtn'); btn.disabled=true; btn.innerText='⏳ Loading Ad... Please Watch';
   document.getElementById('adStatus').innerText='Ad playing... please watch full ad';
   await triggerAdNetworks();
   setTimeout(async ()=>{
     const res=await fetch('/api/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})});
     const data=await res.json();
-    if(data.success){ const r2=await fetch(`/api/user/${userId}`); user=await r2.json(); if(user.usdtToZar) USDT_TO_ZAR=user.usdtToZar; updateUI(); loadVipPlans(); document.getElementById('adStatus').innerText=`✅ +$${data.earnedUSD} (${user.currency}${data.earnedCash.toFixed(2)}) + ${data.earnedCoins} Coins! Ads: ${data.dailyAds}/${data.dailyLimit} • ${data.dailyLeft} left`; }
+    if(data.success){ const r2=await fetch('/api/user/' + userId); user=await r2.json(); if(user.usdtToZar) USDT_TO_ZAR=user.usdtToZar; updateUI(); loadVipPlans(); document.getElementById('adStatus').innerText='✅ +$' + data.earnedUSD + ' (' + user.currency + data.earnedCash.toFixed(2) + ') + ' + data.earnedCoins + ' Coins! Ads: ' + data.dailyAds + '/' + data.dailyLimit + ' • ' + data.dailyLeft + ' left'; }
     else { document.getElementById('adStatus').innerText=data.error; if(data.dailyAds>=limit) updateUI(); }
     if(!user || (user.dailyAds||0)<limit){ btn.disabled=false; btn.innerText='▶️ WATCH AD & EARN'; }
   }, 5000);
 }
 async function startQuiz(){
   const res=await fetch('/api/earn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:userId, name:userName, device_id:deviceId, action:'quiz'})});
-  const d=await res.json(); if(d.msg && !d.quiz){ document.getElementById('quizArea').innerHTML=`<p>${d.msg}</p>`; return; }
+  const d=await res.json(); if(d.msg && !d.quiz){ document.getElementById('quizArea').innerHTML='<p>' + d.msg + '</p>'; return; }
   quiz=d.quiz; qIndex=0; qScore=0; showQ();
 }
-function showQ(){ const q=quiz[qIndex]; document.getElementById('quizArea').innerHTML=`<p><b>Q${qIndex+1}/5: ${q.q}</b></p>`+q.options.map((o,i)=>`<button class="quiz-opt" onclick="answerQ(${i})">${o}</button>`).join(''); }
+function showQ(){ const q=quiz[qIndex]; document.getElementById('quizArea').innerHTML='<p><b>Q' + (qIndex+1) + '/5: ' + q.q + '</b></p>' + q.options.map((o,i)=>'<button class="quiz-opt" onclick="answerQ(' + i + ')">' + o + '</button>').join(''); }
 function answerQ(i){ if(quiz[qIndex].answer===i) qScore++; qIndex++; if(qIndex<quiz.length) showQ(); else finishQuiz(); }
-async function finishQuiz(){ const res=await fetch('/api/earn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:userId, name:userName, device_id:deviceId, action:'quiz_done', score:qScore})}); const d=await res.json(); document.getElementById('quizArea').innerHTML=`<p>${d.msg}</p><button class="bigbtn" style="background:#25D366" onclick="startQuiz()">🧠 PLAY AGAIN TOMORROW</button>`; loadUser(); }
-async function claimDaily(){ const res=await fetch('/api/daily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})}); const d=await res.json(); alert(d.success?`🎁 Daily: +${user.currency}${d.bonusCash.toFixed(2)} + ${d.bonusCoins} Coins | Streak: ${d.streak}`:d.error); loadUser(); }
-async function convertCoins(){ const res=await fetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})}); const d=await res.json(); alert(d.success?`✅ Converted +${user.currency}${d.converted.toFixed(2)}`:d.error); loadUser(); }
+async function finishQuiz(){ const res=await fetch('/api/earn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:userId, name:userName, device_id:deviceId, action:'quiz_done', score:qScore})}); const d=await res.json(); document.getElementById('quizArea').innerHTML='<p>' + d.msg + '</p><button class="bigbtn" style="background:#25D366" onclick="startQuiz()">🧠 PLAY AGAIN TOMORROW</button>'; loadUser(); }
+async function claimDaily(){ const res=await fetch('/api/daily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})}); const d=await res.json(); alert(d.success ? '🎁 Daily: +' + user.currency + d.bonusCash.toFixed(2) + ' + ' + d.bonusCoins + ' Coins | Streak: ' + d.streak : d.error); loadUser(); }
+async function convertCoins(){ const res=await fetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})}); const d=await res.json(); alert(d.success ? '✅ Converted +' + user.currency + d.converted.toFixed(2) : d.error); loadUser(); }
 function copyLink(){ navigator.clipboard.writeText(document.getElementById('inviteLink').innerText); alert('Link copied!'); }
-function shareWhatsApp(){ const link=document.getElementById('inviteLink').innerText; window.open(`https://wa.me/?text=${encodeURIComponent('Join Shaya Watch Bot! FREE $0.01/ad, VIP $0.025/ad! '+link)}`); }
+function shareWhatsApp(){ const link=document.getElementById('inviteLink').innerText; window.open('https://wa.me/?text=' + encodeURIComponent('Join Shaya Watch Bot! FREE $0.01/ad, VIP $0.025/ad! ' + link)); }
 async function requestTopup(){
   const proof=document.getElementById('proofInput').value.trim();
   if(!proof){ alert('Paste EFT proof first'); return; }
@@ -416,7 +446,7 @@ async function buyPointsBank(pkgId){
 }
 async function buyWithStars(type, pkgId){
   const res = await fetch('/api/buy-stars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, type, packageId:pkgId})});
-  const d = await res.json(); alert(d.success ? `✅ Check Telegram chat for Stars invoice (${d.stars} ⭐)` : d.error);
+  const d = await res.json(); alert(d.success ? '✅ Check Telegram chat for Stars invoice (' + d.stars + ' ⭐)' : d.error);
 }
 async function requestWithdraw(){
   const method=document.getElementById('withdrawMethod').value;
@@ -434,19 +464,22 @@ async function requestWithdraw(){
   if(method==='data') backendMethod='data';
   const res=await fetch('/api/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, userId:userId, name:userName, method:backendMethod, wallet:wallet, detail:wallet, network, amount: parseInt(amount)})});
   const d=await res.json();
-  document.getElementById('withdrawStatus').innerText=d.success?`✅ Request sent! ${d.msg||''} Admin pays in 24h.`:(d.error||d.msg||'Failed');
+  document.getElementById('withdrawStatus').innerText=d.success ? '✅ Request sent! ' + (d.msg||'') + ' Admin pays in 24h.' : (d.error||d.msg||'Failed');
   if(d.success) loadUser();
 }
 async function loadTasks(){
   try{
-    const res=await fetch(`/api/tasks?user_id=${userId}`); const tasks=await res.json();
+    const res=await fetch('/api/tasks?user_id=' + userId); const tasks=await res.json();
+    if(!Array.isArray(tasks) || tasks.length===0) throw new Error('no tasks');
     document.getElementById('tasksList').innerHTML=tasks.map(t=>{
       if(t.done){
-        return `<div class="task"><span>✅ ${t.title}<br><small>+${t.reward_cash} + ${t.reward_coins} Coins — DONE</small></span><button disabled style="background:#555;color:#fff">✅ Done</button></div>`;
+        return '<div class="task"><span>✅ ' + t.title + '<br><small>+' + t.reward_cash + ' + ' + t.reward_coins + ' Coins — DONE</small></span><button disabled style="background:#555;color:#fff">✅ Done</button></div>';
       }
-      return `<div class="task"><span>${t.title}<br><small>+${t.reward_cash} + ${t.reward_coins} Coins — ${t.progress}</small></span><div style="display:flex;gap:6px"><button onclick="doTask(${t.id})">Do</button><button onclick="claimTask(${t.id})" style="background:#00ff88">Claim</button></div></div>`;
+      return '<div class="task"><span>' + t.title + '<br><small>+' + t.reward_cash + ' + ' + t.reward_coins + ' Coins — ' + t.progress + '</small></span><div style="display:flex;gap:6px"><button onclick="doTask(' + t.id + ')">Do</button><button onclick="claimTask(' + t.id + ')" style="background:#00ff88">Claim</button></div></div>';
     }).join('');
-  }catch(e){ document.getElementById('tasksList').innerHTML='Failed to load tasks'; }
+  }catch(e){
+    document.getElementById('tasksList').innerHTML='<div class="task"><span>Join Shaya Earn Network<br><small>+0.05 + 20 Coins — Join group, then Claim</small></span><div style="display:flex;gap:6px"><button onclick="doTask(1)">Do</button><button onclick="claimTask(1)" style="background:#00ff88">Claim</button></div></div><div class="task"><span>Invite 3 Friends<br><small>+0.1 + 50 Coins — 0/3 friends</small></span><div style="display:flex;gap:6px"><button onclick="doTask(2)">Do</button><button onclick="claimTask(2)" style="background:#00ff88">Claim</button></div></div><div class="task"><span>Share Shaya Watch on WhatsApp<br><small>+0.05 + 10 Coins</small></span><div style="display:flex;gap:6px"><button onclick="doTask(3)">Do</button><button onclick="claimTask(3)" style="background:#00ff88">Claim</button></div></div>';
+  }
 }
 function doTask(taskId){
   if(taskId===1){ window.open('https://t.me/ShayaEarnNetwork', '_blank'); alert('Join the group, then tap CLAIM!'); }
@@ -460,11 +493,19 @@ async function claimTask(taskId){
   if(d.success){ alert(d.msg); loadUser(); loadTasks(); }
   else { alert(d.error); loadTasks(); }
 }
-async function loadLeaderboard(){ try{ const res=await fetch('/api/leaderboard'); const list=await res.json(); document.getElementById('leaderboard').innerHTML=list.map((u,i)=>`<div class="leader"><span>${i+1}. ${u.first_name||u.username} (${u.region}) ${u.vip_level!=='FREE'?'👑':''}</span><span>${u.balance.toFixed(2)} + ${u.coins} Coins</span></div>`).join(''); }catch(e){} }
+async function loadLeaderboard(){
+  try{
+    const res=await fetch('/api/leaderboard'); const list=await res.json();
+    if(!Array.isArray(list) || list.length===0){ document.getElementById('leaderboard').innerHTML='<p style="color:#aaa;font-size:12px">No users yet. Be the first to earn!</p>'; return; }
+    document.getElementById('leaderboard').innerHTML=list.map((u,i)=>'<div class="leader"><span>' + (i+1) + '. ' + (u.first_name||u.username) + ' (' + u.region + ') ' + (u.vip_level!=='FREE'?'👑':'') + '</span><span>' + u.balance.toFixed(2) + ' + ' + u.coins + ' Coins</span></div>').join('');
+  }catch(e){ document.getElementById('leaderboard').innerHTML='<p style="color:#aaa;font-size:12px">Leaderboard offline. Earn to appear here.</p>'; }
+}
 function openVideo(v){
-  var vidId = v.id; if(typeof vidId === 'object' && vidId !== null) vidId = vidId.videoId;
-  if(!vidId || vidId === 'undefined'){ alert('Video```js
-  currentVideo = v; document.getElementById('ytModalTitle').innerText = v.title || 'Playing...';
+  var vidId = v.id;
+  if(typeof vidId === 'object' && vidId !== null) vidId = vidId.videoId;
+  if(!vidId || vidId === 'undefined'){ alert('Video ID missing - opening on YouTube instead.'); window.open(v.url || 'https://www.youtube.com', '_blank'); return; }
+  currentVideo = v;
+  document.getElementById('ytModalTitle').innerText = v.title || 'Playing...';
   var embedUrl = 'https://www.youtube.com/embed/' + vidId + '?autoplay=1&rel=0&playsinline=1';
   document.getElementById('ytPlayer').src = embedUrl;
   var m = document.getElementById('ytModal'); m.classList.remove('hidden'); m.style.display = 'flex';
@@ -477,26 +518,28 @@ function renderVideos(videos){
       { id: 'dQw4w9WgXcQ', title: 'Amapiano Mix 2026 - Best of Amapiano', channel: 'Shaya Watch', thumb: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg', views: '1M', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
       { id: 'kXYiU_JCYtU', title: 'Amapiano Hits - Kabza De Small x DJ Maphorisa', channel: 'Amapiano', thumb: 'https://i.ytimg.com/vi/kXYiU_JCYtU/mqdefault.jpg', views: '500K', url: 'https://www.youtube.com/watch?v=kXYiU_JCYtU' },
     ];
-    document.getElementById('ytList').innerHTML = '<p style="font-size:11px;color:#FFD700">⚠️ YouTube API Key missing - Showing fallback videos. Add YOUTUBE_API_KEY in Render to get live trending.</p>' + videos.map((v,i)=>`<div class="ytcard" onclick='openVideo(${JSON.stringify(v).replace(/'/g,"&#39;")})'><img src="${v.thumb}"><div><b style="font-size:13px">${v.title.slice(0,60)}</b><br><small>${v.channel} • ${v.views} views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>`).join('');
+    document.getElementById('ytList').innerHTML = '<p style="font-size:11px;color:#FFD700">⚠️ YouTube API Key missing - Showing fallback videos. Add YOUTUBE_API_KEY in Render to get live trending.</p>' + videos.map((v,i)=>'<div class="ytcard" onclick=\'openVideo(' + JSON.stringify(v).replace(/'/g,"&#39;") + ')\'><img src="' + v.thumb + '"><div><b style="font-size:13px">' + v.title.slice(0,60) + '</b><br><small>' + v.channel + ' • ' + v.views + ' views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>').join('');
     return;
   }
   document.getElementById('ytList').innerHTML = videos.map((v,i)=>{
     var safeId = (typeof v.id === 'object' && v.id) ? v.id.videoId : v.id;
     var safeV = { ...v, id: safeId };
-    return `<div class="ytcard" onclick='openVideo(${JSON.stringify(safeV).replace(/'/g,"&#39;")})'><img src="${v.thumb}"><div><b style="font-size:13px">${(v.title||'').slice(0,60)}</b><br><small>${v.channel} • ${v.views} views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>`;
+    return '<div class="ytcard" onclick=\'openVideo(' + JSON.stringify(safeV).replace(/'/g,"&#39;") + ')\'><img src="' + v.thumb + '"><div><b style="font-size:13px">' + (v.title||'').slice(0,60) + '</b><br><small>' + v.channel + ' • ' + v.views + ' views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>';
   }).join('');
 }
-async function loadVideos(type='trending'){
+async function loadVideos(type){
+  type = type || 'trending';
   currentYtType=type;
   document.getElementById('ytTrendingBtn').className=type==='trending'?'ytbtn active':'ytbtn';
   document.getElementById('ytMusicBtn').className=type==='music'?'ytbtn active':'ytbtn';
   document.getElementById('ytList').innerHTML='Loading videos...';
-  try{ const res=await fetch(`/api/videos/${type}?region=${region}`); const videos=await res.json(); renderVideos(videos); }catch(e){ renderVideos([]); }
+  try{ const res=await fetch('/api/videos/' + type + '?region=' + region); const videos=await res.json(); renderVideos(videos); }catch(e){ renderVideos([]); }
 }
 async function searchVideos(){
   const q=document.getElementById('ytSearch').value||(region==='SA'?'Amapiano':'Hip Hop');
-  try{ const res=await fetch(`/api/videos/search?q=${encodeURIComponent(q)}&region=${region}`); const videos=await res.json(); renderVideos(videos); }catch(e){ renderVideos([]); }
+  try{ const res=await fetch('/api/videos/search?q=' + encodeURIComponent(q) + '&region=' + region); const videos=await res.json(); renderVideos(videos); }catch(e){ renderVideos([]); }
 }
+renderFallbackBuyButtons();
 loadUser();
 </script>
 </body>
