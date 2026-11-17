@@ -1,9 +1,8 @@
-// ===== SHAYA WATCH BOT - FULL FIXED - AIRTIME/DATA NO LIMIT =====
-// Name: Shaya Watch Bot | Bot: @ShayaWatchAllBot
-// Keys: Giga 9114 + Offerwall 9114 + OnclickA 472254
-// Topup: Capitec 1893275807 | Withdraw: Capitec/WALT R350/$20 | Airtime/Data NO LIMIT
-// VIP: 20 Levels, 30 Days, Unlocked Stays Unlocked
-// Tasks: Join Group + Invite 3 + Share WhatsApp - CLAIM WORKS
+// ===== SHAYA WATCH BOT - FULL FIX - WEB_ ID FIX =====
+// Bot: @ShayaWatchAllBot | Giga 9114 + Offerwall 9114 + OnclickA 472254
+// FIX: approve_topup_web_xxx_p699 was split by _ -> got "web" -> User not found. Now uses last _
+// Topup: Capitec 1893275807 | Withdraw: Capitec/WALT R350/$20 | Airtime/Data 110 Coins=R1 NO LIMIT
+// VIP: 20 Levels, 30 Days, KING $0.025 MAX PROFIT, KING 2000 Stars | Topup: First DOUBLE
 /*
 create table if not exists users (
   id text primary key, user_id bigint unique, username text, first_name text, name text,
@@ -53,11 +52,11 @@ function todayStr(){ return new Date().toISOString().slice(0,10); }
 const MIN_WITHDRAW_SA = 350;
 const MIN_WITHDRAW_USA = 20;
 const LEVEL_NAMES = ['Free','Starter','Bronze','Bronze+','Silver','Silver+','Gold','Gold+','Platinum','Platinum+','Diamond','Diamond+','Ruby','Ruby+','Emerald','Emerald+','Sapphire','Sapphire+','Master','KING'];
-const LEVEL_STARS = [0,10,20,35,50,75,100,130,170,210,260,320,380,450,550,650,800,1000,1300,1800];
+const LEVEL_STARS = [0,10,20,35,50,75,100,130,170,210,260,320,380,450,550,650,800,1000,1300,2000];
 const LEVEL_POINTS = [0,100,200,350,500,750,1000,1300,1700,2100,2600,3200,3800,4500,5500,6500,8000,10000,13000,18000];
 const LEVEL_COINS = [...LEVEL_POINTS];
-const LEVEL_AD_CASH_SA = [0.17,0.20,0.23,0.27,0.33,0.40,0.46,0.53,0.60,0.66,0.73,0.79,0.86,0.93,1.00,1.06,1.16,1.32,1.49,1.66];
-const LEVEL_AD_USD = [0.01,0.012,0.014,0.016,0.02,0.024,0.028,0.032,0.036,0.04,0.044,0.048,0.052,0.056,0.06,0.064,0.07,0.08,0.09,0.10];
+const LEVEL_AD_USD = [0.01,0.012,0.013,0.014,0.015,0.016,0.017,0.018,0.019,0.020,0.021,0.0215,0.022,0.0225,0.023,0.0235,0.024,0.0245,0.025,0.025];
+const LEVEL_AD_CASH_SA = LEVEL_AD_USD.map(v => parseFloat((v*16.59).toFixed(2)));
 const LEVEL_AD_COINS = [5,6,7,8,10,12,14,16,18,20,22,24,26,28,30,32,35,40,45,50];
 const LEVEL_WITHDRAW = [21000,19500,18200,16800,14000,12600,11200,9800,8400,7000,6600,6200,5800,5400,5000,4600,4200,3800,3400,6000];
 const LEVEL_QUIZ = [25,25,25,30,30,35,35,40,40,50,50,60,60,70,70,80,80,90,90,100];
@@ -118,6 +117,15 @@ const users = new Map();
 const withdrawals = [];
 const vipRequests = [];
 const offerwallRewards = [];
+// ===== HELPER: Parse callback_data correctly for web_ IDs =====
+// Old: data.split('_') -> approve_topup_web_ja1p2bcvr9_p699 => ["approve","topup","web",...] => userId="web" WRONG
+// New: strip prefix, then last _ separates package. Works for both numeric IDs and web_ IDs.
+function parseTopupCallback(data, prefix){
+  const rest = data.replace(prefix, '');
+  const lastUnd = rest.lastIndexOf('_');
+  if(lastUnd === -1) return { userId: rest, packageId: '' };
+  return { userId: rest.slice(0, lastUnd), packageId: rest.slice(lastUnd+1) };
+}
 async function sbGetUser(id){
   if(!supabase) return null;
   try{
@@ -189,7 +197,7 @@ function getPerAd(u){ const lvl=getLevel(u); return { cash: u.region==='SA'? lvl
 let bot = null;
 if(BOT_TOKEN){ try{ bot = new Telegraf(BOT_TOKEN); console.log('Bot created - Shaya Watch Bot'); }catch(e){ console.log('Bot create failed', e.message); } }
 app.get('/health', (req,res)=>res.json({ok:true, bot:'Shaya Watch Bot', time:new Date().toISOString()}));
-app.get('/api/version', (req,res)=>res.json({version:'shaya-watch-bot-airtime-data-no-limit-v1', giga:'9114', onclicka:'472254', minSA:'R350', minUSA:'$20', airtime:'NO LIMIT', data:'NO LIMIT'}));
+app.get('/api/version', (req,res)=>res.json({version:'shaya-watch-bot-web-fix-v1', giga:'9114', onclicka:'472254', minSA:'R350', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', king:'$0.025'}));
 app.get('/', (req,res)=>res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/api/rate', async (req,res)=>{ const r = await refreshRate(); res.json({usdtToZar:r, usdt:1, zar:r}); });
 app.get('/api/convert-usdt', async (req,res)=>{ const usdt=parseFloat(req.query.usdt||0); const r=await refreshRate(); res.json({usdt, zar:(usdt*r).toFixed(2), rate:r}); });
@@ -275,11 +283,14 @@ app.post('/api/vip', async (req,res)=>{
   }
   if(action==='topup_request'){
     const pkg=ALL_BUY_PACKAGES.find(p=>p.id===packageId); if(!pkg) return res.json({msg:'Package not found'});
-    await updateUser(u.id, {pendingTopup:{packageId, coins:pkg.coins||0, points:pkg.points||0, price:pkg.price, proof:proof||'', date:new Date().toISOString(), label:pkg.label}});
+    const isFirst = (u.coins||0) < 500 && (u.points||0) < 500 && (u.total_ads||0) < 50;
+    const bonusCoins = isFirst ? (pkg.coins||0) : 0;
+    const bonusPoints = isFirst ? (pkg.points||0) : 0;
+    await updateUser(u.id, {pendingTopup:{packageId, coins:(pkg.coins||0)+bonusCoins, points:(pkg.points||0)+bonusPoints, price:pkg.price, proof:proof||'', date:new Date().toISOString(), label:pkg.label + (isFirst ? ' + DOUBLE BONUS' : '')}});
     if(ADMIN_ID && bot){
-      await bot.telegram.sendMessage(ADMIN_ID, `🏦 TOPUP REQUEST — Check Capitec ${TOPUP_ACCOUNT}\n\n👤 User: ${u.name} (@${u.username}) ID:${u.id}\n📦 Package: ${pkg.label} — R${pkg.price}\n📝 Proof: ${proof}\n💰 Bank: Capitec ${TOPUP_ACCOUNT}\n\n👉 Check your bank, then press Approve below.`, { reply_markup: { inline_keyboard: [[{ text:'✅ Approve', callback_data:`approve_topup_${u.id}_${packageId}` }],[{ text:'❌ Reject', callback_data:`reject_topup_${u.id}_${packageId}` }]] } }).catch(()=>{});
+      await bot.telegram.sendMessage(ADMIN_ID, `🏦 TOPUP REQUEST — Check Capitec ${TOPUP_ACCOUNT}\n\n👤 User: ${u.name} (@${u.username}) ID:${u.id}\n📦 Package: ${pkg.label}${isFirst ? ' + DOUBLE BONUS (First Topup)' : ''} — R${pkg.price}\n🎁 Give: ${(pkg.coins||0)+bonusCoins} Coins + ${(pkg.points||0)+bonusPoints} Points\n📝 Proof: ${proof}\n💰 Bank: Capitec ${TOPUP_ACCOUNT}\n\n👉 Check your bank, then press Approve below.`, { reply_markup: { inline_keyboard: [[{ text:'✅ Approve', callback_data:`approve_topup_${u.id}_${packageId}` }],[{ text:'❌ Reject', callback_data:`reject_topup_${u.id}` }]] } }).catch(()=>{});
     }
-    return res.json({msg:`Topup request sent! Admin will check Capitec ${TOPUP_ACCOUNT} and add ${pkg.coins||0} Coins + ${pkg.points||0} Points.`});
+    return res.json({msg:`Topup request sent! ${isFirst ? '🔥 FIRST TOPUP DOUBLE! You get DOUBLE: ' : ''}${(pkg.coins||0)+bonusCoins} Coins + ${(pkg.points||0)+bonusPoints} Points. Admin will check Capitec ${TOPUP_ACCOUNT}.`});
   }
   res.json({msg:'OK'});
 });
@@ -327,7 +338,6 @@ app.post('/api/request-vip', async (req,res)=>{
   const reqObj={id:vipRequests.length+1, user_id:parseInt(u.id)||u.id, username:u.username, first_name:u.first_name, plan, method:method||'Stars', proof:proof||'', status:'pending', created_at:new Date().toISOString()};
   vipRequests.push(reqObj); await sbInsert('vip_requests', reqObj); res.json({success:true, plan});
 });
-// ===== WITHDRAW - AIRTIME/DATA NO LIMIT, CAPITEC/WALT R350/$20 =====
 app.post('/api/withdraw', async (req,res)=>{
   const {user_id, userId, name, method, wallet, detail, network, amount}=req.body;
   const id=user_id||userId; let u=await getUserAsync(id, name);
@@ -346,31 +356,31 @@ app.post('/api/withdraw', async (req,res)=>{
   if(isAirtime || isData){
     const randAmount = parseInt(amount) || 5;
     if(randAmount < 1) return res.json({error:'Choose amount R5 or more'});
-    const needCoins = randAmount * 100;
-    if((u.coins||0) < needCoins) return res.json({error:`Need ${needCoins} coins for R${randAmount} ${isAirtime?'Airtime':'Data'}. Balance: ${u.coins} coins. No limit, just need enough coins.`});
+    const needCoins = randAmount * 110;
+    if((u.coins||0) < needCoins) return res.json({error:`Need ${needCoins} coins for R${randAmount} ${isAirtime?'Airtime':'Data'} (110 Coins=R1). Balance: ${u.coins} coins.`});
     await updateUser(u.id, {coins:u.coins-needCoins, pendingWithdraw:{method: isAirtime?'Airtime':'Data', detail: walletVal, network, amountLabel:`R${randAmount} ${isAirtime?'Airtime':'Data'}`, need: needCoins, date: new Date().toISOString()}});
     let methodLabel = isAirtime ? `R${randAmount} Airtime` : `R${randAmount} Data (24h)`;
     if(ADMIN_ID && bot){
-      await bot.telegram.sendMessage(ADMIN_ID, `💸 WITHDRAW REQUEST — NO LIMIT\n\n👤 User: ${u.name} (@${u.username}) ID:${u.id}\n📦 Method: ${methodLabel} ${network?`(${network})`:''}\n📝 Detail: ${walletVal}\n💰 Amount: R${randAmount} — ${needCoins} Coins (NO LIMIT)\n👑 Level: ${lvl.name} | Coins Left: ${u.coins-needCoins}\n\n👉 Pay them, then press Paid below.`, { reply_markup: { inline_keyboard: [[{ text:'✅ Paid', callback_data:`approve_withdraw_${u.id}` }],[{ text:'❌ Reject', callback_data:`reject_withdraw_${u.id}` }]] } }).catch(()=>{});
+      await bot.telegram.sendMessage(ADMIN_ID, `💸 WITHDRAW REQUEST — NO LIMIT\n\n👤 User: ${u.name} (@${u.username}) ID:${u.id}\n📦 Method: ${methodLabel} ${network?`(${network})`:''}\n📝 Detail: ${walletVal}\n💰 Amount: R${randAmount} — ${needCoins} Coins (110 Coins=R1)\n👑 Level: ${lvl.name} | Coins Left: ${u.coins-needCoins}\n\n👉 Pay them, then press Paid below.`, { reply_markup: { inline_keyboard: [[{ text:'✅ Paid', callback_data:`approve_withdraw_${u.id}` }],[{ text:'❌ Reject', callback_data:`reject_withdraw_${u.id}` }]] } }).catch(()=>{});
     }
-    return res.json({success:true, msg:`✅ Request sent! R${randAmount} ${isAirtime?'Airtime':'Data'} to ${walletVal}. No limit.`});
+    return res.json({success:true, msg:`✅ Request sent! R${randAmount} ${isAirtime?'Airtime':'Data'} to ${walletVal}. NO LIMIT.`});
   }
   const isEarnMethod = ['capitec'].includes(String(method).toLowerCase()) || cleanMethod==='Capitec / Bank';
   if(isEarnMethod || method==='capitec'){
     const needFinal = lvl.withdrawMin;
     const amountLabel = u.region==='SA' ? 'R350' : '$20';
-    if((u.coins||0)<needFinal) return res.json({error:`Need ${needFinal} coins for ${amountLabel}. Balance: ${u.coins} coins. Region: ${u.region} — Min is ${u.region==='SA'?'R350':'$20'}. Airtime/Data have NO limit if you want small withdraw.`});
+    if((u.coins||0)<needFinal) return res.json({error:`Need ${needFinal} coins for ${amountLabel}. Balance: ${u.coins} coins. Min is ${u.region==='SA'?'R350':'$20'} HARD LOCK.`});
     await updateUser(u.id, {coins:u.coins-needFinal, pendingWithdraw:{method:'Capitec', detail: walletVal, network, amountLabel, need: needFinal, date: new Date().toISOString()}});
     if(ADMIN_ID && bot){
-      await bot.telegram.sendMessage(ADMIN_ID, `💸 WITHDRAW REQUEST\n\n👤 User: ${u.name} (@${u.username}) ID:${u.id}\n📦 Method: Capitec Bank\n📝 Detail: ${walletVal}\n💰 Amount: ${amountLabel} (Min ${u.region==='SA'?'R350':'$20'})\n👑 Level: ${lvl.name} | Coins Left: ${u.coins-needFinal}\n\n👉 Pay them, then press Paid below.`, { reply_markup: { inline_keyboard: [[{ text:'✅ Paid', callback_data:`approve_withdraw_${u.id}` }],[{ text:'❌ Reject', callback_data:`reject_withdraw_${u.id}` }]] } }).catch(()=>{});
+      await bot.telegram.sendMessage(ADMIN_ID, `💸 WITHDRAW REQUEST\n\n👤 User: ${u.name} (@${u.username}) ID:${u.id}\n📦 Method: Capitec Bank\n📝 Detail: ${walletVal}\n💰 Amount: ${amountLabel}\n👑 Level: ${lvl.name} | Coins Left: ${u.coins-needFinal}\n\n👉 Pay them, then press Paid below.`, { reply_markup: { inline_keyboard: [[{ text:'✅ Paid', callback_data:`approve_withdraw_${u.id}` }],[{ text:'❌ Reject', callback_data:`reject_withdraw_${u.id}` }]] } }).catch(()=>{});
     }
     return res.json({success:true, msg:`✅ Withdraw request sent! ${amountLabel} via Capitec to ${walletVal}.`});
   }
   const minCash = u.region==='SA' ? MIN_WITHDRAW_SA : MIN_WITHDRAW_USA;
   const minLabel = u.region==='SA' ? 'R350' : '$20';
-  if(u.balance<minCash) return res.json({error:`Min withdraw is ${minLabel}. You have ${u.currency}${u.balance.toFixed(2)}. Region: ${u.region}. Airtime/Data have NO limit.`});
+  if(u.balance<minCash) return res.json({error:`Min withdraw is ${minLabel} HARD LOCK. You have ${u.currency}${u.balance.toFixed(2)}.`});
   if(cleanMethod==='Dollars (USDT) - Walt' || cleanMethod==='Gram - Walt'){
-    if(!walletVal.startsWith('UQ')) return res.json({error:'❌ Wrong address! Walt addresses start with UQ... Go to Walt > Dollars > Deposit > Copy UQ...'});
+    if(!walletVal.startsWith('UQ')) return res.json({error:'❌ Wrong address! Walt addresses start with UQ...'});
     if(walletVal.startsWith('T')) return res.json({error:'❌ That is TRC20 (T...). Walt uses TON - must start with UQ...'});
   }
   const usdtAmount=u.region==='SA'?(u.balance/USDT_TO_ZAR):u.balance;
@@ -378,21 +388,16 @@ app.post('/api/withdraw', async (req,res)=>{
   const w={id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, username:u.username, first_name:u.first_name, method:cleanMethod, wallet:walletVal, amountCash:parseFloat(u.balance.toFixed(2)), usdtAmount:parseFloat(usdtAmount.toFixed(2)), zarAmount:parseFloat(zarAmount.toFixed(2)), region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
   withdrawals.push(w); await sbInsert('withdrawals', w);
   await updateUser(u.id, {balance:0, pendingWithdraw:{method:cleanMethod, detail:walletVal, network, amountLabel:`${u.currency}${w.amountCash} = $${w.usdtAmount} USDT`, need:0, date:new Date().toISOString(), withdrawId:w.id}});
-  if(bot && ADMIN_ID) bot.telegram.sendMessage(ADMIN_ID, `💸 NEW WITHDRAW - WALT\n\n👤 User: ${u.first_name} (@${u.username}) ID: ${u.id}\n💰 Amount: ${u.currency}${w.amountCash} = $${w.usdtAmount} USDT = R${w.zarAmount}\n📦 Method: ${w.method}\n📝 Wallet: ${walletVal}\n⚠️ Send on TON only - UQ...\n\n👉 Pay them, then press Paid.`, { reply_markup: { inline_keyboard: [[{ text:'✅ Paid', callback_data:`approve_withdraw_${u.id}` }],[{ text:'❌ Reject', callback_data:`reject_withdraw_${u.id}` }]] } }).catch(()=>{});
+  if(bot && ADMIN_ID) bot.telegram.sendMessage(ADMIN_ID, `💸 NEW WITHDRAW - WALT\n\n👤 User: ${u.first_name} (@${u.username}) ID: ${u.id}\n💰 Amount: ${u.currency}${w.amountCash} = $${w.usdtAmount} USDT = R${w.zarAmount}\n📦 Method: ${w.method}\n📝 Wallet: ${walletVal}\n\n👉 Pay them, then press Paid.`, { reply_markup: { inline_keyboard: [[{ text:'✅ Paid', callback_data:`approve_withdraw_${u.id}` }],[{ text:'❌ Reject', callback_data:`reject_withdraw_${u.id}` }]] } }).catch(()=>{});
   res.json({success:true, usdtAmount:w.usdtAmount, zarAmount:w.zarAmount});
 });
 app.get('/api/tasks', async (req,res)=>{
   const userId = req.query.user_id || req.query.userId;
-  let completed = [];
-  let referrals = 0;
-  if(userId){
-    const u = await getUserAsync(userId, null);
-    if(u){ completed = u.completedTasks || u.tasksDone || []; referrals = u.referrals || 0; }
-  }
+  let completed = []; let referrals = 0;
+  if(userId){ const u = await getUserAsync(userId, null); if(u){ completed = u.completedTasks || u.tasksDone || []; referrals = u.referrals || 0; } }
   const out = tasksList.map(t=>{
     const done = completed.includes(t.id) || completed.includes(String(t.id));
-    let canClaim = false;
-    let progress = '';
+    let canClaim = false; let progress = '';
     if(t.type==='invite_3'){ canClaim = !done && referrals>=3; progress = `${referrals}/3 friends`; }
     else { canClaim = !done; progress = t.desc; }
     return { ...t, done, canClaim, progress, referrals };
@@ -401,23 +406,16 @@ app.get('/api/tasks', async (req,res)=>{
 });
 app.post('/api/complete-task', async (req,res)=>{
   const { user_id, userId, taskId, task_id } = req.body;
-  const id = user_id || userId;
-  const tid = parseInt(taskId || task_id);
+  const id = user_id || userId; const tid = parseInt(taskId || task_id);
   let u = await getUserAsync(id, null);
   if(!u) return res.json({error:'user not found - send /start first'});
   const task = tasksList.find(t=>t.id===tid);
   if(!task) return res.json({error:'Task not found'});
   const completed = u.completedTasks || u.tasksDone || [];
   if(completed.includes(tid) || completed.includes(String(tid))) return res.json({error:'✅ Already claimed this task!'});
-  if(task.type==='invite_3' && (u.referrals||0)<3) return res.json({error:`Need 3 friends. You have ${u.referrals||0}/3. Share your invite link!`});
+  if(task.type==='invite_3' && (u.referrals||0)<3) return res.json({error:`Need 3 friends. You have ${u.referrals||0}/3.`});
   const cashValue = u.region==='SA' ? task.reward_cash * USDT_TO_ZAR : task.reward_cash;
-  const updated = await updateUser(u.id, {
-    balance: parseFloat((u.balance + cashValue).toFixed(2)),
-    coins: (u.coins||0) + task.reward_coins,
-    total_earned: parseFloat(((u.total_earned||0)+cashValue).toFixed(2)),
-    completedTasks: [...completed, tid],
-    tasksDone: [...new Set([...(u.tasksDone||[]), tid])],
-  });
+  const updated = await updateUser(u.id, { balance: parseFloat((u.balance + cashValue).toFixed(2)), coins: (u.coins||0) + task.reward_coins, total_earned: parseFloat(((u.total_earned||0)+cashValue).toFixed(2)), completedTasks: [...completed, tid], tasksDone: [...new Set([...(u.tasksDone||[]), tid])], });
   res.json({success:true, msg:`🎉 Task Done! +${u.currency}${cashValue.toFixed(2)} + ${task.reward_coins} Coins!`, balance: updated.balance, coins: updated.coins});
 });
 app.post('/api/task-click', async (req,res)=>{ res.json({success:true, msg:'Click tracked. Now Claim!'}); });
@@ -447,42 +445,40 @@ if(bot){
     else if(payload && (/^\d+$/.test(payload) || payload.startsWith('web_'))) referred_by=payload;
     let u=await getUser(user_id); if(!u) u=await createUser(user_id, {username:ctx.from.username||'', first_name:ctx.from.first_name||'', referred_by:referred_by?String(referred_by):null});
     const rate=await refreshRate();
-    await ctx.replyWithMarkdown(`👋 Welcome to *SHAYA WATCH BOT* ${u.first_name}!\n\n🔥 *EARN*\n📺 Watch Ad = Cash + Coins\n🧠 Quiz = +Coins (Unlock after 10 ads)\n🏦 Topup Capitec ${TOPUP_ACCOUNT} = Coins + Points\n🎁 Offerwall (Giga 9114) = Coins\n👥 Invite = +50 Coins\n🎯 Tasks = Cash + Coins\n\n👑 *VIP - 20 Levels, 30 Days*\nFREE: $0.01/ad • 10/day • R350 / $20 Min\nKING: $0.10/ad • 20/day • R350 / $20 Min\nBuy with Coins / Points / Stars\n\n💰 *Withdraw:* Capitec R350 / WALT R350 / Airtime NO LIMIT / Data NO LIMIT\n💱 1 USDT = R${rate.toFixed(2)} LIVE\n\nTap below 👇`, {reply_markup:{inline_keyboard:[[{text:'🚀 OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}],[{text:'👥 Join Shaya Earn Network', url:GROUP_URL}]]}});
+    await ctx.replyWithMarkdown(`👋 Welcome to *SHAYA WATCH BOT* ${u.first_name}!\n\n🔥 *EARN*\n📺 Watch Ad = Cash + Coins\n🧠 Quiz = +Coins (Unlock after 10 ads)\n🏦 Topup Capitec ${TOPUP_ACCOUNT} = Coins + Points — FIRST TOPUP DOUBLE!\n🎁 Offerwall (Giga 9114) = Coins\n👥 Invite = +50 Coins\n🎯 Tasks = Cash + Coins\n\n👑 *VIP - 20 Levels, 30 Days*\nFREE: $0.01/ad • 10/day • R350 / $20 Min\nKING: $0.025/ad • 20/day • R350 / $20 Min\n\n💰 *Withdraw:* Capitec R350 / WALT R350 / Airtime NO LIMIT (110 Coins=R1)\n💱 1 USDT = R${rate.toFixed(2)} LIVE\n\nTap below 👇`, {reply_markup:{inline_keyboard:[[{text:'🚀 OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}],[{text:'👥 Join Shaya Earn Network', url:GROUP_URL}]]}});
   });
-  bot.command('balance', async (ctx)=>{ let u=await getUser(ctx.from.id); if(!u) return ctx.reply('Send /start first'); const f=formatUserForFrontend(u); ctx.reply(`💰 Balance: ${f.currency}${f.balance.toFixed(2)} = $${f.usdtBalance} USDT\n🪙 Coins: ${f.coins} | Points: ${u.points||0}\n📺 Ads Today: ${f.dailyAds}/${f.dailyLimit}\n👑 VIP: ${f.vip_level} (${u.level}/20) ${u.levelExpiresAt?`Expires in ${f.expiresInDays} days`:''}\nUnlocked: ${(u.unlockedLevels||[1]).join(', ')}\nMin Withdraw: ${u.region==='SA'?'R350':'$20'} | Airtime/Data: NO LIMIT\nTasks Done: ${(u.completedTasks||[]).length}/3`); });
+  bot.command('balance', async (ctx)=>{ let u=await getUser(ctx.from.id); if(!u) return ctx.reply('Send /start first'); const f=formatUserForFrontend(u); ctx.reply(`💰 Balance: ${f.currency}${f.balance.toFixed(2)} = $${f.usdtBalance} USDT\n🪙 Coins: ${f.coins} | Points: ${u.points||0}\n📺 Ads Today: ${f.dailyAds}/${f.dailyLimit}\n👑 VIP: ${f.vip_level} (${u.level}/20)\nMin: ${u.region==='SA'?'R350':'$20'} | Airtime 110 Coins=R1`); });
   bot.command('tasks', async (ctx)=>{
     let u=await getUserAsync(ctx.from.id, ctx.from.first_name);
-    const completed = u.completedTasks||[];
-    let txt = `🎯 TASKS\n\n`;
-    tasksList.forEach(t=>{
-      const done = completed.includes(t.id);
-      txt += `${done?'✅':'⬜'} ${t.title} — +${t.reward_cash} + ${t.reward_coins} Coins ${done?'(Done)':''}\n`;
-      if(t.id===2) txt += `   Progress: ${u.referrals||0}/3 friends\n`;
-    });
+    const completed = u.completedTasks||[]; let txt = `🎯 TASKS\n\n`;
+    tasksList.forEach(t=>{ const done = completed.includes(t.id); txt += `${done?'✅':'⬜'} ${t.title} — +${t.reward_cash} + ${t.reward_coins} Coins ${done?'(Done)':''}\n`; if(t.id===2) txt += `   Progress: ${u.referrals||0}/3 friends\n`; });
     txt += `\nOpen App to Claim!`;
     await ctx.reply(txt, {reply_markup:{inline_keyboard:[[{text:'🚀 OPEN APP - CLAIM TASKS', web_app:{url:WEBAPP_URL}}]]}});
   });
   bot.command('vip', async (ctx)=>{
     let u=await getUserAsync(ctx.from.id, ctx.from.first_name);
     const next=Math.min(20,(u.level||1)+1); const lvl=LEVELS[next];
-    await ctx.reply(`👑 Your Level: ${getVipName(u)} (${u.level}/20)\nCoins: ${u.coins} | Points: ${u.points||0}\nExpires: ${u.levelExpiresAt? new Date(u.levelExpiresAt).toLocaleDateString() : 'Free - No Expiry'}\nUnlocked: ${(u.unlockedLevels||[1]).join(', ')}\nMin Withdraw: ${u.region==='SA'?'R350':'$20'} | Airtime/Data NO LIMIT\n\nNext: Level ${next} ${lvl.name}\nCost: ${lvl.coinsCost} Coins OR ${lvl.pointsCost} Points OR ${lvl.starsCost} Stars`, {reply_markup:{inline_keyboard:[[{text:`⭐ Buy ${lvl.name} - ${lvl.starsCost} Stars`, callback_data:`buy_stars_${next}`}],[{text:'🚀 OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}]]}});
+    await ctx.reply(`👑 Your Level: ${getVipName(u)} (${u.level}/20)\nCoins: ${u.coins} | Points: ${u.points||0}\nNext: Level ${next} ${lvl.name}\nCost: ${lvl.coinsCost} Coins OR ${lvl.pointsCost} Points OR ${lvl.starsCost} Stars`, {reply_markup:{inline_keyboard:[[{text:`⭐ Buy ${lvl.name} - ${lvl.starsCost} Stars`, callback_data:`buy_stars_${next}`}],[{text:'🚀 OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}]]}});
   });
   bot.command('vipall', async (ctx)=>{
     let u=await getUserAsync(ctx.from.id, ctx.from.first_name);
-    let txt=`👑 ALL 20 VIP — 30 Day Expiry, Unlocked Stays Unlocked\nYour Unlocked: ${(u.unlockedLevels||[1]).join(', ')}\nMin Withdraw: ${u.region==='SA'?'R350':'$20'} | Airtime/Data NO LIMIT\n\n`;
-    for(let i=1;i<=20;i++){ txt+=`${i}. ${LEVELS[i].name} — ${LEVELS[i].coinsCost} Coins / ${LEVELS[i].pointsCost} Points / ${LEVELS[i].starsCost} Stars — $${LEVELS[i].adUSD}/ad — ${LEVELS[i].adLimit}/day — Withdraw ${LEVELS[i].withdrawMin} Coins = ${u.region==='SA'?'R350':'$20'} — ${(u.unlockedLevels||[]).includes(i)?'✅ UNLOCKED':'🔒 LOCKED'}\n`; }
+    let txt=`👑 ALL 20 VIP\nYour Unlocked: ${(u.unlockedLevels||[1]).join(', ')}\n\n`;
+    for(let i=1;i<=20;i++){ txt+=`${i}. ${LEVELS[i].name} — ${LEVELS[i].coinsCost} Coins / ${LEVELS[i].pointsCost} Points / ${LEVELS[i].starsCost} Stars — $${LEVELS[i].adUSD}/ad — ${LEVELS[i].adLimit}/day\n`; }
     await ctx.reply(txt);
   });
+  // ===== /approve - splits by SPACE so web_ IDs work: /approve web_ja1p2bcvr9 p699 =====
   bot.command('approve', async (ctx)=>{
     if(ctx.from.id!==ADMIN_ID) return ctx.reply('Admin only');
     const text=ctx.message.text.trim(); const parts=text.split(/\s+/); const targetId=parts[1]; let pkgId=parts[2];
-    if(!targetId || !pkgId) return ctx.reply(`❌ Usage: /approve <ID> <package>\nExample:\n/approve 1159481047 p29\n\nOr just press ✅ Approve button in the request message.`);
+    if(!targetId || !pkgId) return ctx.reply(`❌ Usage: /approve <ID> <package>\nExample:\n/approve web_ja1p2bcvr9 p699\n/approve 1159481047 p29`);
     if(pkgId==='R29'||pkgId==='29') pkgId='p29'; if(pkgId==='R79'||pkgId==='79') pkgId='p79'; if(pkgId==='R179'||pkgId==='179') pkgId='p179'; if(pkgId==='R349'||pkgId==='349') pkgId='p349'; if(pkgId==='R699'||pkgId==='699') pkgId='p699';
     let target=await getUser(targetId); if(!target) for(let [k,v] of users){ if(String(v.user_id)===String(targetId)||String(v.id)===String(targetId)){ target=v; break; } }
     const pkg=ALL_BUY_PACKAGES.find(p=>p.id===pkgId); if(!target||!pkg) return ctx.reply(`User or package not found\nTried ID: ${targetId}\nTried Package: ${pkgId}`);
-    await updateUser(target.id, {coins:target.coins+(pkg.coins||0), total_earned:target.total_earned+(pkg.coins||0), points:(target.points||0)+(pkg.points||0), pendingTopup:null});
-    ctx.reply(`✅ Approved! +${pkg.coins||0} Coins +${pkg.points||0} Points to ${target.name} (ID: ${target.id})`);
-    try{ const chatId=parseInt(target.id)||target.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, `✅ TOPUP APPROVED! +${pkg.coins||0} Coins +${pkg.points||0} Points!`); }catch(e){}
+    const giveCoins = target.pendingTopup?.coins ?? pkg.coins||0;
+    const givePoints = target.pendingTopup?.points ?? pkg.points||0;
+    await updateUser(target.id, {coins:target.coins+giveCoins, total_earned:target.total_earned+giveCoins, points:(target.points||0)+givePoints, pendingTopup:null});
+    ctx.reply(`✅ Approved! +${giveCoins} Coins +${givePoints} Points to ${target.name} (ID: ${target.id})`);
+    try{ const chatId=parseInt(target.id)||target.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, `✅ TOPUP APPROVED! +${giveCoins} Coins +${givePoints} Points!`); }catch(e){ console.log('Web user - approved in DB, no Telegram DM'); }
   });
   bot.command('pending', async (ctx)=>{
     if(ctx.from.id!==ADMIN_ID) return ctx.reply('Admin only');
@@ -505,9 +501,10 @@ if(bot){
       try{
         const pkgInfo=u.pendingTopup; if(!pkgInfo) continue;
         const pkg=ALL_BUY_PACKAGES.find(p=>p.id===pkgInfo.packageId); if(!pkg){ failed.push(`${u.name} (${u.id}) - package ${pkgInfo.packageId} not found`); continue; }
-        await updateUser(u.id, {coins:(u.coins||0)+(pkg.coins||0), total_earned:(u.total_earned||0)+(pkg.coins||0), points:(u.points||0)+(pkg.points||0), pendingTopup:null});
-        report+=`✅ ${u.name} (@${u.username}) ID:${u.id} — +${pkg.coins||0} Coins +${pkg.points||0} Points (R${pkg.price})\n`; approved++;
-        try{ const chatId=parseInt(u.id)||u.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, `✅ TOPUP APPROVED! +${pkg.coins||0} Coins +${pkg.points||0} Points!`); }catch(e){}
+        const giveCoins = pkgInfo.coins ?? pkg.coins||0; const givePoints = pkgInfo.points ?? pkg.points||0;
+        await updateUser(u.id, {coins:(u.coins||0)+giveCoins, total_earned:(u.total_earned||0)+giveCoins, points:(u.points||0)+givePoints, pendingTopup:null});
+        report+=`✅ ${u.name} (@${u.username}) ID:${u.id} — +${giveCoins} Coins +${givePoints} Points (R${pkg.price})\n`; approved++;
+        try{ const chatId=parseInt(u.id)||u.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, `✅ TOPUP APPROVED! +${giveCoins} Coins +${givePoints} Points!`); }catch(e){}
       }catch(e){ failed.push(`${u.name} (${u.id}) - ${e.message}`); }
     }
     if(failed.length>0) report+=`\n❌ FAILED (${failed.length}):\n`+failed.join('\n');
@@ -537,17 +534,17 @@ if(bot){
     w.status='paid'; ctx.reply(`✅ Marked withdraw #${id} as PAID`);
     try{ await ctx.telegram.sendMessage(w.user_id, `✅ Your withdraw of $${w.usdtAmount} USDT has been PAID!`); }catch(e){}
   });
-  bot.command('stats', async (ctx)=>{ if(ctx.from.id!==ADMIN_ID) return; ctx.reply(`📊 STATS\nUsers: ${users.size}\nWithdraws Paid: ${withdrawals.filter(w=>w.status==='paid').length}\nPending: ${withdrawals.filter(w=>w.status==='pending').length}\nRate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}\nMin: SA R350 / USA $20 | Airtime/Data NO LIMIT`); });
+  bot.command('stats', async (ctx)=>{ if(ctx.from.id!==ADMIN_ID) return; ctx.reply(`📊 STATS\nUsers: ${users.size}\nWithdraws Paid: ${withdrawals.filter(w=>w.status==='paid').length}\nPending: ${withdrawals.filter(w=>w.status==='pending').length}\nRate: 1 USDT = R${USDT_TO_ZAR.toFixed(2)}`); });
   bot.on('pre_checkout_query', async (ctx)=>{ try{ await ctx.answerPreCheckoutQuery(true); }catch(e){} });
   bot.on('successful_payment', async (ctx)=>{
     const pay=ctx.message.successful_payment; const payload=pay.invoice_payload||'';
     if(payload.startsWith('buy_coins_')){
       const pkgId=payload.split('_')[2]; const pkg=BUY_COINS_STARS.find(p=>p.id===pkgId);
-      if(pkg){ let u=await getUser(ctx.from.id); await updateUser(u.id, {coins:(u.coins||0)+pkg.coins, total_earned:(u.total_earned||0)+pkg.coins}); await ctx.reply(`🎉 BOUGHT! +${pkg.coins} Coins!\nCoins: ${(u.coins||0)+pkg.coins} (Can Withdraw!)`); return; }
+      if(pkg){ let u=await getUser(ctx.from.id); await updateUser(u.id, {coins:(u.coins||0)+pkg.coins, total_earned:(u.total_earned||0)+pkg.coins}); await ctx.reply(`🎉 BOUGHT! +${pkg.coins} Coins!`); return; }
     }
     if(payload.startsWith('buy_points_')){
       const pkgId=payload.split('_')[2]; const pkg=BUY_POINTS_STARS.find(p=>p.id===pkgId);
-      if(pkg){ let u=await getUser(ctx.from.id); await updateUser(u.id, {points:(u.points||0)+pkg.points}); await ctx.reply(`🎉 BOUGHT! +${pkg.points} Points!\nPoints: ${(u.points||0)+pkg.points} (Can Buy VIP!)`); return; }
+      if(pkg){ let u=await getUser(ctx.from.id); await updateUser(u.id, {points:(u.points||0)+pkg.points}); await ctx.reply(`🎉 BOUGHT! +${pkg.points} Points!`); return; }
     }
     let target=null;
     const m=payload.match(/vip_(.+)_(\d+)_/); if(m){ const name=m[1]; const found=Object.entries(LEVELS).find(([k,v])=>v.name===name); if(found) target=parseInt(found[0]); }
@@ -558,9 +555,10 @@ if(bot){
     let u=await getUser(user_id); if(!u) u=await createUser(user_id, {username:ctx.from.username||'', first_name:ctx.from.first_name||''});
     const newUnlocked=[...new Set([...(u.unlockedLevels||[1]), target, target<20?target+1:target])];
     await updateUser(u.id, {level:target, vip_level:lvl.name.toUpperCase(), vip_until:until, levelExpiresAt:Date.now()+30*24*60*60*1000, unlockedLevels:newUnlocked});
-    await ctx.reply(`🎉 VIP ACTIVATED!\n\n👑 Plan: ${lvl.name} (Level ${target}/20)\n⭐ Paid: ${starsPaid} Stars\n📅 Until: ${until}\n\nGo back to app and refresh!`, {reply_markup:{inline_keyboard:[[{text:'🚀 OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}]]}});
-    if(ADMIN_ID){ try{ await ctx.telegram.sendMessage(ADMIN_ID, `⭐ STARS RECEIVED!\nUser: ${ctx.from.first_name} (@${ctx.from.username}) ID: ${user_id}\nPlan: ${lvl.name}\nStars: ${starsPaid} ⭐\nUntil: ${until}`); }catch(e){} }
+    await ctx.reply(`🎉 VIP ACTIVATED!\n\n👑 Plan: ${lvl.name} (Level ${target}/20)\n⭐ Paid: ${starsPaid} Stars\n📅 Until: ${until}`, {reply_markup:{inline_keyboard:[[{text:'🚀 OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}]]}});
+    if(ADMIN_ID){ try{ await ctx.telegram.sendMessage(ADMIN_ID, `⭐ STARS RECEIVED!\nUser: ${ctx.from.first_name} (@${ctx.from.username}) ID: ${user_id}\nPlan: ${lvl.name}\nStars: ${starsPaid} ⭐`); }catch(e){} }
   });
+  // ===== CALLBACK - FIXED FOR web_ IDs =====
   bot.on('callback_query', async (ctx)=>{
     const data=ctx.callbackQuery?.data||'';
     const fromId=ctx.from?.id;
@@ -568,33 +566,36 @@ if(bot){
       if(fromId!==ADMIN_ID){ try{ await ctx.answerCbQuery('Admin only'); }catch(e){} return; }
     }
     if(data.startsWith('approve_topup_')){
-      const parts=data.split('_'); const userId=parts[2]; const packageId=parts[3];
+      const { userId, packageId } = parseTopupCallback(data, 'approve_topup_');
       const target=await getUser(userId); const pkg=ALL_BUY_PACKAGES.find(p=>p.id===packageId);
-      if(!target||!pkg){ try{ await ctx.answerCbQuery('User or package not found'); }catch(e){} return; }
-      await updateUser(target.id, {coins:(target.coins||0)+(pkg.coins||0), total_earned:(target.total_earned||0)+(pkg.coins||0), points:(target.points||0)+(pkg.points||0), pendingTopup:null});
+      if(!target||!pkg){ try{ await ctx.answerCbQuery('User or package not found: '+userId+' / '+packageId); }catch(e){} return; }
+      const giveCoins = target.pendingTopup?.coins ?? pkg.coins||0; const givePoints = target.pendingTopup?.points ?? pkg.points||0;
+      await updateUser(target.id, {coins:(target.coins||0)+giveCoins, total_earned:(target.total_earned||0)+giveCoins, points:(target.points||0)+givePoints, pendingTopup:null});
       try{ await ctx.answerCbQuery('✅ Approved!'); }catch(e){}
-      try{ await ctx.editMessageText(`✅ APPROVED — TOPUP\n\n👤 ${target.name} ID:${target.id}\n📦 ${pkg.label}\n+${pkg.coins||0} Coins +${pkg.points||0} Points\n\nPaid via Capitec ${TOPUP_ACCOUNT}`); }catch(e){}
-      try{ const chatId=parseInt(target.id)||target.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, `✅ TOPUP APPROVED!\n\n+${pkg.coins||0} Coins +${pkg.points||0} Points!\nCoins: ${(target.coins||0)+(pkg.coins||0)} (Can Withdraw!)\nPoints: ${(target.points||0)+(pkg.points||0)} (Can Buy VIP!)`); }catch(e){}
+      try{ await ctx.editMessageText(`✅ APPROVED — TOPUP\n\n👤 ${target.name} ID:${target.id}\n📦 ${pkg.label}\n+${giveCoins} Coins +${givePoints} Points\n\nPaid via Capitec ${TOPUP_ACCOUNT}`); }catch(e){}
+      try{ const chatId=parseInt(target.id)||target.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, `✅ TOPUP APPROVED!\n\n+${giveCoins} Coins +${givePoints} Points!`); }catch(e){ console.log('Web user - approved in DB only'); }
       return;
     }
     if(data.startsWith('reject_topup_')){
-      const parts=data.split('_'); const userId=parts[2]; const target=await getUser(userId);
+      const userId = data.replace('reject_topup_','');
+      const target=await getUser(userId);
       if(target) await updateUser(target.id, {pendingTopup:null});
       try{ await ctx.answerCbQuery('❌ Rejected'); }catch(e){}
       try{ await ctx.editMessageText(`❌ REJECTED — TOPUP\n\n👤 ${target?.name} ID:${userId}\nReason: No payment found in Capitec ${TOPUP_ACCOUNT}`); }catch(e){}
-      try{ const chatId=parseInt(userId); if(chatId) await ctx.telegram.sendMessage(chatId, `❌ Your topup was rejected. No payment found in Capitec ${TOPUP_ACCOUNT}. Check proof and try again.`); }catch(e){}
+      try{ const chatId=parseInt(userId); if(chatId) await ctx.telegram.sendMessage(chatId, `❌ Your topup was rejected. No payment found in Capitec ${TOPUP_ACCOUNT}.`); }catch(e){}
       return;
     }
     if(data.startsWith('approve_withdraw_')){
-      const userId=data.split('_')[2];
+      const userId = data.replace('approve_withdraw_','');
       try{ await ctx.answerCbQuery('✅ Marked as Paid'); }catch(e){}
       try{ await ctx.editMessageText((ctx.callbackQuery.message?.text||'Withdraw') + `\n\n✅ PAID — Admin confirmed`); }catch(e){}
       const target=await getUser(userId); if(target) await updateUser(target.id, {pendingWithdraw:null});
-      try{ const chatId=parseInt(userId); if(chatId) await ctx.telegram.sendMessage(chatId, `✅ Your withdraw has been PAID! Check your wallet / bank.`); }catch(e){}
+      try{ const chatId=parseInt(userId); if(chatId) await ctx.telegram.sendMessage(chatId, `✅ Your withdraw has been PAID!`); }catch(e){}
       return;
     }
     if(data.startsWith('reject_withdraw_')){
-      const userId=data.split('_')[2]; const target=await getUser(userId);
+      const userId = data.replace('reject_withdraw_','');
+      const target=await getUser(userId);
       if(target && target.pendingWithdraw){ await updateUser(target.id, {coins:(target.coins||0)+(target.pendingWithdraw.need||0), pendingWithdraw:null}); }
       try{ await ctx.answerCbQuery('❌ Rejected & Refunded'); }catch(e){}
       try{ await ctx.editMessageText(`❌ REJECTED — WITHDRAW\n\n👤 ${target?.name} ID:${userId}\nRefunded coins.`); }catch(e){}
@@ -608,7 +609,7 @@ if(bot){
       return;
     }
   });
-  bot.launch().then(()=>console.log('Bot launched @ShayaWatchAllBot - Shaya Watch Bot')).catch(e=>console.log('Bot launch failed', e.message));
+  bot.launch().then(()=>console.log('Bot launched @ShayaWatchAllBot - WEB FIX')).catch(e=>console.log('Bot launch failed', e.message));
   process.once('SIGINT', ()=>bot.stop('SIGINT')); process.once('SIGTERM', ()=>bot.stop('SIGTERM'));
 } else console.log('⚠️ BOT_TOKEN not set - bot disabled, API still works');
-app.listen(PORT, ()=>{ console.log(`✅ Shaya Watch Bot running on ${PORT}`); console.log(`WebApp: ${WEBAPP_URL}`); console.log(`Giga Ad: 9114 | Offerwall: 9114 | OnclickA: 472254 | Min: SA R350 / USA $20 | Airtime/Data NO LIMIT | Tasks: WORKING`); });
+app.listen(PORT, ()=>{ console.log(`✅ Shaya Watch Bot running on ${PORT}`); console.log(`WebApp: ${WEBAPP_URL}`); });
