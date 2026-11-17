@@ -231,11 +231,28 @@ let currentVideo=null;
 let quiz=[], qIndex=0, qScore=0, selectedPackage='p29';
 if(window.Telegram?.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
 document.addEventListener('DOMContentLoaded', function(){ var m=document.getElementById('ytModal'); if(m){ m.classList.add('hidden'); m.style.display='none'; } });
+// ===== VIP FIX - BUTTONS NOW PRESSABLE =====
 function buyVip(level, payWith){
+  if(level === (user?.level||1)){
+    alert('You already have this level! Buy Level ' + ((user?.level||1)+1) + ' next.');
+    return;
+  }
+  if(level > (user?.level||1)+1){
+    alert('🔒 Locked! Buy Level ' + ((user?.level||1)+1) + ' first. You cannot jump.');
+    return;
+  }
   if(payWith==='stars'){ payVipWithStars(level); return; }
+  var lvlNames = ['Free','Starter','Bronze','Bronze+','Silver','Silver+','Gold','Gold+','Platinum','Platinum+','Diamond','Diamond+','Ruby','Ruby+','Emerald','Emerald+','Sapphire','Sapphire+','Master','KING'];
+  var lvlName = lvlNames[level-1];
+  if(!confirm('Buy Level ' + level + ' ' + lvlName + ' with ' + payWith + '?\nTap OK to buy.')) return;
   fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'levelup', targetLevel:level, payWith})}).then(r=>r.json()).then(d=>{ alert(d.msg); loadUser(); });
 }
 async function payVipWithStars(level){
+  if(!userId || String(userId).startsWith('web_')){
+    alert('⭐ Stars only work in Telegram.\n\n1. Open @ShayaWatchAllBot\n2. Type /vip\n3. Tap Buy Stars there\n\nOr buy with Coins / Points here.');
+    try{ window.open('https://t.me/ShayaWatchAllBot', '_blank'); }catch(e){}
+    return;
+  }
   const res = await fetch('/api/vip-stars-invoice', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: userId, targetLevel: level }) });
   const d = await res.json();
   if(d.success){ alert('✅ Check your Telegram chat!\nBot sent you an invoice for ' + d.stars + ' ⭐ for ' + d.plan + '.\nTap PAY in chat. VIP activates automatically.'); try{ window.Telegram.WebApp.openTelegramLink('https://t.me/ShayaWatchAllBot'); }catch(e){} }
@@ -331,10 +348,20 @@ async function loadVipPlans(){
       const lv=d.levels[i];
       const isCurrent=i===d.level;
       const isUnlocked=(d.unlockedLevels||[1]).includes(i);
-      const canBuy=isUnlocked && i>d.level;
-      const isLocked=!isUnlocked;
+      const isNext = i === (d.level+1);
+      const canBuy = isNext || (isUnlocked && i>d.level);
+      const isLocked=!isUnlocked && !isNext;
       const minLabel = region==='SA' ? 'R350' : '$20';
-      html+='<div class="vipcard ' + (isCurrent?'active':'') + '"><b>' + i + '. ' + lv.name + ' ' + (isCurrent?'✅ ACTIVE':'') + '</b><br><small>$' + lv.adUSD + '/ad • ' + lv.adLimit + '/day • ' + minLabel + ' Min • 30 Days • Withdraw ' + lv.withdrawMin + ' Coins = ' + minLabel + '</small><br><b>' + lv.coinsCost + ' Coins / ' + lv.pointsCost + ' Points / ⭐ ' + lv.starsCost + ' Stars</b><br><small>' + (isLocked?'🔒 LOCKED - Buy previous first':isUnlocked?'✅ UNLOCKED':'') + '</small><br><div style="display:flex;gap:6px;margin-top:6px"><button onclick="buyVip(' + i + ',\'coins\')" ' + (!canBuy?'disabled':'') + ' style="flex:1">Buy Coins</button><button onclick="buyVip(' + i + ',\'points\')" ' + (!canBuy?'disabled':'') + ' style="flex:1;background:#25D366;color:#fff">Buy Points</button><button onclick="buyVip(' + i + ',\'stars\')" ' + (!canBuy?'disabled':'') + ' style="flex:1;background:#7b2fff;color:#fff">⭐ Stars</button></div></div>';
+      let btnHtml = '';
+      if(isCurrent){
+        btnHtml = '<div style="background:#000;color:#FFD700;padding:10px;border-radius:10px;text-align:center;margin-top:6px;font-weight:bold">✅ YOU ARE HERE</div>';
+      } else if(canBuy){
+        btnHtml = '<div style="display:flex;gap:6px;margin-top:6px"><button onclick="buyVip(' + i + ',\'coins\')" style="flex:1">Buy Coins</button><button onclick="buyVip(' + i + ',\'points\')" style="flex:1;background:#25D366;color:#fff">Buy Points</button><button onclick="buyVip(' + i + ',\'stars\')" style="flex:1;background:#7b2fff;color:#fff">⭐ Stars</button></div><p style="font-size:11px;color:#FFD700;margin-top:4px">👆 Tap to buy Level ' + i + '</p>';
+      } else {
+        btnHtml = '<div style="background:#555;color:#fff;padding:10px;border-radius:10px;text-align:center;margin-top:6px">🔒 Buy Level ' + d.level + ' first</div>';
+      }
+      const lockText = isCurrent ? '✅ ACTIVE' : isNext ? '✅ NEXT - TAP TO BUY' : isLocked ? '🔒 LOCKED - Buy previous first' : '✅ UNLOCKED';
+      html+='<div class="vipcard ' + (isCurrent?'active':'') + '"><b>' + i + '. ' + lv.name + ' ' + (isCurrent?'✅ ACTIVE':'') + '</b><br><small>$' + lv.adUSD + '/ad • ' + lv.adLimit + '/day • ' + minLabel + ' Min • 30 Days • Withdraw ' + lv.withdrawMin + ' Coins = ' + minLabel + '</small><br><b>' + lv.coinsCost + ' Coins / ' + lv.pointsCost + ' Points / ⭐ ' + lv.starsCost + ' Stars</b><br><small>' + lockText + '</small><br>' + btnHtml + '</div>';
     }
     document.getElementById('vipPlansList').innerHTML=html;
     if(d.packages) document.getElementById('packages').innerHTML=d.packages.map(p=>'<label style="display:block;background:#1E3A6E;padding:10px;border-radius:10px;margin:6px 0"><input type="radio" name="pkg" value="' + p.id + '" ' + (p.id==='p29'?'checked':'') + ' onchange="selectedPackage=\'' + p.id + '\'"> <b>' + p.label + '</b></label>').join('');
@@ -543,4 +570,4 @@ renderFallbackBuyButtons();
 loadUser();
 </script>
 </body>
-</html>
+  </html>
