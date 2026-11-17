@@ -76,11 +76,11 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <body>
 <div class="header"><div><h1>SHAYA WATCH BOT <span>Trending SA Videos • Music • Lifestyle • Earn</span></h1></div><div class="toggle"><button id="btnSA" onclick="setRegion('SA')">🇿🇦 SA</button><button id="btnUSA" onclick="setRegion('USA')">🇺🇸 USA</button></div></div>
 <div id="loginCard" class="card" style="display:none">
-  <h3>👋 Welcome — No Telegram Needed!</h3>
-  <p style="font-size:13px;color:#ccc">Enter your name. This device will remember you. Coins saved to Supabase.</p>
-  <input id="nameInput" placeholder="Your name, e.g. Thabo" />
-  <button class="bigbtn" onclick="saveWebsiteUser()">START EARNING →</button>
-  <p style="font-size:11px;margin-top:8px;color:#aaa">Already have Telegram? Open @ShayaWatchAllBot and tap OPEN.</p>
+<h3>👋 Welcome — No Telegram Needed!</h3>
+<p style="font-size:13px;color:#ccc">Enter your name. This device will remember you. Coins saved to Supabase.</p>
+<input id="nameInput" placeholder="Your name, e.g. Thabo" />
+<button class="bigbtn" onclick="saveWebsiteUser()">START EARNING →</button>
+<p style="font-size:11px;margin-top:8px;color:#aaa">Already have Telegram? Open @ShayaWatchAllBot and tap OPEN.</p>
 </div>
 <div id="page-home">
 <div class="card">
@@ -136,21 +136,12 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <b>🏦 Capitec Bank</b><br><span style="font-size:22px;letter-spacing:2px;color:#FFD700"><b>1893275807</b></span><br>Reference: <b id="bankRef">Your Name / ID</b>
 </div>
 <div id="packages"></div>
-<div class="card" style="margin-top:8px">
-  <b>🪙 Buy Coins Separately</b>
-  <div id="buyCoinsBox" style="margin-top:8px">Loading coins packages...</div>
-</div>
-<div class="card" style="margin-top:8px">
-  <b>⭐ Buy Points Separately</b>
-  <div id="buyPointsBox" style="margin-top:8px">Loading points packages...</div>
-  <p style="font-size:12px;color:#aaa;margin-top:6px">Bank: Send to Capitec 1893275807 → Admin presses ✅ Approve<br>Stars: Instant, no bank needed</p>
-</div>
+<div class="card" style="margin-top:8px"><b>🪙 Buy Coins Separately</b><div id="buyCoinsBox" style="margin-top:8px">Loading coins packages...</div></div>
+<div class="card" style="margin-top:8px"><b>⭐ Buy Points Separately</b><div id="buyPointsBox" style="margin-top:8px">Loading points packages...</div><p style="font-size:12px;color:#aaa;margin-top:6px">Bank: Send to Capitec 1893275807 → Admin presses ✅ Approve<br>Stars: Instant, no bank needed</p></div>
 <div style="margin-top:12px;border-top:1px solid #333;padding-top:12px">
-  <h4>🪙 Buy Coins Separately</h4>
-  <div id="buyCoinsList"><p style="color:#aaa;font-size:12px">Loading coins packages...</p></div>
-  <h4 style="margin-top:12px">⭐ Buy Points Separately</h4>
-  <div id="buyPointsList"><p style="color:#aaa;font-size:12px">Loading points packages...</p></div>
-  <p style="font-size:11px;color:#aaa">Bank: Send to Capitec 1893275807 → Admin presses ✅ Approve<br>Stars: Instant, no bank needed</p>
+<h4>🪙 Buy Coins Separately</h4><div id="buyCoinsList"><p style="color:#aaa;font-size:12px">Loading coins packages...</p></div>
+<h4 style="margin-top:12px">⭐ Buy Points Separately</h4><div id="buyPointsList"><p style="color:#aaa;font-size:12px">Loading points packages...</p></div>
+<p style="font-size:11px;color:#aaa">Bank: Send to Capitec 1893275807 → Admin presses ✅ Approve<br>Stars: Instant, no bank needed</p>
 </div>
 <input id="proofInput" placeholder="Paste EFT ref / proof" />
 <button class="bigbtn" onclick="requestTopup()">📤 SEND TOPUP REQUEST</button>
@@ -183,32 +174,24 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <option value="data">📶 Data — NO LIMIT (110 Coins=R1)</option>
 </select>
 <div id="airtimeAmountBox" style="display:none;margin-top:8px">
-  <label style="font-size:13px">Choose Amount (No Limit, 110 Coins=R1):</label>
-  <select id="withdrawAmount">
-    <option value="5">R5 — 550 Coins</option>
-    <option value="10">R10 — 1100 Coins</option>
-    <option value="20">R20 — 2200 Coins</option>
-    <option value="30">R30 — 3300 Coins</option>
-    <option value="50">R50 — 5500 Coins</option>
-    <option value="100">R100 — 11000 Coins</option>
-  </select>
+<label style="font-size:13px">Choose Amount (No Limit, 110 Coins=R1):</label>
+<select id="withdrawAmount">
+<option value="5">R5 — 550 Coins</option>
+<option value="10">R10 — 1100 Coins</option>
+<option value="20">R20 — 2200 Coins</option>
+<option value="30">R30 — 3300 Coins</option>
+<option value="50">R50 — 5500 Coins</option>
+<option value="100">R100 — 11000 Coins</option>
+</select>
 </div>
 <select id="withdrawNetwork" style="display:none"><option value="MTN">MTN</option><option value="Vodacom">Vodacom</option><option value="Cell C">Cell C</option><option value="Telkom">Telkom</option></select>
 <input id="walletInput" placeholder="Paste your Walt Dollars address - starts with UQ...">
-<div class="wallet-hint" id="withdrawHintBox">
-<b id="withdrawHintTitle">💵 Dollars (USDT) - Walt</b>
-<p id="withdrawHint" style="margin-top:4px">In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted). WALT = Telegram Wallet @wallet.</p>
-</div>
+<div class="wallet-hint" id="withdrawHintBox"><b id="withdrawHintTitle">💵 Dollars (USDT) - Walt</b><p id="withdrawHint" style="margin-top:4px">In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted). WALT = Telegram Wallet @wallet.</p></div>
 <button class="bigbtn" onclick="requestWithdraw()">✅ REQUEST WITHDRAWAL</button>
 <p id="withdrawStatus" style="margin-top:8px;color:#0f0"></p>
 <p style="font-size:11px;color:#aaa;margin-top:8px">Airtime + Data = NO LIMIT, 110 Coins = R1 (10% fee).<br>Capitec + WALT = R350 / $20 HARD LOCK.</p>
 </div>
-<div class="card">
-  <h3>📜 Withdraw History</h3>
-  <p style="font-size:12px;color:#aaa">Approved = Paid ✅ &nbsp; Declined = Rejected ❌ &nbsp; Pending = Waiting ⏳</p>
-  <div id="withdrawHistory" style="margin-top:8px">Loading history...</div>
-  <button class="bigbtn" style="background:#222;color:#fff;border:1px solid #FFD700" onclick="loadWithdrawHistory()">🔄 REFRESH HISTORY</button>
-</div>
+<div class="card"><h3>📜 Withdraw History</h3><p style="font-size:12px;color:#aaa">Approved = Paid ✅ &nbsp; Declined = Rejected ❌ &nbsp; Pending = Waiting ⏳</p><div id="withdrawHistory" style="margin-top:8px">Loading history...</div><button class="bigbtn" style="background:#222;color:#fff;border:1px solid #FFD700" onclick="loadWithdrawHistory()">🔄 REFRESH HISTORY</button></div>
 </div>
 <div id="ytModal" class="modal hidden" style="display:none">
 <div class="modal-head"><span id="ytModalTitle" style="font-size:13px;flex:1;padding-right:8px">Playing...</span><button onclick="closeVideo()">✕ CLOSE</button></div>
@@ -266,14 +249,8 @@ async function requestTopupSingle(pkgId){
 if(window.Telegram?.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
 document.addEventListener('DOMContentLoaded', function(){ var m=document.getElementById('ytModal'); if(m){ m.classList.add('hidden'); m.style.display='none'; } });
 function buyVip(level, payWith){
-  if(level === (user?.level||1)){
-    alert('You already have this level! Buy Level ' + ((user?.level||1)+1) + ' next.');
-    return;
-  }
-  if(level > (user?.level||1)+1){
-    alert('🔒 Locked! Buy Level ' + ((user?.level||1)+1) + ' first. You cannot jump.');
-    return;
-  }
+  if(level === (user?.level||1)){ alert('You already have this level! Buy Level ' + ((user?.level||1)+1) + ' next.'); return; }
+  if(level > (user?.level||1)+1){ alert('🔒 Locked! Buy Level ' + ((user?.level||1)+1) + ' first. You cannot jump.'); return; }
   if(payWith==='stars'){ payVipWithStars(level); return; }
   var lvlNames = ['Free','Starter','Bronze','Bronze+','Silver','Silver+','Gold','Gold+','Platinum','Platinum+','Diamond','Diamond+','Ruby','Ruby+','Emerald','Emerald+','Sapphire','Sapphire+','Master','KING'];
   var lvlName = lvlNames[level-1];
@@ -281,11 +258,7 @@ function buyVip(level, payWith){
   fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'levelup', targetLevel:level, payWith})}).then(r=>r.json()).then(d=>{ alert(d.msg); loadUser(); });
 }
 async function payVipWithStars(level){
-  if(!userId || String(userId).startsWith('web_')){
-    alert('⭐ Stars only work in Telegram.\n\n1. Open @ShayaWatchAllBot\n2. Type /vip\n3. Tap Buy Stars there\n\nOr buy with Coins / Points here.');
-    try{ window.open('https://t.me/ShayaWatchAllBot', '_blank'); }catch(e){}
-    return;
-  }
+  if(!userId || String(userId).startsWith('web_')){ alert('⭐ Stars only work in Telegram.\n\n1. Open @ShayaWatchAllBot\n2. Type /vip\n3. Tap Buy Stars there\n\nOr buy with Coins / Points here.'); try{ window.open('https://t.me/ShayaWatchAllBot', '_blank'); }catch(e){} return; }
   const res = await fetch('/api/vip-stars-invoice', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: userId, targetLevel: level }) });
   const d = await res.json();
   if(d.success){ alert('✅ Check your Telegram chat!\nBot sent you an invoice for ' + d.stars + ' ⭐ for ' + d.plan + '.\nTap PAY in chat. VIP activates automatically.'); try{ window.Telegram.WebApp.openTelegramLink('https://t.me/ShayaWatchAllBot'); }catch(e){} }
@@ -296,20 +269,15 @@ function getPhoneBackup(){ try{ return JSON.parse(localStorage.getItem('shaya_ba
 async function loadUser(){
   if(!userId){
     document.getElementById('balance').innerHTML = '<a href="https://t.me/ShayaWatchAllBot" style="color:#FFD700;font-size:18px;text-decoration:none">👉 TAP HERE TO OPEN IN TELEGRAM BOT</a>';
-    renderFallbackBuyButtons();
-    loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans();
-    return;
+    renderFallbackBuyButtons(); loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans(); return;
   }
   const backup=getPhoneBackup();
   if(backup){ const cur=backup.region==='USA'?'$':'R'; document.getElementById('balance').innerText=cur + backup.balance.toFixed(2); region=backup.region||'SA'; }
   try{
-    const res=await fetch('/api/user/' + userId); user=await res.json(); if(user.error) return;
+    const res=await fetch('/api/user/' + userId); user=await res.json(); if(user.error) throw new Error(user.error);
     region=user.region||region||'SA'; if(user.usdtToZar) USDT_TO_ZAR=user.usdtToZar;
     updateUI(); saveToPhone(); refreshRate(); loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans();
-  }catch(e){
-    renderFallbackBuyButtons();
-    loadTasks(); loadLeaderboard(); loadVideos(currentYtType);
-  }
+  }catch(e){ console.log('loadUser failed', e); renderFallbackBuyButtons(); loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans(); }
 }
 function updateUI(){
   if(!user) return;
@@ -389,13 +357,9 @@ async function loadVipPlans(){
       const isLocked=!isUnlocked && !isNext;
       const minLabel = region==='SA' ? 'R350' : '$20';
       let btnHtml = '';
-      if(isCurrent){
-        btnHtml = '<div style="background:#000;color:#FFD700;padding:10px;border-radius:10px;text-align:center;margin-top:6px;font-weight:bold">✅ YOU ARE HERE</div>';
-      } else if(canBuy){
-        btnHtml = '<div style="display:flex;gap:6px;margin-top:6px"><button onclick="buyVip(' + i + ',\'coins\')" style="flex:1">Buy Coins</button><button onclick="buyVip(' + i + ',\'points\')" style="flex:1;background:#25D366;color:#fff">Buy Points</button><button onclick="buyVip(' + i + ',\'stars\')" style="flex:1;background:#7b2fff;color:#fff">⭐ Stars</button></div><p style="font-size:11px;color:#FFD700;margin-top:4px">👆 Tap to buy Level ' + i + '</p>';
-      } else {
-        btnHtml = '<div style="background:#555;color:#fff;padding:10px;border-radius:10px;text-align:center;margin-top:6px">🔒 Buy Level ' + d.level + ' first</div>';
-      }
+      if(isCurrent){ btnHtml = '<div style="background:#000;color:#FFD700;padding:10px;border-radius:10px;text-align:center;margin-top:6px;font-weight:bold">✅ YOU ARE HERE</div>'; }
+      else if(canBuy){ btnHtml = '<div style="display:flex;gap:6px;margin-top:6px"><button onclick="buyVip(' + i + ',\'coins\')" style="flex:1">Buy Coins</button><button onclick="buyVip(' + i + ',\'points\')" style="flex:1;background:#25D366;color:#fff">Buy Points</button><button onclick="buyVip(' + i + ',\'stars\')" style="flex:1;background:#7b2fff;color:#fff">⭐ Stars</button></div><p style="font-size:11px;color:#FFD700;margin-top:4px">👆 Tap to buy Level ' + i + '</p>'; }
+      else { btnHtml = '<div style="background:#555;color:#fff;padding:10px;border-radius:10px;text-align:center;margin-top:6px">🔒 Buy Level ' + d.level + ' first</div>'; }
       const lockText = isCurrent ? '✅ ACTIVE' : isNext ? '✅ NEXT - TAP TO BUY' : isLocked ? '🔒 LOCKED - Buy previous first' : '✅ UNLOCKED';
       html+='<div class="vipcard ' + (isCurrent?'active':'') + '"><b>' + i + '. ' + lv.name + ' ' + (isCurrent?'✅ ACTIVE':'') + '</b><br><small>$' + lv.adUSD + '/ad • ' + lv.adLimit + '/day • ' + minLabel + ' Min HARD LOCK • 30 Days • Withdraw ' + lv.withdrawMin + ' Coins = ' + minLabel + '</small><br><b>' + lv.coinsCost + ' Coins / ' + lv.pointsCost + ' Points / ⭐ ' + lv.starsCost + ' Stars</b><br><small>' + lockText + '</small><br>' + btnHtml + '</div>';
     }
@@ -408,8 +372,8 @@ async function loadVipPlans(){
     if(cb2) cb2.innerHTML = coinsList.map(function(p){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+p.id+'\')">🪙 '+p.label+' (Bank)</button><button class="bigbtn" style="margin-top:4px;background:#7b2fff" onclick="buyWithStars(\'coins\',\''+p.id+'s\')">⭐ Buy with Stars</button>'; }).join('');
     if(pb2) pb2.innerHTML = pointsList.map(function(p){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+p.id+'\')">⭐ '+p.label+' (Bank)</button><button class="bigbtn" style="margin-top:4px;background:#7b2fff" onclick="buyWithStars(\'points\',\''+p.id+'s\')">⭐ Buy with Stars</button>'; }).join('');
     if(d.buyCoins && d.buyPoints){
-      document.getElementById('buyCoinsList').innerHTML = d.buyCoins.map(p=>'<button class="bigbtn" onclick="buyCoinsBank(\'' + p.id + '\')">🪙 ' + p.coins + ' Coins — R'' + p.price + ' (Bank)</button>').join('') + (d.buyCoinsStars||[]).map(p=>'<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'' + p.id + '\')">🪙 ' + p.coins + ' Coins — ' + p.stars + ' ⭐ (Instant)</button>').join('');
-      document.getElementById('buyPointsList').innerHTML = d.buyPoints.map(p=>'<button class="bigbtn" onclick="buyPointsBank(\'' + p.id + '\')">⭐ ' + p.points + ' Points — R' + p.price + ' (Bank)</button>').join('') + (d.buyPointsStars||[]).map(p=>'<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'' + p.id + '\')">⭐ ' + p.points + ' Points — ' + p.stars + ' ⭐ (Instant)</button>').join('');
+      document.getElementById('buyCoinsList').innerHTML = d.buyCoins.map(function(p){ return '<button class="bigbtn" onclick="buyCoinsBank(\'' + p.id + '\')">🪙 ' + p.coins + ' Coins - R' + p.price + ' (Bank)</button>'; }).join('') + (d.buyCoinsStars||[]).map(function(p){ return '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'' + p.id + '\')">🪙 ' + p.coins + ' Coins - ' + p.stars + ' ⭐ (Instant)</button>'; }).join('');
+      document.getElementById('buyPointsList').innerHTML = d.buyPoints.map(function(p){ return '<button class="bigbtn" onclick="buyPointsBank(\'' + p.id + '\')">⭐ ' + p.points + ' Points - R' + p.price + ' (Bank)</button>'; }).join('') + (d.buyPointsStars||[]).map(function(p){ return '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'' + p.id + '\')">⭐ ' + p.points + ' Points - ' + p.stars + ' ⭐ (Instant)</button>'; }).join('');
     }
   }catch(e){
     console.log('vip fallback', e);
@@ -508,16 +472,16 @@ async function requestTopup(){
   const res=await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'topup_request', packageId:selectedPackage, proof})});
   const d=await res.json(); alert(d.msg);
 }
-async function buyCoinsBank(pkgId){
+async function buyCoinsBank(id){
   const proof = prompt('Paste EFT proof for Capitec 1893275807:');
   if(!proof) return;
-  const res = await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'topup_request', packageId:pkgId, proof})});
+  const res = await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'topup_request', packageId:id, proof})});
   const d = await res.json(); alert(d.msg);
 }
-async function buyPointsBank(pkgId){
+async function buyPointsBank(id){
   const proof = prompt('Paste EFT proof for Capitec 1893275807:');
   if(!proof) return;
-  const res = await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'topup_request', packageId:pkgId, proof})});
+  const res = await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'topup_request', packageId:id, proof})});
   const d = await res.json(); alert(d.msg);
 }
 async function buyWithStars(type, pkgId){
@@ -531,9 +495,7 @@ async function requestWithdraw(){
   const amount=document.getElementById('withdrawAmount') ? document.getElementById('withdrawAmount').value : 5;
   if(!wallet) return alert('Enter your wallet / number first');
   if(method.toLowerCase().includes('paypal') || method.toLowerCase().includes('trc20')){ return alert('❌ PayPal and USDT TRC20 are REMOVED.'); }
-  if(method === 'Dollars (USDT) - Walt' || method === 'Gram - Walt'){
-    if(!wallet.startsWith('UQ')){ return alert('❌ Wrong address! Walt addresses start with UQ...'); }
-  }
+  if(method === 'Dollars (USDT) - Walt' || method === 'Gram - Walt'){ if(!wallet.startsWith('UQ')){ return alert('❌ Wrong address! Walt addresses start with UQ...'); } }
   let backendMethod = method;
   if(method==='Capitec / Bank') backendMethod='capitec';
   if(method==='Airtime') backendMethod='airtime';
@@ -550,10 +512,7 @@ async function loadWithdrawHistory(){
   try{
     const res = await fetch('/api/withdraw-history?user_id=' + userId);
     const list = await res.json();
-    if(!list || !list.length){
-      el.innerHTML = '<p style="color:#aaa;font-size:13px">No withdrawals yet.<br>Your first withdraw will show here.</p>';
-      return;
-    }
+    if(!list || !list.length){ el.innerHTML = '<p style="color:#aaa;font-size:13px">No withdrawals yet.<br>Your first withdraw will show here.</p>'; return; }
     el.innerHTML = list.map(function(w){
       let badge = '', color = '', label = '';
       if(w.status==='paid'){ badge='✅ APPROVED'; color='#00ff88'; label='Approved - Paid'; }
@@ -564,23 +523,17 @@ async function loadWithdrawHistory(){
       const dateTxt = w.created_at ? new Date(w.created_at).toLocaleString() : '';
       return '<div style="background:#222;padding:10px;border-radius:10px;margin-top:8px;border-left:4px solid '+color+'"><div style="display:flex;justify-content:space-between"><b>'+w.method+'</b><b style="color:'+color+'">'+badge+'</b></div><div style="font-size:13px;margin-top:4px">'+amt+coinsTxt+'</div><div style="font-size:11px;color:#aaa;margin-top:2px">'+(w.detail||'')+'<br>'+dateTxt+' • '+label+'</div></div>';
     }).join('');
-  }catch(e){
-    el.innerHTML = '<p style="color:#aaa">History offline. Tap Refresh.</p>';
-  }
+  }catch(e){ el.innerHTML = '<p style="color:#aaa">History offline. Tap Refresh.</p>'; }
 }
 async function loadTasks(){
   try{
     const res=await fetch('/api/tasks?user_id=' + userId); const tasks=await res.json();
     if(!Array.isArray(tasks) || tasks.length===0) throw new Error('no tasks');
     document.getElementById('tasksList').innerHTML=tasks.map(t=>{
-      if(t.done){
-        return '<div class="task"><span>✅ ' + t.title + '<br><small>+' + t.reward_cash + ' + ' + t.reward_coins + ' Coins — DONE</small></span><button disabled style="background:#555;color:#fff">✅ Done</button></div>';
-      }
+      if(t.done){ return '<div class="task"><span>✅ ' + t.title + '<br><small>+' + t.reward_cash + ' + ' + t.reward_coins + ' Coins — DONE</small></span><button disabled style="background:#555;color:#fff">✅ Done</button></div>'; }
       return '<div class="task"><span>' + t.title + '<br><small>+' + t.reward_cash + ' + ' + t.reward_coins + ' Coins — ' + t.progress + '</small></span><div style="display:flex;gap:6px"><button onclick="doTask(' + t.id + ')">Do</button><button onclick="claimTask(' + t.id + ')" style="background:#00ff88">Claim</button></div></div>';
     }).join('');
-  }catch(e){
-    document.getElementById('tasksList').innerHTML='<div class="task"><span>Join Shaya Earn Network<br><small>+0.05 + 20 Coins — Join group, then Claim</small></span><div style="display:flex;gap:6px"><button onclick="doTask(1)">Do</button><button onclick="claimTask(1)" style="background:#00ff88">Claim</button></div></div><div class="task"><span>Invite 3 Friends<br><small>+0.1 + 50 Coins — 0/3 friends</small></span><div style="display:flex;gap:6px"><button onclick="doTask(2)">Do</button><button onclick="claimTask(2)" style="background:#00ff88">Claim</button></div></div><div class="task"><span>Share Shaya Watch on WhatsApp<br><small>+0.05 + 10 Coins</small></span><div style="display:flex;gap:6px"><button onclick="doTask(3)">Do</button><button onclick="claimTask(3)" style="background:#00ff88">Claim</button></div></div>';
-  }
+  }catch(e){ document.getElementById('tasksList').innerHTML='<div class="task"><span>Join Shaya Earn Network<br><small>+0.05 + 20 Coins — Join group, then Claim</small></span><div style="display:flex;gap:6px"><button onclick="doTask(1)">Do</button><button onclick="claimTask(1)" style="background:#00ff88">Claim</button></div></div><div class="task"><span>Invite 3 Friends<br><small>+0.1 + 50 Coins — 0/3 friends</small></span><div style="display:flex;gap:6px"><button onclick="doTask(2)">Do</button><button onclick="claimTask(2)" style="background:#00ff88">Claim</button></div></div><div class="task"><span>Share Shaya Watch on WhatsApp<br><small>+0.05 + 10 Coins</small></span><div style="display:flex;gap:6px"><button onclick="doTask(3)">Do</button><button onclick="claimTask(3)" style="background:#00ff88">Claim</button></div></div>'; }
 }
 function doTask(taskId){
   if(taskId===1){ window.open('https://t.me/ShayaEarnNetwork', '_blank'); alert('Join the group, then tap CLAIM!'); }
@@ -591,8 +544,7 @@ function doTask(taskId){
 async function claimTask(taskId){
   const res=await fetch('/api/complete-task',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, taskId})});
   const d=await res.json();
-  if(d.success){ alert(d.msg); loadUser(); loadTasks(); }
-  else { alert(d.error); loadTasks(); }
+  if(d.success){ alert(d.msg); loadUser(); loadTasks(); } else { alert(d.error); loadTasks(); }
 }
 async function loadLeaderboard(){
   try{
@@ -619,13 +571,13 @@ function renderVideos(videos){
       { id: 'dQw4w9WgXcQ', title: 'Amapiano Mix 2026 - Best of Amapiano', channel: 'Shaya Watch', thumb: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg', views: '1M', url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' },
       { id: 'kXYiU_JCYtU', title: 'Amapiano Hits - Kabza De Small x DJ Maphorisa', channel: 'Amapiano', thumb: 'https://i.ytimg.com/vi/kXYiU_JCYtU/mqdefault.jpg', views: '500K', url: 'https://www.youtube.com/watch?v=kXYiU_JCYtU' },
     ];
-    document.getElementById('ytList').innerHTML = '<p style="font-size:11px;color:#FFD700">⚠️ YouTube API Key missing - Showing fallback videos. Add YOUTUBE_API_KEY in Render to get live trending.</p>' + videos.map((v,i)=>'<div class="ytcard" onclick=\'openVideo(' + JSON.stringify(v).replace(/'/g,"&#39;") + ')\'><img src="' + v.thumb + '"><div><b style="font-size:13px">' + v.title.slice(0,60) + '</b><br><small>' + v.channel + ' • ' + v.views + ' views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>').join('');
+    document.getElementById('ytList').innerHTML = '<p style="font-size:11px;color:#FFD700">⚠️ YouTube API Key missing - Showing fallback videos. Add YOUTUBE_API_KEY in Render to get live trending.</p>' + videos.map((v,i)=>'<div class="ytcard" onclick=\'openVideo(' + JSON.stringify(v).replace(/\'/g,"&#39;") + ')\'><img src="' + v.thumb + '"><div><b style="font-size:13px">' + v.title.slice(0,60) + '</b><br><small>' + v.channel + ' • ' + v.views + ' views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>').join('');
     return;
   }
   document.getElementById('ytList').innerHTML = videos.map((v,i)=>{
     var safeId = (typeof v.id === 'object' && v.id) ? v.id.videoId : v.id;
     var safeV = { ...v, id: safeId };
-    return '<div class="ytcard" onclick=\'openVideo(' + JSON.stringify(safeV).replace(/'/g,"&#39;") + ')\'><img src="' + v.thumb + '"><div><b style="font-size:13px">' + (v.title||'').slice(0,60) + '</b><br><small>' + v.channel + ' • ' + v.views + ' views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>';
+    return '<div class="ytcard" onclick=\'openVideo(' + JSON.stringify(safeV).replace(/\'/g,"&#39;") + ')\'><img src="' + v.thumb + '"><div><b style="font-size:13px">' + (v.title||'').slice(0,60) + '</b><br><small>' + v.channel + ' • ' + v.views + ' views</small><br><small style="color:#00ff88">▶️ Play INSIDE App</small></div></div>';
   }).join('');
 }
 async function loadVideos(type){
@@ -648,6 +600,17 @@ async function searchVideos(){
 }
 renderFallbackBuyButtons();
 loadUser();
+setTimeout(function(){
+  var b = document.getElementById('balance');
+  if(b && b.innerText === 'Loading...'){
+    b.innerText = 'R0.00';
+    var c = document.getElementById('coins');
+    if(c) c.innerText = '🪙 0 Coins - Tap START or /start in bot';
+    renderFallbackBuyButtons();
+    loadTasks(); loadLeaderboard(); loadVideos(currentYtType);
+  }
+}, 8000);
+window.addEventListener('error', function(e){ console.log('JS ERROR:', e.message); });
 </script>
 </body>
-</html>
+  </html>
