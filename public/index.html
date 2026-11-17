@@ -202,7 +202,14 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <button class="bigbtn" onclick="requestWithdraw()">✅ REQUEST WITHDRAWAL</button>
 <p id="withdrawStatus" style="margin-top:8px;color:#0f0"></p>
 <p style="font-size:11px;color:#aaa;margin-top:8px">Airtime + Data = NO LIMIT, 110 Coins = R1 (10% fee).<br>Capitec + WALT = R350 / $20 HARD LOCK.</p>
-</div></div>
+</div>
+<div class="card">
+  <h3>📜 Withdraw History</h3>
+  <p style="font-size:12px;color:#aaa">Approved = Paid ✅ &nbsp; Declined = Rejected ❌ &nbsp; Pending = Waiting ⏳</p>
+  <div id="withdrawHistory" style="margin-top:8px">Loading history...</div>
+  <button class="bigbtn" style="background:#222;color:#fff;border:1px solid #FFD700" onclick="loadWithdrawHistory()">🔄 REFRESH HISTORY</button>
+</div>
+</div>
 <div id="ytModal" class="modal hidden" style="display:none">
 <div class="modal-head"><span id="ytModalTitle" style="font-size:13px;flex:1;padding-right:8px">Playing...</span><button onclick="closeVideo()">✕ CLOSE</button></div>
 <iframe id="ytPlayer" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen></iframe>
@@ -401,7 +408,7 @@ async function loadVipPlans(){
     if(cb2) cb2.innerHTML = coinsList.map(function(p){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+p.id+'\')">🪙 '+p.label+' (Bank)</button><button class="bigbtn" style="margin-top:4px;background:#7b2fff" onclick="buyWithStars(\'coins\',\''+p.id+'s\')">⭐ Buy with Stars</button>'; }).join('');
     if(pb2) pb2.innerHTML = pointsList.map(function(p){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+p.id+'\')">⭐ '+p.label+' (Bank)</button><button class="bigbtn" style="margin-top:4px;background:#7b2fff" onclick="buyWithStars(\'points\',\''+p.id+'s\')">⭐ Buy with Stars</button>'; }).join('');
     if(d.buyCoins && d.buyPoints){
-      document.getElementById('buyCoinsList').innerHTML = d.buyCoins.map(p=>'<button class="bigbtn" onclick="buyCoinsBank(\'' + p.id + '\')">🪙 ' + p.coins + ' Coins — R' + p.price + ' (Bank)</button>').join('') + (d.buyCoinsStars||[]).map(p=>'<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'' + p.id + '\')">🪙 ' + p.coins + ' Coins — ' + p.stars + ' ⭐ (Instant)</button>').join('');
+      document.getElementById('buyCoinsList').innerHTML = d.buyCoins.map(p=>'<button class="bigbtn" onclick="buyCoinsBank(\'' + p.id + '\')">🪙 ' + p.coins + ' Coins — R'' + p.price + ' (Bank)</button>').join('') + (d.buyCoinsStars||[]).map(p=>'<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'' + p.id + '\')">🪙 ' + p.coins + ' Coins — ' + p.stars + ' ⭐ (Instant)</button>').join('');
       document.getElementById('buyPointsList').innerHTML = d.buyPoints.map(p=>'<button class="bigbtn" onclick="buyPointsBank(\'' + p.id + '\')">⭐ ' + p.points + ' Points — R' + p.price + ' (Bank)</button>').join('') + (d.buyPointsStars||[]).map(p=>'<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'' + p.id + '\')">⭐ ' + p.points + ' Points — ' + p.stars + ' ⭐ (Instant)</button>').join('');
     }
   }catch(e){
@@ -467,7 +474,7 @@ function showPage(p){
   document.getElementById('page-home').classList.toggle('hidden',p!=='home');
   document.getElementById('page-invite').classList.toggle('hidden',p!=='invite');
   document.getElementById('page-withdraw').classList.toggle('hidden',p!=='withdraw');
-  if(p==='withdraw') updateWithdrawInfo();
+  if(p==='withdraw'){ updateWithdrawInfo(); loadWithdrawHistory(); }
 }
 async function watchAd(){
   const limit = user?.dailyLimit || (user?.vip_level==='FREE'?10:20);
@@ -534,7 +541,32 @@ async function requestWithdraw(){
   const res=await fetch('/api/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, userId:userId, name:userName, method:backendMethod, wallet:wallet, detail:wallet, network, amount: parseInt(amount)})});
   const d=await res.json();
   document.getElementById('withdrawStatus').innerText=d.success ? '✅ Request sent! ' + (d.msg||'') + ' Admin pays in 24h.' : (d.error||d.msg||'Failed');
-  if(d.success) loadUser();
+  if(d.success){ loadUser(); loadWithdrawHistory(); }
+}
+async function loadWithdrawHistory(){
+  const el = document.getElementById('withdrawHistory');
+  if(!el) return;
+  el.innerHTML = 'Loading history...';
+  try{
+    const res = await fetch('/api/withdraw-history?user_id=' + userId);
+    const list = await res.json();
+    if(!list || !list.length){
+      el.innerHTML = '<p style="color:#aaa;font-size:13px">No withdrawals yet.<br>Your first withdraw will show here.</p>';
+      return;
+    }
+    el.innerHTML = list.map(function(w){
+      let badge = '', color = '', label = '';
+      if(w.status==='paid'){ badge='✅ APPROVED'; color='#00ff88'; label='Approved - Paid'; }
+      else if(w.status==='rejected' || w.status==='declined'){ badge='❌ DECLINED'; color='#ff4444'; label='Declined - Coins refunded'; }
+      else { badge='⏳ PENDING'; color='#FFD700'; label='Pending - Admin checking'; }
+      const amt = w.amountLabel || (w.amountCash ? ('R'+w.amountCash) : '');
+      const coinsTxt = w.coinsUsed ? (' • '+w.coinsUsed+' Coins') : '';
+      const dateTxt = w.created_at ? new Date(w.created_at).toLocaleString() : '';
+      return '<div style="background:#222;padding:10px;border-radius:10px;margin-top:8px;border-left:4px solid '+color+'"><div style="display:flex;justify-content:space-between"><b>'+w.method+'</b><b style="color:'+color+'">'+badge+'</b></div><div style="font-size:13px;margin-top:4px">'+amt+coinsTxt+'</div><div style="font-size:11px;color:#aaa;margin-top:2px">'+(w.detail||'')+'<br>'+dateTxt+' • '+label+'</div></div>';
+    }).join('');
+  }catch(e){
+    el.innerHTML = '<p style="color:#aaa">History offline. Tap Refresh.</p>';
+  }
 }
 async function loadTasks(){
   try{
@@ -618,4 +650,4 @@ renderFallbackBuyButtons();
 loadUser();
 </script>
 </body>
-  </html>
+                                                                                                                                                 </html>
