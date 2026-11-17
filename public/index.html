@@ -143,6 +143,19 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 </div>
 <div style="background:#FFD700;color:#000;padding:10px;border-radius:10px;text-align:center;font-weight:900;margin-bottom:8px">🔥 FIRST TOPUP DOUBLE — R29 = 1000 Coins + 1000 Points!</div>
 <div id="packages"></div>
+<!-- ADDED FROM PREVIOUS FIX MESSAGE ONLY - Buy Separately boxes with buyCoinsBox / buyPointsBox -->
+<div style="background:#FFD700;color:#000;padding:12px;border-radius:12px;margin:10px 0;text-align:center;font-weight:900">
+🔥 FIRST TOPUP DOUBLE — R29 = 1000 Coins + 1000 Points!
+</div>
+<div class="card" style="margin-top:8px">
+  <b>🪙 Buy Coins Separately</b>
+  <div id="buyCoinsBox" style="margin-top:8px">Loading coins packages...</div>
+</div>
+<div class="card" style="margin-top:8px">
+  <b>⭐ Buy Points Separately</b>
+  <div id="buyPointsBox" style="margin-top:8px">Loading points packages...</div>
+  <p style="font-size:12px;color:#aaa;margin-top:6px">Bank: Send to Capitec 1893275807 → Admin presses ✅ Approve<br>Stars: Instant, no bank needed</p>
+</div>
 <div style="margin-top:12px;border-top:1px solid #333;padding-top:12px">
   <h4>🪙 Buy Coins Separately</h4>
   <div id="buyCoinsList"><p style="color:#aaa;font-size:12px">Loading coins packages...</p></div>
@@ -236,6 +249,25 @@ let currentYtType='trending';
 let USDT_TO_ZAR=16.59;
 let currentVideo=null;
 let quiz=[], qIndex=0, qScore=0, selectedPackage='p29';
+// ===== ADDED FROM PREVIOUS FIX MESSAGE ONLY - NEVER STAY ON LOADING =====
+const FALLBACK_COINS = [
+  {id:'c500', coins:500, label:'500 Coins - R20'},
+  {id:'c1500', coins:1500, label:'1500 Coins - R50'},
+  {id:'c5000', coins:5000, label:'5000 Coins - R150'},
+  {id:'c15000', coins:15000, label:'15000 Coins - R400'},
+];
+const FALLBACK_POINTS = [
+  {id:'pt500', points:500, label:'500 Points - R20'},
+  {id:'pt1500', points:1500, label:'1500 Points - R50'},
+  {id:'pt5000', points:5000, label:'5000 Points - R150'},
+  {id:'pt15000', points:15000, label:'15000 Points - R400'},
+];
+async function requestTopupSingle(pkgId){
+  const proof=document.getElementById('proofInput').value.trim();
+  if(!proof){ alert('Paste EFT proof first - same box below'); return; }
+  const res=await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'topup_request', packageId:pkgId, proof})});
+  const d=await res.json(); alert(d.msg);
+}
 if(window.Telegram?.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
 document.addEventListener('DOMContentLoaded', function(){ var m=document.getElementById('ytModal'); if(m){ m.classList.add('hidden'); m.style.display='none'; } });
 function buyVip(level, payWith){
@@ -341,13 +373,18 @@ function renderFallbackBuyButtons(){
   var p = document.getElementById('buyPointsList');
   if(c) c.innerHTML = coinsHtml;
   if(p) p.innerHTML = pointsHtml;
+  // ADDED FROM PREVIOUS FIX - also fill buyCoinsBox / buyPointsBox so they never stay on Loading...
+  var cb = document.getElementById('buyCoinsBox');
+  var pb = document.getElementById('buyPointsBox');
+  if(cb) cb.innerHTML = FALLBACK_COINS.map(function(x){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+x.id+'\')">🪙 '+x.label+' (Bank)</button><button class="bigbtn" style="margin-top:4px;background:#7b2fff" onclick="buyWithStars(\'coins\',\''+x.id+'s\')">⭐ Buy with Stars</button>'; }).join('');
+  if(pb) pb.innerHTML = FALLBACK_POINTS.map(function(x){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+x.id+'\')">⭐ '+x.label+' (Bank)</button><button class="bigbtn" style="margin-top:4px;background:#7b2fff" onclick="buyWithStars(\'points\',\''+x.id+'s\')">⭐ Buy with Stars</button>'; }).join('');
 }
 async function loadVipPlans(){
   renderFallbackBuyButtons();
   try{
     const res=await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'info'})});
     const d=await res.json();
-    if(!d.levels) return;
+    if(!d.levels) throw new Error('no levels');
     let html='';
     for(let i=1;i<=20;i++){
       const lv=d.levels[i];
@@ -370,11 +407,26 @@ async function loadVipPlans(){
     }
     document.getElementById('vipPlansList').innerHTML=html;
     if(d.packages) document.getElementById('packages').innerHTML=d.packages.map(p=>'<label style="display:block;background:#1E3A6E;padding:10px;border-radius:10px;margin:6px 0"><input type="radio" name="pkg" value="' + p.id + '" ' + (p.id==='p29'?'checked':'') + ' onchange="selectedPackage=\'' + p.id + '\'"> <b>' + p.label + '</b></label>').join('');
+    // ADDED FROM PREVIOUS FIX - fill buyCoinsBox / buyPointsBox from backend if present, else fallback
+    const coinsList = d.buyCoins || FALLBACK_COINS;
+    const pointsList = d.buyPoints || FALLBACK_POINTS;
+    var cb2 = document.getElementById('buyCoinsBox');
+    var pb2 = document.getElementById('buyPointsBox');
+    if(cb2) cb2.innerHTML = coinsList.map(function(p){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+p.id+'\')">🪙 '+p.label+' (Bank)</button><button class="bigbtn" style="margin-top:4px;background:#7b2fff" onclick="buyWithStars(\'coins\',\''+p.id+'s\')">⭐ Buy with Stars</button>'; }).join('');
+    if(pb2) pb2.innerHTML = pointsList.map(function(p){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+p.id+'\')">⭐ '+p.label+' (Bank)</button><button class="bigbtn" style="margin-top:4px;background:#7b2fff" onclick="buyWithStars(\'points\',\''+p.id+'s\')">⭐ Buy with Stars</button>'; }).join('');
     if(d.buyCoins && d.buyPoints){
       document.getElementById('buyCoinsList').innerHTML = d.buyCoins.map(p=>'<button class="bigbtn" onclick="buyCoinsBank(\'' + p.id + '\')">🪙 ' + p.coins + ' Coins — R' + p.price + ' (Bank)</button>').join('') + (d.buyCoinsStars||[]).map(p=>'<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'' + p.id + '\')">🪙 ' + p.coins + ' Coins — ' + p.stars + ' ⭐ (Instant)</button>').join('');
       document.getElementById('buyPointsList').innerHTML = d.buyPoints.map(p=>'<button class="bigbtn" onclick="buyPointsBank(\'' + p.id + '\')">⭐ ' + p.points + ' Points — R' + p.price + ' (Bank)</button>').join('') + (d.buyPointsStars||[]).map(p=>'<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'' + p.id + '\')">⭐ ' + p.points + ' Points — ' + p.stars + ' ⭐ (Instant)</button>').join('');
     }
-  }catch(e){ console.log('vip load failed, using fallback', e); }
+  }catch(e){
+    console.log('vip fallback', e);
+    // ADDED FROM PREVIOUS FIX - fallback, never leave loading
+    var v = document.getElementById('vipPlansList');
+    if(v && !v.innerHTML) v.innerHTML='<p style="color:#FFD700">VIP loading failed - tap again. Showing offline list.</p>';
+    var pk = document.getElementById('packages');
+    if(pk && !pk.innerHTML) pk.innerHTML='<label style="display:block;background:#1E3A6E;padding:10px;border-radius:10px"><input type="radio" name="pkg" value="p29" checked onchange="selectedPackage=\'p29\'"> <b>R29 - 500 Coins + 500 Points</b></label>';
+    renderFallbackBuyButtons();
+  }
 }
 async function refreshRate(){ try{ const res=await fetch('/api/rate'); const d=await res.json(); if(d.usdtToZar){ USDT_TO_ZAR=d.usdtToZar; convertUSDTInput(); if(user) updateUI(); } }catch(e){} }
 setInterval(refreshRate, 30*60*1000);
@@ -441,7 +493,6 @@ async function watchAd(){
   setTimeout(async ()=>{
     const res=await fetch('/api/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})});
     const data=await res.json();
-```js
     if(data.success){ const r2=await fetch('/api/user/' + userId); user=await r2.json(); if(user.usdtToZar) USDT_TO_ZAR=user.usdtToZar; updateUI(); loadVipPlans(); document.getElementById('adStatus').innerHTML='✅ +$' + data.earnedUSD + ' (' + user.currency + data.earnedCash.toFixed(2) + ') + ' + data.earnedCoins + ' Coins! Ads: ' + data.dailyAds + '/' + data.dailyLimit + ' • ' + data.dailyLeft + ' left<br><span style="color:#FFD700;font-size:12px">💡 Want 10x faster? <b onclick="document.getElementById(\'proofInput\').scrollIntoView({behavior:\'smooth\'})" style="cursor:pointer;text-decoration:underline">Topup R29 → Get 1000 Coins</b></span>'; }
     else { document.getElementById('adStatus').innerText=data.error; if(data.dailyAds>=limit) updateUI(); }
     if(!user || (user.dailyAds||0)<limit){ btn.disabled=false; btn.innerText='▶️ WATCH AD & EARN'; }
@@ -511,6 +562,7 @@ async function loadTasks(){
       return '<div class="task"><span>' + t.title + '<br><small>+' + t.reward_cash + ' + ' + t.reward_coins + ' Coins — ' + t.progress + '</small></span><div style="display:flex;gap:6px"><button onclick="doTask(' + t.id + ')">Do</button><button onclick="claimTask(' + t.id + ')" style="background:#00ff88">Claim</button></div></div>';
     }).join('');
   }catch(e){
+    // ADDED FROM PREVIOUS FIX - fallback, never stay on Loading tasks...
     document.getElementById('tasksList').innerHTML='<div class="task"><span>Join Shaya Earn Network<br><small>+0.05 + 20 Coins — Join group, then Claim</small></span><div style="display:flex;gap:6px"><button onclick="doTask(1)">Do</button><button onclick="claimTask(1)" style="background:#00ff88">Claim</button></div></div><div class="task"><span>Invite 3 Friends<br><small>+0.1 + 50 Coins — 0/3 friends</small></span><div style="display:flex;gap:6px"><button onclick="doTask(2)">Do</button><button onclick="claimTask(2)" style="background:#00ff88">Claim</button></div></div><div class="task"><span>Share Shaya Watch on WhatsApp<br><small>+0.05 + 10 Coins</small></span><div style="display:flex;gap:6px"><button onclick="doTask(3)">Do</button><button onclick="claimTask(3)" style="background:#00ff88">Claim</button></div></div>';
   }
 }
@@ -529,9 +581,12 @@ async function claimTask(taskId){
 async function loadLeaderboard(){
   try{
     const res=await fetch('/api/leaderboard'); const list=await res.json();
-    if(!Array.isArray(list) || list.length===0){ document.getElementById('leaderboard').innerHTML='<p style="color:#aaa;font-size:12px">No users yet. Be the first to earn!</p>'; return; }
+    if(!Array.isArray(list) || list.length===0) throw new Error('empty');
     document.getElementById('leaderboard').innerHTML=list.map((u,i)=>'<div class="leader"><span>' + (i+1) + '. ' + (u.first_name||u.username) + ' (' + u.region + ') ' + (u.vip_level!=='FREE'?'👑':'') + '</span><span>' + u.balance.toFixed(2) + ' + ' + u.coins + ' Coins</span></div>').join('');
-  }catch(e){ document.getElementById('leaderboard').innerHTML='<p style="color:#aaa;font-size:12px">Leaderboard offline. Earn to appear here.</p>'; }
+  }catch(e){
+    // ADDED FROM PREVIOUS FIX - fallback, never stay on Loading...
+    document.getElementById('leaderboard').innerHTML='<div class="leader"><span>1. Be the first!</span><span>Watch ads to climb</span></div>';
+  }
 }
 function openVideo(v){
   var vidId = v.id;
@@ -566,7 +621,14 @@ async function loadVideos(type){
   document.getElementById('ytTrendingBtn').className=type==='trending'?'ytbtn active':'ytbtn';
   document.getElementById('ytMusicBtn').className=type==='music'?'ytbtn active':'ytbtn';
   document.getElementById('ytList').innerHTML='Loading videos...';
-  try{ const res=await fetch('/api/videos/' + type + '?region=' + region); const videos=await res.json(); renderVideos(videos); }catch(e){ renderVideos([]); }
+  try{
+    // ADDED FROM PREVIOUS FIX - 8s timeout so it never hangs on Loading videos...
+    const controller = new AbortController();
+    const timeout = setTimeout(()=>controller.abort(), 8000);
+    const res=await fetch('/api/videos/' + type + '?region=' + region, {signal: controller.signal});
+    clearTimeout(timeout);
+    const videos=await res.json(); renderVideos(videos);
+  }catch(e){ renderVideos([]); }
 }
 async function searchVideos(){
   const q=document.getElementById('ytSearch').value||(region==='SA'?'Amapiano':'Hip Hop');
@@ -576,4 +638,4 @@ renderFallbackBuyButtons();
 loadUser();
 </script>
 </body>
-  </html>
+                                                                                  </html>
