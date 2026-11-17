@@ -1,4 +1,4 @@
-// SHAYA WATCH BOT - FULL FINAL - ZONE 472905 - GROUP -1003867683507 - 20s ANTI-LOOPHOLE
+// SHAYA WATCH BOT - FULL FINAL - 2 ADS FOLLOW ONE ANOTHER = 1 REWARD
 const express = require('express');
 const path = require('path');
 const { Telegraf } = require('telegraf');
@@ -20,7 +20,7 @@ const GIGA_PUBLISHER = 9114;
 const OFFERWALL_ID = 9114;
 const TOPUP_ACCOUNT = '1893275807';
 const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID || '-1003867683507';
-const AD_COOLDOWN_MS = 20000;
+const AD_COOLDOWN_MS = 10000;
 let supabase = null;
 try { if (SUPABASE_URL && SUPABASE_KEY) { supabase = createClient(SUPABASE_URL, SUPABASE_KEY); console.log('Supabase connected'); } } catch(e){ console.log('Supabase failed', e.message); }
 let USDT_TO_ZAR = 16.59; let lastRateFetch = 0;
@@ -64,8 +64,8 @@ function formatUserForFrontend(u){ if(u.dailyDate!==todayStr()){ u.dailyAds=0; u
 function getPerAd(u){ const lvl=getLevel(u); return { cash: u.region==='SA'? lvl.adCashSA : lvl.adUSD, coins: lvl.adReward, usd: lvl.adUSD, dailyLimit: lvl.adLimit, minWithdrawUSDT: 20 }; }
 let bot = null; if(BOT_TOKEN){ try{ bot = new Telegraf(BOT_TOKEN); console.log('Bot created - Shaya Watch Bot'); }catch(e){ console.log('Bot create failed', e.message); } }
 app.get('/health', function(req,res){ res.json({ok:true, bot:'Shaya Watch Bot', time:new Date().toISOString()}); });
-app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-final-472905', ads:'ON', minSA:'R350', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', king:'$0.025', groupPost:'ON'}); });
-app.get('/api/ads/config', function(req,res){ res.json({ onclicka_zone: ONCLICKA_ZONE, giga_publisher: GIGA_PUBLISHER, offerwall_id: OFFERWALL_ID, order: ['redirect','offerwall'], cooldown_ms: AD_COOLDOWN_MS }); });
+app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-final-472905-2ads-1reward-sequential', ads:'ON', minSA:'R350', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', king:'$0.025', groupPost:'ON'}); });
+app.get('/api/ads/config', function(req,res){ res.json({ onclicka_zone: ONCLICKA_ZONE, giga_publisher: GIGA_PUBLISHER, offerwall_id: OFFERWALL_ID, mode: '2ads-sequential-1reward', cooldown_ms: AD_COOLDOWN_MS }); });
 app.get('/', function(req,res){ res.sendFile(path.join(__dirname, 'index.html')); });
 app.get('/api/rate', async function(req,res){ const r = await refreshRate(); res.json({usdtToZar:r, usdt:1, zar:r}); });
 app.get('/api/convert-usdt', async function(req,res){ const usdt=parseFloat(req.query.usdt || 0); const r=await refreshRate(); res.json({usdt:usdt, zar:(usdt*r).toFixed(2), rate:r}); });
@@ -73,24 +73,24 @@ app.get('/api/vip-plans', async function(req,res){ const region=req.query.region
 app.get('/api/user/:id', async function(req,res){ const u = await getUserAsync(req.params.id, null); if(!u) return res.json({error:'user not found - send /start in bot first'}); res.json(formatUserForFrontend(u)); });
 app.post('/api/sync', async function(req,res){ const b=req.body; let u = await getUserAsync(b.user_id, null); const patch={}; if(b.balance!==undefined) patch.balance=parseFloat(b.balance); if(b.coins!==undefined) patch.coins=parseInt(b.coins); if(b.total_ads!==undefined) patch.total_ads=parseInt(b.total_ads); if(b.referrals!==undefined) patch.referrals=parseInt(b.referrals); if(b.streak!==undefined) patch.streak=parseInt(b.streak); if(b.total_earned!==undefined) patch.total_earned=parseFloat(b.total_earned); if(b.region){ patch.region=b.region; patch.currency=b.region==='USA'?'$':'R'; } if(b.vip_level) patch.vip_level=b.vip_level; const updated = await updateUser(u.id, patch); res.json({success:true, user:formatUserForFrontend(updated)}); });
 app.post('/api/set-region', async function(req,res){ const b=req.body; if(b.region!=='SA' && b.region!=='USA') return res.json({error:'Invalid region'}); let u = await getUserAsync(b.user_id, null); if(u.region===b.region) return res.json({success:true, user:formatUserForFrontend(u)}); const rate=await refreshRate(); const oldRegion=u.region, oldBalance=u.balance; let newBalance=oldBalance; if(oldRegion==='SA'&&b.region==='USA') newBalance=oldBalance/rate; else if(oldRegion==='USA'&&b.region==='SA') newBalance=oldBalance*rate; const updated=await updateUser(u.id, {region:b.region, currency:b.region==='USA'?'$':'R', balance:parseFloat(newBalance.toFixed(2))}); res.json({success:true, user:formatUserForFrontend(updated)}); });
-// WATCH AD - REDIRECT 2 ADS = 1 REWARD - 20s ANTI-LOOPHOLE IN BACKEND
+// WATCH - 2 ADS SEQUENTIAL = 1 REWARD - ONLY ONE CREDIT AFTER BOTH
 app.post('/api/watch', async function(req,res){
   const u0=req.body; let u=await getUserAsync(u0.user_id, null);
-  const source = (u0.source || 'redirect-2ads').toLowerCase();
+  const source = (u0.source || '2ads-sequential').toLowerCase();
   if(u.dailyDate!==todayStr()){ u.dailyAds=0; u.dailyDate=todayStr(); }
   const perAd=getPerAd(u);
   if((u.dailyAds||0)>=perAd.dailyLimit) return res.json({error:'Daily limit reached! '+getVipName(u)+' = '+perAd.dailyLimit+'/day.', dailyAds:u.dailyAds, dailyLimit:perAd.dailyLimit, source: source});
-  const waitMs = AD_COOLDOWN_MS;
-  if(Date.now()-(u.lastAd||0) < waitMs) return res.json({error:'Wait 20 sec between ads - Anti-loophole. You must watch full ad.', waitSec: Math.ceil((waitMs - (Date.now()-(u.lastAd||0)))/1000), source: source});
+  if(Date.now()-(u.lastAd||0) < AD_COOLDOWN_MS) return res.json({error:'Wait 10 sec between rewards.', waitSec: Math.ceil((AD_COOLDOWN_MS - (Date.now()-(u.lastAd||0)))/1000), source: source});
+  // ONE reward for 2 ads - not per ad
   const updated=await updateUser(u.id, { balance: parseFloat((u.balance+perAd.cash).toFixed(2)), coins: u.coins+perAd.coins, total_ads:(u.total_ads||0)+1, total_earned: parseFloat(((u.total_earned||0)+perAd.cash).toFixed(2)), dailyAds:(u.dailyAds||0)+1, dailyDate:todayStr(), lastAd:Date.now(), adsToday:(u.adsToday||0)+1, lastAdDay:todayStr() });
   adLogs.push({ user_id: u.id, source: source, cash: perAd.cash, coins: perAd.coins, at: new Date().toISOString() });
-  console.log('Ad watched:', u.id, 'source:', source, 'earned:', perAd.cash, perAd.coins);
+  console.log('2 Ads Paid 1 Reward:', u.id, 'source:', source, 'earned:', perAd.cash, perAd.coins);
   res.json({success:true, source: source, earnedCash:parseFloat(perAd.cash.toFixed(2)), earnedCoins:perAd.coins, earnedUSD:perAd.usd, dailyAds:updated.dailyAds, dailyLimit:perAd.dailyLimit, dailyLeft:perAd.dailyLimit-updated.dailyAds, balance:updated.balance});
 });
 app.post('/api/earn', async function(req,res){
   const b=req.body; const id = b.userId || b.user_id; const u = await getUserAsync(id, b.name, {device_id:b.device_id}); const lvl=getLevel(u);
   if(b.action==='balance') return res.json({coins:u.coins, totalEarned:u.total_earned, adsWatched:u.total_ads, level:u.level||1, levelName:lvl.name, points:u.points||0, tasks:OFFERWALL, tasksDone:u.tasksDone, quizUnlocked:(u.total_ads||0)>=QUIZ_UNLOCK_ADS, quizNeed:Math.max(0,QUIZ_UNLOCK_ADS-(u.total_ads||0)), withdrawMin:lvl.withdrawMin, unlockedLevels:u.unlockedLevels||[1], levelExpiresAt:u.levelExpiresAt||0, expiresInDays:u.levelExpiresAt?Math.max(0,Math.ceil((u.levelExpiresAt-Date.now())/(1000*60*60*24))):0});
-  if(b.action==='ad'){ if(u.dailyDate!==todayStr()){ u.dailyAds=0; u.dailyDate=todayStr(); } const perAd=getPerAd(u); if((u.dailyAds||0)>=perAd.dailyLimit) return res.json({coins:u.coins, msg:'Daily limit '+perAd.dailyLimit+' reached. Go VIP!'}); if(Date.now()-(u.lastAd||0)<AD_COOLDOWN_MS) return res.json({coins:u.coins, msg:'Wait 20 sec'}); const upd=await updateUser(u.id, {coins:u.coins+perAd.coins, balance:parseFloat((u.balance+perAd.cash).toFixed(2)), total_earned:parseFloat((u.total_earned+perAd.cash).toFixed(2)), total_ads:u.total_ads+1, dailyAds:u.dailyAds+1, dailyDate:todayStr(), lastAd:Date.now(), adsToday:(u.adsToday||0)+1, lastAdDay:todayStr()}); return res.json({coins:upd.coins, msg:'+'+perAd.coins+' Coins + '+u.currency+perAd.cash.toFixed(2)+'! Balance: '+upd.coins+' coins'}); }
+  if(b.action==='ad'){ if(u.dailyDate!==todayStr()){ u.dailyAds=0; u.dailyDate=todayStr(); } const perAd=getPerAd(u); if((u.dailyAds||0)>=perAd.dailyLimit) return res.json({coins:u.coins, msg:'Daily limit '+perAd.dailyLimit+' reached. Go VIP!'}); if(Date.now()-(u.lastAd||0)<AD_COOLDOWN_MS) return res.json({coins:u.coins, msg:'Wait 10 sec'}); const upd=await updateUser(u.id, {coins:u.coins+perAd.coins, balance:parseFloat((u.balance+perAd.cash).toFixed(2)), total_earned:parseFloat((u.total_earned+perAd.cash).toFixed(2)), total_ads:u.total_ads+1, dailyAds:u.dailyAds+1, dailyDate:todayStr(), lastAd:Date.now(), adsToday:(u.adsToday||0)+1, lastAdDay:todayStr()}); return res.json({coins:upd.coins, msg:'+'+perAd.coins+' Coins + '+u.currency+perAd.cash.toFixed(2)+'!'}); }
   if(b.action==='quiz'){ if((u.total_ads||0)<QUIZ_UNLOCK_ADS) return res.json({coins:u.coins, msg:'Quiz Locked! Watch '+(QUIZ_UNLOCK_ADS-(u.total_ads||0))+' more ads.', locked:true}); if(Date.now()-(u.lastQuiz||0)<20*60*60*1000) return res.json({coins:u.coins, msg:'Already played today'}); return res.json({coins:u.coins, quiz:QUIZ}); }
   if(b.action==='quiz_done'){ if((u.total_ads||0)<QUIZ_UNLOCK_ADS) return res.json({coins:u.coins, msg:'Quiz locked. Watch 10 ads first.'}); if(Date.now()-(u.lastQuiz||0)<20*60*60*1000) return res.json({coins:u.coins, msg:'Already played today'}); const upd = b.score>=3 ? await updateUser(u.id, {coins:u.coins+lvl.quizReward, total_earned:u.total_earned+lvl.quizReward, lastQuiz:Date.now()}) : await updateUser(u.id, {lastQuiz:Date.now()}); return res.json({coins:upd.coins, msg: b.score>=3 ? 'Score '+b.score+'/5. +'+lvl.quizReward+' coins!' : 'Score '+b.score+'/5. Need 3+ to earn.'}); }
   if(b.action==='offerwall'){ const task=OFFERWALL.find(function(t){ return t.id===b.taskId; }); if(!task) return res.json({coins:u.coins, msg:'Task not found'}); if((u.tasksDone||[]).indexOf(b.taskId)!==-1) return res.json({coins:u.coins, msg:'Already claimed'}); if(b.taskId==='ads_10' && (u.total_ads||0)<10) return res.json({coins:u.coins, msg:'Watch 10 ads first. You have '+u.total_ads}); if(b.taskId==='ads_50' && (u.total_ads||0)<50) return res.json({coins:u.coins, msg:'Watch 50 ads first. You have '+u.total_ads}); if(b.taskId==='invite_1' && (u.referrals||0)<1) return res.json({coins:u.coins, msg:'Invite 1 friend first'}); const upd=await updateUser(u.id, {tasksDone:(u.tasksDone||[]).concat([b.taskId]), coins:u.coins+task.reward, total_earned:u.total_earned+task.reward}); return res.json({coins:upd.coins, msg:task.title+' +'+task.reward+' coins!'}); }
@@ -155,4 +155,4 @@ if(bot){
   bot.launch().then(function(){ console.log('Bot launched @ShayaWatchAllBot - ADS ON - ZONE '+ONCLICKA_ZONE); }).catch(function(e){ console.log('Bot launch failed', e.message); });
   process.once('SIGINT', function(){ bot.stop('SIGINT'); }); process.once('SIGTERM', function(){ bot.stop('SIGTERM'); });
 } else console.log('BOT_TOKEN not set - bot disabled, API still works');
-app.listen(PORT, function(){ console.log('Shaya Watch Bot running on '+PORT); console.log('WebApp: '+WEBAPP_URL); console.log('Ads: Zone '+ONCLICKA_ZONE+' + Offerwall ON'); console.log('Group: '+GROUP_CHAT_ID); });
+app.listen(PORT, function(){ console.log('Shaya Watch Bot running on '+PORT); console.log('WebApp: '+WEBAPP_URL); console.log('Ads: Zone '+ONCLICKA_ZONE+' + Offerwall ON - 2 Ads = 1 Reward Sequential'); console.log('Group: '+GROUP_CHAT_ID); });
