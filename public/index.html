@@ -6,10 +6,9 @@
 <title>Shaya Watch - Earn Cash + Coins</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
-body{background:#0a0a0a;color:#fff;padding:12px;padding-bottom:80px}
+body{background:#0a0a0a;color:#fff;padding:12px;padding-bottom:90px}
 .top{display:flex;justify-content:space-between;align-items:center;background:#111;padding:12px;border-radius:12px}
 .top b{color:#FFD700;font-size:18px}
-.top span{font-size:12px;color:#aaa}
 .card{background:#151515;border:1px solid #222;border-radius:14px;padding:14px;margin-top:12px}
 .card h3{color:#FFD700;margin-bottom:8px;font-size:15px}
 .big{font-size:28px;font-weight:bold}
@@ -20,28 +19,32 @@ body{background:#0a0a0a;color:#fff;padding:12px;padding-bottom:80px}
 .btn-dark{background:#222;color:#fff;border:1px solid #333}
 .btn-green{background:#00c853;color:#fff}
 .btn-blue{background:#2196F3;color:#fff}
+.btn-red{background:#e53935;color:#fff}
 input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;background:#111;color:#fff;margin-top:8px}
-label{font-size:12px;color:#aaa}
 .badge{display:inline-block;background:#FFD700;color:#000;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:bold}
 .adbox{background:#111;border:1px solid #FFD700;border-radius:14px;padding:14px;margin-top:12px;text-align:center}
 #ad-slot{min-height:90px;background:#000;border-radius:10px;margin:8px 0;overflow:hidden}
 #ad-status{color:#aaa;font-size:12px;margin-top:6px}
-.task{border:1px solid #222;padding:10px;border-radius:10px;margin-top:8px;display:flex;justify-content:space-between;align-items:center}
-.tabs{position:fixed;bottom:0;left:0;right:0;background:#111;display:flex;border-top:1px solid #222}
-.tabs button{flex:1;background:none;border:none;color:#aaa;padding:14px;font-weight:bold}
+.task{border:1px solid #222;padding:10px;border-radius:10px;margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tabs{position:fixed;bottom:0;left:0;right:0;background:#111;display:flex;border-top:1px solid #222;z-index:99}
+.tabs button{flex:1;background:none;border:none;color:#aaa;padding:12px 2px;font-weight:bold;font-size:12px}
 .tabs button.active{color:#FFD700}
 .hidden{display:none}
 .vip-row{border:1px solid #222;padding:10px;border-radius:10px;margin-top:8px}
+.video{border:1px solid #222;border-radius:12px;overflow:hidden;margin-top:10px;background:#000}
+.video img{width:100%;display:block}
+.video-info{padding:10px}
+.chip{display:inline-block;background:#222;padding:6px 10px;border-radius:20px;font-size:12px;margin:4px 4px 0 0;cursor:pointer}
+.chip.active{background:#FFD700;color:#000}
 </style>
 </head>
 <body>
 
 <div class="top">
   <div><b>👁️ SHAYA WATCH</b><br><span id="userName">Loading...</span></div>
-  <div style="text-align:right"><span class="badge" id="vipBadge">FREE</span><br><span id="levelText">Level 1/20</span></div>
+  <div style="text-align:right"><span class="badge" id="vipBadge">FREE</span><br><span id="levelText" style="font-size:12px;color:#aaa">Level 1/20</span></div>
 </div>
 
-<!-- BALANCE -->
 <div class="card">
   <h3>💰 YOUR BALANCE</h3>
   <div class="big" id="balance">R0.00</div>
@@ -59,335 +62,192 @@ label{font-size:12px;color:#aaa}
   </div>
 </div>
 
-<!-- EARN TAB -->
+<!-- EARN -->
 <div id="tab-earn">
-  <!-- ===== ADS - ONCLICKA MAIN + GIGA BACKUP + OFFERWALL ===== -->
   <div class="adbox">
     <h3 style="color:#FFD700">📺 WATCH AD TO EARN</h3>
-    <div class="small">Per Ad: <b id="perAd" style="color:#fff">R0.17 + 5 Coins</b> • <span id="dailyLeft">10 left today</span></div>
-    <div id="ad-slot">
-      <div style="padding:30px;color:#888">Tap WATCH AD below - OnclickA will load first</div>
-    </div>
+    <div class="small">Per Ad: <b id="perAd" style="color:#fff">R0.17 + 5 Coins</b> • <span id="dailyLeft">10 left</span></div>
+    <div id="ad-slot"><div style="padding:30px;color:#888">Tap WATCH AD - OnclickA 472254 first, Giga 9114 backup</div></div>
     <button class="btn btn-gold" onclick="watchAd()">▶ WATCH AD + EARN</button>
-    <button class="btn btn-dark" onclick="openOfferwall()" style="margin-top:8px">🎁 NO AD? OPEN OFFERWALL - ALWAYS AVAILABLE</button>
-    <div id="ad-status">Ads ready: OnclickA 472254 + Giga 9114 backup</div>
-    <div class="small" style="margin-top:6px">If OnclickA has no ad, Giga loads automatically in 5 sec.</div>
+    <button class="btn btn-dark" onclick="openOfferwall()" style="margin-top:8px">🎁 NO AD? OPEN OFFERWALL 9114 - ALWAYS AVAILABLE</button>
+    <div id="ad-status">Ads ready: OnclickA + Giga backup</div>
   </div>
-
-  <!-- OFFERWALL BOX -->
   <div class="card">
     <h3>🎁 OFFERWALL - GIGA 9114</h3>
-    <div class="small">Complete tasks, surveys, app installs = Coins. Always available even when ads are empty.</div>
+    <div class="small">Tasks, surveys, installs = Coins. Always available.</div>
     <button class="btn btn-blue" onclick="openOfferwall()" style="margin-top:10px">OPEN OFFERWALL 9114</button>
     <div id="offerwallList"></div>
   </div>
-
-  <!-- DAILY + QUIZ -->
   <div class="card">
     <h3>🎁 DAILY BONUS + QUIZ</h3>
-    <button class="btn btn-gold" onclick="claimDaily()">🎁 CLAIM DAILY BONUS +20 COINS</button>
-    <button class="btn btn-dark" onclick="playQuiz()" style="margin-top:8px">🧠 PLAY QUIZ (Unlock after 10 ads)</button>
+    <button class="btn btn-gold" onclick="claimDaily()">🎁 CLAIM DAILY +20 COINS</button>
+    <button class="btn btn-dark" onclick="playQuiz()" style="margin-top:8px">🧠 PLAY QUIZ (After 10 ads)</button>
     <div id="quizBox" style="margin-top:10px"></div>
   </div>
+  <div class="card"><h3>✅ TASKS</h3><div id="tasksBox">Loading...</div></div>
+</div>
 
-  <!-- TASKS -->
+<!-- VIDEOS - RESTORED -->
+<div id="tab-videos" class="hidden">
   <div class="card">
-    <h3>✅ TASKS</h3>
-    <div id="tasksBox">Loading tasks...</div>
+    <h3>🎬 YOUTUBE VIDEOS - WATCH & EARN</h3>
+    <div class="small">Watch videos = Stay longer = More ads = More earnings. Tap a video to watch, then tap WATCH AD to earn.</div>
+    <div style="margin-top:10px">
+      <span class="chip active" id="chip-trending" onclick="loadVideos('trending')">🔥 Trending</span>
+      <span class="chip" id="chip-music" onclick="loadVideos('music')">🎵 Music / Amapiano</span>
+      <span class="chip" onclick="loadVideos('trending')">🇿🇦 SA</span>
+      <span class="chip" onclick="loadVideos('music')">🇺🇸 USA</span>
+    </div>
+    <input id="videoSearch" placeholder="Search videos - e.g. Kabza, Amapiano, Hip Hop">
+    <button class="btn btn-dark" onclick="searchVideos()" style="margin-top:8px">🔍 SEARCH VIDEOS</button>
+    <div id="videosBox" style="margin-top:10px">Loading videos...</div>
+    <button class="btn btn-gold" onclick="watchAd()" style="margin-top:10px">▶ WATCH AD AFTER VIDEO + EARN</button>
   </div>
 </div>
 
-<!-- VIP TAB -->
+<!-- VIP -->
 <div id="tab-vip" class="hidden">
-  <div class="card">
-    <h3>👑 VIP - 20 LEVELS - 30 DAYS</h3>
-    <div class="small">FREE: $0.01/ad - 10/day • KING: $0.025/ad - 20/day • Min R350 / $20</div>
-    <div id="vipList">Loading VIP...</div>
-  </div>
+  <div class="card"><h3>👑 VIP - 20 LEVELS - 30 DAYS</h3><div class="small">FREE: $0.01/ad - 10/day • KING: $0.025/ad - 20/day • Min R350 / $20</div><div id="vipList">Loading...</div></div>
   <div class="card">
     <h3>🏦 TOPUP - FIRST TOPUP DOUBLE!</h3>
-    <div class="small">Send to Capitec <b style="color:#fff">1893275807</b> • Ref: Your Name • Then request below</div>
-    <label>Choose Package</label>
-    <select id="topupPkg">
-      <option value="p29">R29 - 500 Coins + 500 Points</option>
-      <option value="p79">R79 - 1500 Coins + 1500 Points</option>
-      <option value="p179">R179 - 4000 Coins + 4000 Points</option>
-      <option value="p349">R349 - 9000 Coins + 9000 Points</option>
-      <option value="p699">R699 - 20000 Coins + 20000 Points</option>
-    </select>
-    <input id="topupProof" placeholder="Proof - e.g. Capitec SMS / Name + Amount">
+    <div class="small">Capitec <b style="color:#fff">1893275807</b> • Ref: Your Name</div>
+    <select id="topupPkg"><option value="p29">R29 - 500 Coins + 500 Points</option><option value="p79">R79 - 1500 + 1500</option><option value="p179">R179 - 4000 + 4000</option><option value="p349">R349 - 9000 + 9000</option><option value="p699">R699 - 20000 + 20000</option></select>
+    <input id="topupProof" placeholder="Proof - Name + Amount">
     <button class="btn btn-gold" onclick="requestTopup()" style="margin-top:10px">SEND TOPUP REQUEST</button>
-    <div class="small" style="margin-top:6px">First topup under 500 coins = DOUBLE! Admin checks Capitec then approves.</div>
   </div>
-  <div class="card">
-    <h3>🪙 BUY COINS / POINTS WITH STARS</h3>
-    <div class="grid">
-      <button class="btn btn-dark" onclick="buyStars('coins','c500s')">500 Coins - 70 ⭐</button>
-      <button class="btn btn-dark" onclick="buyStars('coins','c1500s')">1500 Coins - 170 ⭐</button>
-      <button class="btn btn-dark" onclick="buyStars('points','pt500s')">500 Points - 70 ⭐</button>
-      <button class="btn btn-dark" onclick="buyStars('points','pt1500s')">1500 Points - 170 ⭐</button>
-    </div>
-  </div>
+  <div class="card"><h3>🪙 BUY WITH STARS</h3><div class="grid"><button class="btn btn-dark" onclick="buyStars('coins','c500s')">500 Coins - 70 ⭐</button><button class="btn btn-dark" onclick="buyStars('coins','c1500s')">1500 Coins - 170 ⭐</button><button class="btn btn-dark" onclick="buyStars('points','pt500s')">500 Points - 70 ⭐</button><button class="btn btn-dark" onclick="buyStars('points','pt1500s')">1500 Points - 170 ⭐</button></div></div>
 </div>
 
-<!-- WITHDRAW TAB -->
+<!-- WITHDRAW -->
 <div id="tab-withdraw" class="hidden">
   <div class="card">
     <h3>💸 WITHDRAW</h3>
-    <label>Method</label>
-    <select id="wdMethod" onchange="updateWdHint()">
-      <option value="Dollars (USDT) - Walt">Dollars (USDT) - Walt (UQ...)</option>
-      <option value="Gram - Walt">Gram - Walt (UQ...)</option>
-      <option value="Capitec / Bank">Capitec / Bank - R350</option>
-      <option value="Airtime">Airtime - 110 Coins = R1 - NO LIMIT</option>
-      <option value="Data">Data - 110 Coins = R1 - NO LIMIT</option>
-    </select>
-    <div class="small" id="wdHint">Min R350 HARD LOCK. Walt address must start with UQ...</div>
-    <input id="wdWallet" placeholder="Walt UQ... / Capitec Account / Phone Number">
-    <input id="wdAmount" type="number" placeholder="For Airtime/Data: Amount in R e.g. 10 (Leave empty for full balance)">
-    <input id="wdNetwork" placeholder="Network for Airtime/Data: e.g. MTN / Vodacom / Telkom">
+    <select id="wdMethod" onchange="updateWdHint()"><option value="Dollars (USDT) - Walt">Dollars (USDT) - Walt (UQ...)</option><option value="Gram - Walt">Gram - Walt (UQ...)</option><option value="Capitec / Bank">Capitec / Bank - R350</option><option value="Airtime">Airtime - 110 Coins = R1 - NO LIMIT</option><option value="Data">Data - 110 Coins = R1 - NO LIMIT</option></select>
+    <div class="small" id="wdHint">Min R350 HARD LOCK. Walt must start with UQ...</div>
+    <input id="wdWallet" placeholder="Walt UQ... / Capitec / Phone">
+    <input id="wdAmount" type="number" placeholder="Airtime/Data: R amount e.g. 10">
+    <input id="wdNetwork" placeholder="Network: MTN / Vodacom / Telkom">
     <button class="btn btn-green" onclick="requestWithdraw()" style="margin-top:10px">REQUEST WITHDRAW</button>
     <div id="wdMsg" class="small" style="margin-top:8px"></div>
   </div>
-  <div class="card">
-    <h3>🔄 CONVERT COINS</h3>
-    <div class="small">1000 Coins = Cash. Tap to convert all.</div>
-    <button class="btn btn-dark" onclick="convertCoins()" style="margin-top:8px">CONVERT 1000+ COINS TO CASH</button>
-  </div>
+  <div class="card"><h3>🔄 CONVERT COINS</h3><button class="btn btn-dark" onclick="convertCoins()" style="margin-top:8px">CONVERT 1000+ COINS TO CASH</button></div>
 </div>
 
-<!-- LEADERBOARD TAB -->
+<!-- TOP -->
 <div id="tab-leader" class="hidden">
   <div class="card"><h3>🏆 LEADERBOARD - TOP 20</h3><div id="leaderBox">Loading...</div></div>
-  <div class="card">
-    <h3>🔗 INVITE FRIENDS</h3>
-    <div class="small">Share your link = +50 Coins + Cash per friend (SA: R8.30, USA: $0.10)</div>
-    <input id="refLink" readonly>
-    <button class="btn btn-gold" onclick="copyRef()" style="margin-top:8px">COPY INVITE LINK</button>
-  </div>
+  <div class="card"><h3>🔗 INVITE FRIENDS</h3><div class="small">+50 Coins + Cash per friend</div><input id="refLink" readonly><button class="btn btn-gold" onclick="copyRef()" style="margin-top:8px">COPY INVITE LINK</button></div>
 </div>
 
 <div class="tabs">
   <button id="btn-earn" class="active" onclick="showTab('earn')">📺 Earn</button>
+  <button id="btn-videos" onclick="showTab('videos')">🎬 Videos</button>
   <button id="btn-vip" onclick="showTab('vip')">👑 VIP</button>
   <button id="btn-withdraw" onclick="showTab('withdraw')">💸 Withdraw</button>
   <button id="btn-leader" onclick="showTab('leader')">🏆 Top</button>
 </div>
 
 <script>
-// ===== USER ID - from Telegram WebApp or URL =====
-let currentUserId = '';
-let currentUser = null;
+let currentUserId=''; let currentUser=null;
 function getUserId(){
   try{
-    const url = new URLSearchParams(window.location.search);
+    const url=new URLSearchParams(window.location.search);
     if(url.get('user_id')) return url.get('user_id');
-    if(url.get('id')) return url.get('id');
-    if(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user){
-      return String(window.Telegram.WebApp.initDataUnsafe.user.id);
-    }
+    if(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) return String(window.Telegram.WebApp.initDataUnsafe.user.id);
   }catch(e){}
-  let saved = localStorage.getItem('shaya_user_id');
-  if(!saved){
-    saved = 'web_' + Math.random().toString(36).slice(2,10);
-    localStorage.setItem('shaya_user_id', saved);
-  }
-  return saved;
+  let s=localStorage.getItem('shaya_user_id'); if(!s){ s='web_'+Math.random().toString(36).slice(2,10); localStorage.setItem('shaya_user_id',s); } return s;
 }
-currentUserId = getUserId();
-window.currentUserId = currentUserId;
-
+currentUserId=getUserId(); window.currentUserId=currentUserId;
 async function loadBalance(){
   try{
-    const r = await fetch('/api/user/' + currentUserId);
-    const d = await r.json();
-    if(d.error){ document.getElementById('userName').innerText = 'Send /start in @ShayaWatchAllBot first'; return; }
-    currentUser = d;
-    document.getElementById('userName').innerText = (d.name || 'Friend') + ' • ' + d.region;
-    document.getElementById('balance').innerText = d.currency + parseFloat(d.balance||0).toFixed(2);
-    document.getElementById('usdtBal').innerText = '$' + (d.usdtBalance||0) + ' USDT';
-    document.getElementById('rate').innerText = d.usdtToZar || 16.59;
-    document.getElementById('coins').innerText = d.coins;
-    document.getElementById('points').innerText = d.points;
-    document.getElementById('adsToday').innerText = d.dailyAds + '/' + d.dailyLimit;
-    document.getElementById('referrals').innerText = d.referrals;
-    document.getElementById('vipBadge').innerText = d.vip_level;
-    document.getElementById('levelText').innerText = 'Level ' + d.level + '/20 • ' + d.levelName;
-    document.getElementById('perAd').innerText = d.currency + d.perAd.cash.toFixed(2) + ' + ' + d.perAd.coins + ' Coins';
-    document.getElementById('dailyLeft').innerText = d.dailyLeft + ' left today';
-    const ref = 'https://t.me/ShayaWatchAllBot?start=ref_' + currentUserId;
-    document.getElementById('refLink').value = ref;
+    const r=await fetch('/api/user/'+currentUserId); const d=await r.json();
+    if(d.error){ document.getElementById('userName').innerText='Send /start in @ShayaWatchAllBot first'; return; }
+    currentUser=d;
+    document.getElementById('userName').innerText=(d.name||'Friend')+' • '+d.region;
+    document.getElementById('balance').innerText=d.currency+parseFloat(d.balance||0).toFixed(2);
+    document.getElementById('usdtBal').innerText='$'+(d.usdtBalance||0)+' USDT';
+    document.getElementById('rate').innerText=d.usdtToZar||16.59;
+    document.getElementById('coins').innerText=d.coins; document.getElementById('points').innerText=d.points;
+    document.getElementById('adsToday').innerText=d.dailyAds+'/'+d.dailyLimit; document.getElementById('referrals').innerText=d.referrals;
+    document.getElementById('vipBadge').innerText=d.vip_level; document.getElementById('levelText').innerText='Level '+d.level+'/20 • '+d.levelName;
+    document.getElementById('perAd').innerText=d.currency+d.perAd.cash.toFixed(2)+' + '+d.perAd.coins+' Coins';
+    document.getElementById('dailyLeft').innerText=d.dailyLeft+' left today';
+    document.getElementById('refLink').value='https://t.me/ShayaWatchAllBot?start=ref_'+currentUserId;
     loadTasks();
-  }catch(e){ console.log(e); }
+  }catch(e){console.log(e)}
 }
-
-// ===== ADS - ONCLICKA MAIN + GIGA BACKUP =====
-const ONCLICKA_ZONE = 472254;
-const GIGA_PUBLISHER = 9114;
-const OFFERWALL_ID = 9114;
-
+// ADS
+const ONCLICKA_ZONE=472254, GIGA_PUBLISHER=9114, OFFERWALL_ID=9114;
 function watchAd(){
-  document.getElementById('ad-status').innerText = 'Loading OnclickA ad (472254)...';
-  window.__onclickaFilled = false;
+  document.getElementById('ad-status').innerText='Loading OnclickA ad (472254)...'; window.__onclickaFilled=false;
   try{ loadOnclickaAd(); }catch(e){ loadGigaAd(); }
-  setTimeout(function(){
-    if(!window.__onclickaFilled){
-      document.getElementById('ad-status').innerText = 'OnclickA no fill - Loading Giga backup (9114)...';
-      loadGigaAd();
-    }
-  }, 5000);
+  setTimeout(function(){ if(!window.__onclickaFilled){ document.getElementById('ad-status').innerText='OnclickA no fill - Loading Giga backup (9114)...'; loadGigaAd(); } },5000);
 }
 function loadOnclickaAd(){
-  const slot = document.getElementById('ad-slot');
-  slot.innerHTML = '';
-  const s = document.createElement('script');
-  s.src = 'https://onclicka.com/ad.js';
-  s.setAttribute('data-zone', ONCLICKA_ZONE);
-  s.onload = function(){ window.__onclickaFilled = true; document.getElementById('ad-status').innerText = 'OnclickA ad loaded - Crediting...'; creditAd('onclicka'); };
-  s.onerror = function(){ loadGigaAd(); };
-  slot.appendChild(s);
-  // Fallback visual if script shows nothing - still allow click to earn after 3s
-  setTimeout(function(){ if(!window.__onclickaFilled){ /* keep waiting for 5s timer */ } }, 3000);
+  const slot=document.getElementById('ad-slot'); slot.innerHTML='';
+  const s=document.createElement('script'); s.src='https://onclicka.com/ad.js'; s.setAttribute('data-zone',ONCLICKA_ZONE);
+  s.onload=function(){ window.__onclickaFilled=true; document.getElementById('ad-status').innerText='OnclickA loaded - Crediting...'; creditAd('onclicka'); };
+  s.onerror=function(){ loadGigaAd(); }; slot.appendChild(s);
 }
 function loadGigaAd(){
-  const slot = document.getElementById('ad-slot');
-  slot.innerHTML = '';
-  document.getElementById('ad-status').innerText = 'Loading Giga backup ad (9114)...';
-  const iframe = document.createElement('iframe');
-  iframe.src = 'https://giga.pub/?p=' + GIGA_PUBLISHER + '&user=' + currentUserId;
-  iframe.style.width = '100%';
-  iframe.style.height = '250px';
-  iframe.style.border = 'none';
-  iframe.style.borderRadius = '10px';
-  iframe.onload = function(){ document.getElementById('ad-status').innerText = 'Giga backup loaded - Crediting...'; creditAd('giga'); };
-  slot.appendChild(iframe);
+  const slot=document.getElementById('ad-slot'); slot.innerHTML=''; document.getElementById('ad-status').innerText='Loading Giga backup (9114)...';
+  const f=document.createElement('iframe'); f.src='https://giga.pub/?p='+GIGA_PUBLISHER+'&user='+currentUserId; f.style.width='100%'; f.style.height='250px'; f.style.border='none'; f.style.borderRadius='10px';
+  f.onload=function(){ document.getElementById('ad-status').innerText='Giga backup loaded - Crediting...'; creditAd('giga'); }; slot.appendChild(f);
 }
-function openOfferwall(){
-  const url = 'https://offerwall.giga.pub/?p=' + OFFERWALL_ID + '&user=' + currentUserId;
-  window.open(url, '_blank');
-  document.getElementById('ad-status').innerText = 'Offerwall 9114 opened - Complete tasks to earn';
-  // Also show offerwall list
-  document.getElementById('offerwallList').innerHTML = '<div class="task"><span>Offerwall opened in new tab - Complete any task</span><button class="btn btn-gold" style="width:auto;padding:8px 14px" onclick="openOfferwall()">OPEN AGAIN</button></div>';
-}
+function openOfferwall(){ window.open('https://offerwall.giga.pub/?p='+OFFERWALL_ID+'&user='+currentUserId,'_blank'); document.getElementById('ad-status').innerText='Offerwall 9114 opened - Complete tasks to earn'; }
 async function creditAd(source){
   try{
-    const res = await fetch('/api/watch', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: currentUserId, source: source })});
-    const d = await res.json();
-    if(d.error){ document.getElementById('ad-status').innerText = d.error; return; }
-    document.getElementById('ad-status').innerText = '✅ Earned +' + d.earnedCoins + ' Coins + ' + d.earnedCash + ' from ' + source;
-    loadBalance();
-  }catch(e){ document.getElementById('ad-status').innerText = 'Credit failed - try again'; }
+    const res=await fetch('/api/watch',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:currentUserId,source:source})});
+    const d=await res.json(); if(d.error){ document.getElementById('ad-status').innerText=d.error; return; }
+    document.getElementById('ad-status').innerText='✅ Earned +'+d.earnedCoins+' Coins + '+d.earnedCash+' from '+source; loadBalance();
+  }catch(e){ document.getElementById('ad-status').innerText='Credit failed - try again'; }
 }
-
-// ===== DAILY / QUIZ / TASKS =====
-async function claimDaily(){
-  const r = await fetch('/api/daily', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_id: currentUserId})});
-  const d = await r.json(); alert(d.success ? 'Daily claimed! +' + d.bonusCoins + ' Coins' : d.error); loadBalance();
-}
-async function playQuiz(){
-  const r = await fetch('/api/earn', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId: currentUserId, action:'quiz'})});
-  const d = await r.json();
-  if(d.locked || d.msg){ document.getElementById('quizBox').innerHTML = '<div class="small">'+(d.msg||'Locked')+'</div>'; return; }
-  let html = '<b>Quiz - Answer all 5:</b>';
-  d.quiz.forEach(function(q,i){ html += '<div style="margin-top:10px"><b>'+(i+1)+'. '+q.q+'</b>'; q.options.forEach(function(o,oi){ html += '<button class="btn btn-dark" style="margin-top:6px" onclick="answerQuiz('+i+','+oi+',this)">'+o+'</button>'; }); html += '</div>'; });
-  html += '<button class="btn btn-gold" style="margin-top:10px" onclick="submitQuiz()">SUBMIT QUIZ</button>';
-  document.getElementById('quizBox').innerHTML = html;
-  window._quizAnswers = {};
-  window._quizData = d.quiz;
-}
-function answerQuiz(qi, oi, el){ window._quizAnswers[qi]=oi; el.style.background='#FFD700'; el.style.color='#000'; }
-async function submitQuiz(){
-  let score=0; window._quizData.forEach(function(q,i){ if(window._quizAnswers[i]===q.answer) score++; });
-  const r = await fetch('/api/earn', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId: currentUserId, action:'quiz_done', score: score})});
-  const d = await r.json(); alert(d.msg); loadBalance();
-}
-async function loadTasks(){
+// YOUTUBE VIDEOS - RESTORED + PROFITABLE
+async function loadVideos(type){
+  document.getElementById('chip-trending').classList.toggle('active',type==='trending');
+  document.getElementById('chip-music').classList.toggle('active',type==='music');
+  document.getElementById('videosBox').innerHTML='Loading videos...';
   try{
-    const r = await fetch('/api/tasks?user_id=' + currentUserId); const list = await r.json();
-    let html='';
-    list.forEach(function(t){
-      html += '<div class="task"><div><b>'+t.title+'</b><br><span class="small">+'+t.reward_coins+' Coins • '+t.progress+'</span></div><button class="btn btn-gold" style="width:auto;padding:8px 14px" onclick="claimTask('+t.id+')">'+(t.done?'Done':'Claim')+'</button></div>';
-    });
-    document.getElementById('tasksBox').innerHTML = html || 'No tasks';
-    // Offerwall tasks in earn box
-    document.getElementById('offerwallList').innerHTML = '<div class="task"><span>Join Group - +20 Coins</span><button class="btn btn-dark" style="width:auto" onclick="window.open(\'https://t.me/ShayaEarnNetwork\')">JOIN</button></div>';
-  }catch(e){}
+    const region=(currentUser && currentUser.region) || 'SA';
+    const url = type==='music' ? '/api/videos/music?region='+region : '/api/videos/trending?region='+region;
+    const r=await fetch(url); const list=await r.json();
+    if(!list || list.length===0){ document.getElementById('videosBox').innerHTML='<div class="small">No videos - Check YOUTUBE_API_KEY in Render. Ads still work below.</div>'; return; }
+    renderVideos(list);
+  }catch(e){ document.getElementById('videosBox').innerHTML='Videos failed to load - try again'; }
 }
-async function claimTask(id){
-  const r = await fetch('/api/complete-task', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_id: currentUserId, taskId: id})});
-  const d = await r.json(); alert(d.msg || d.error); loadBalance();
+async function searchVideos(){
+  const q=document.getElementById('videoSearch').value.trim(); if(!q) return alert('Type to search');
+  document.getElementById('videosBox').innerHTML='Searching...';
+  const r=await fetch('/api/videos/search?q='+encodeURIComponent(q)+'&region='+(currentUser?.region||'SA')); const list=await r.json(); renderVideos(list);
 }
-async function convertCoins(){
-  const r = await fetch('/api/convert', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_id: currentUserId})});
-  const d = await r.json(); alert(d.success ? 'Converted +'+d.converted : d.error); loadBalance();
-}
-
-// ===== VIP / TOPUP =====
-async function loadVip(){
-  const r = await fetch('/api/vip', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId: currentUserId, action:'info'})});
-  const d = await r.json();
+function renderVideos(list){
   let html='';
-  for(let i=1;i<=20;i++){
-    const l = d.levels[i];
-    html += '<div class="vip-row"><b>'+i+'. '+l.name+'</b> - $'+l.adUSD+'/ad - '+l.adLimit+'/day<br><span class="small">'+l.coinsCost+' Coins / '+l.pointsCost+' Points / '+l.starsCost+' Stars</span><br><button class="btn btn-gold" style="margin-top:6px" onclick="levelUp('+i+')">LEVEL UP TO '+l.name+'</button></div>';
-  }
-  document.getElementById('vipList').innerHTML = html;
-}
-async function levelUp(target){
-  const payWith = confirm('Pay with Coins? OK = Coins, Cancel = Points') ? 'coins' : 'points';
-  const r = await fetch('/api/vip', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId: currentUserId, action:'levelup', targetLevel: target, payWith: payWith})});
-  const d = await r.json(); alert(d.msg); loadBalance();
-}
-async function requestTopup(){
-  const pkg = document.getElementById('topupPkg').value;
-  const proof = document.getElementById('topupProof').value;
-  if(!proof) return alert('Enter proof - your name + amount');
-  const r = await fetch('/api/vip', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({userId: currentUserId, action:'topup_request', packageId: pkg, proof: proof})});
-  const d = await r.json(); alert(d.msg);
-}
-async function buyStars(type, pkgId){
-  const r = await fetch('/api/buy-stars', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_id: currentUserId, type: type, packageId: pkgId})});
-  const d = await r.json(); alert(d.success ? 'Stars invoice sent in Telegram - Check @ShayaWatchAllBot' : d.error);
-}
-
-// ===== WITHDRAW =====
-function updateWdHint(){
-  const m = document.getElementById('wdMethod').value;
-  if(m==='Airtime' || m==='Data') document.getElementById('wdHint').innerText = 'Airtime/Data: 110 Coins = R1. NO LIMIT. Enter R amount + phone.';
-  else if(m.indexOf('Capitec')!==-1) document.getElementById('wdHint').innerText = 'Capitec: Need level withdrawMin coins for R350. Enter Capitec account.';
-  else document.getElementById('wdHint').innerText = 'Walt: Min R350 HARD LOCK. Address must start with UQ...';
-}
-async function requestWithdraw(){
-  const method = document.getElementById('wdMethod').value;
-  const wallet = document.getElementById('wdWallet').value;
-  const amount = document.getElementById('wdAmount').value;
-  const network = document.getElementById('wdNetwork').value;
-  const r = await fetch('/api/withdraw', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({user_id: currentUserId, method: method, wallet: wallet, amount: amount, network: network})});
-  const d = await r.json();
-  document.getElementById('wdMsg').innerText = d.success ? (d.msg || 'Withdraw sent!') : d.error;
-  alert(d.success ? (d.msg || 'Sent!') : d.error);
-  loadBalance();
-}
-async function loadLeader(){
-  const r = await fetch('/api/leaderboard'); const list = await r.json();
-  let html='';
-  list.forEach(function(u,i){ html += '<div class="task"><span><b>'+(i+1)+'. '+(u.first_name||'Friend')+'</b> • '+u.vip_level+'</span><span>'+u.coins+' Coins</span></div>'; });
-  document.getElementById('leaderBox').innerHTML = html || 'No users yet';
-}
-function copyRef(){
-  const el = document.getElementById('refLink'); el.select(); document.execCommand('copy'); alert('Invite link copied!');
-}
-function showTab(name){
-  ['earn','vip','withdraw','leader'].forEach(function(t){
-    document.getElementById('tab-'+t).classList.add('hidden');
-    document.getElementById('btn-'+t).classList.remove('active');
+  list.forEach(function(v){
+    html+='<div class="video"><a href="'+v.url+'" target="_blank"><img src="'+(v.thumb||'')+'"></a><div class="video-info"><b>'+v.title+'</b><br><span class="small">'+(v.channel||'')+' • '+(v.views||'')+'</span><br><a href="'+v.url+'" target="_blank"><button class="btn btn-red" style="margin-top:8px">▶ WATCH ON YOUTUBE</button></a><button class="btn btn-gold" style="margin-top:6px" onclick="watchAd()">▶ WATCH AD + EARN AFTER VIDEO</button></div></div>';
   });
-  document.getElementById('tab-'+name).classList.remove('hidden');
-  document.getElementById('btn-'+name).classList.add('active');
-  if(name==='vip') loadVip();
-  if(name==='leader') loadLeader();
+  document.getElementById('videosBox').innerHTML=html;
 }
+async function claimDaily(){ const r=await fetch('/api/daily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:currentUserId})}); const d=await r.json(); alert(d.success?'Daily claimed! +'+d.bonusCoins+' Coins':d.error); loadBalance(); }
+async function playQuiz(){
+  const r=await fetch('/api/earn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUserId,action:'quiz'})}); const d=await r.json();
+  if(d.locked||d.msg){ document.getElementById('quizBox').innerHTML='<div class="small">'+(d.msg||'Locked')+'</div>'; return; }
+  let html='<b>Quiz - Answer all 5:</b>'; d.quiz.forEach(function(q,i){ html+='<div style="margin-top:10px"><b>'+(i+1)+'. '+q.q+'</b>'; q.options.forEach(function(o,oi){ html+='<button class="btn btn-dark" style="margin-top:6px" onclick="answerQuiz('+i+','+oi+',this)">'+o+'</button>'; }); html+='</div>'; }); html+='<button class="btn btn-gold" style="margin-top:10px" onclick="submitQuiz()">SUBMIT QUIZ</button>'; document.getElementById('quizBox').innerHTML=html; window._qa={}; window._qd=d.quiz;
+}
+function answerQuiz(qi,oi,el){ window._qa[qi]=oi; el.style.background='#FFD700'; el.style.color='#000'; }
+async function submitQuiz(){ let s=0; window._qd.forEach(function(q,i){ if(window._qa[i]===q.answer) s++; }); const r=await fetch('/api/earn',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUserId,action:'quiz_done',score:s})}); const d=await r.json(); alert(d.msg); loadBalance(); }
+async function loadTasks(){ try{ const r=await fetch('/api/tasks?user_id='+currentUserId); const list=await r.json(); let h=''; list.forEach(function(t){ h+='<div class="task"><div><b>'+t.title+'</b><br><span class="small">+'+t.reward_coins+' Coins • '+t.progress+'</span></div><button class="btn btn-gold" style="width:auto;padding:8px 14px" onclick="claimTask('+t.id+')">'+(t.done?'Done':'Claim')+'</button></div>'; }); document.getElementById('tasksBox').innerHTML=h||'No tasks'; }catch(e){} }
+async function claimTask(id){ const r=await fetch('/api/complete-task',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:currentUserId,taskId:id})}); const d=await r.json(); alert(d.msg||d.error); loadBalance(); }
+async function convertCoins(){ const r=await fetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:currentUserId})}); const d=await r.json(); alert(d.success?'Converted +'+d.converted:d.error); loadBalance(); }
+async function loadVip(){ const r=await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUserId,action:'info'})}); const d=await r.json(); let h=''; for(let i=1;i<=20;i++){ const l=d.levels[i]; h+='<div class="vip-row"><b>'+i+'. '+l.name+'</b> - $'+l.adUSD+'/ad - '+l.adLimit+'/day<br><span class="small">'+l.coinsCost+' Coins / '+l.pointsCost+' Points / '+l.starsCost+' Stars</span><br><button class="btn btn-gold" style="margin-top:6px" onclick="levelUp('+i+')">LEVEL UP TO '+l.name+'</button></div>'; } document.getElementById('vipList').innerHTML=h; }
+async function levelUp(t){ const pw=confirm('Pay with Coins? OK=Coins, Cancel=Points')?'coins':'points'; const r=await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUserId,action:'levelup',targetLevel:t,payWith:pw})}); const d=await r.json(); alert(d.msg); loadBalance(); }
+async function requestTopup(){ const pkg=document.getElementById('topupPkg').value; const proof=document.getElementById('topupProof').value; if(!proof) return alert('Enter proof'); const r=await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({userId:currentUserId,action:'topup_request',packageId:pkg,proof:proof})}); const d=await r.json(); alert(d.msg); }
+async function buyStars(type,pkgId){ const r=await fetch('/api/buy-stars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:currentUserId,type:type,packageId:pkgId})}); const d=await r.json(); alert(d.success?'Stars invoice sent in Telegram - Check @ShayaWatchAllBot':d.error); }
+function updateWdHint(){ const m=document.getElementById('wdMethod').value; document.getElementById('wdHint').innerText=(m==='Airtime'||m==='Data')?'Airtime/Data: 110 Coins = R1. NO LIMIT.':(m.indexOf('Capitec')!==-1?'Capitec: Need level coins for R350.':'Walt: Min R350. Must start with UQ...'); }
+async function requestWithdraw(){ const r=await fetch('/api/withdraw',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:currentUserId,method:document.getElementById('wdMethod').value,wallet:document.getElementById('wdWallet').value,amount:document.getElementById('wdAmount').value,network:document.getElementById('wdNetwork').value})}); const d=await r.json(); document.getElementById('wdMsg').innerText=d.success?(d.msg||'Sent!'):d.error; alert(d.success?(d.msg||'Sent!'):d.error); loadBalance(); }
+async function loadLeader(){ const r=await fetch('/api/leaderboard'); const list=await r.json(); let h=''; list.forEach(function(u,i){ h+='<div class="task"><span><b>'+(i+1)+'. '+(u.first_name||'Friend')+'</b> • '+u.vip_level+'</span><span>'+u.coins+' Coins</span></div>'; }); document.getElementById('leaderBox').innerHTML=h||'No users yet'; }
+function copyRef(){ const el=document.getElementById('refLink'); el.select(); document.execCommand('copy'); alert('Invite link copied!'); }
+function showTab(n){ ['earn','videos','vip','withdraw','leader'].forEach(function(t){ document.getElementById('tab-'+t).classList.add('hidden'); document.getElementById('btn-'+t).classList.remove('active'); }); document.getElementById('tab-'+n).classList.remove('hidden'); document.getElementById('btn-'+n).classList.add('active'); if(n==='vip') loadVip(); if(n==='leader') loadLeader(); if(n==='videos') loadVideos('trending'); }
 loadBalance();
 </script>
 </body>
-</html>
+  </html>
