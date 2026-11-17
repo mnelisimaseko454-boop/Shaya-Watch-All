@@ -1,9 +1,7 @@
-// ===== SHAYA WATCH BOT - FULL FIXED - NO CRASH =====
+// ===== SHAYA WATCH BOT - FULL - YOUR EXACT DAILY POST BLOCK =====
 // Bot: @ShayaWatchAllBot | Giga 9114 + Offerwall 9114 + OnclickA 472254
-// FIX 1: web_ IDs - approve_topup_web_xxx_p699 now parses with last _
-// FIX 2: SyntaxError - changed all "?? ... ||" to "||" only - Node 20 crashed on ?? + ||
-// Topup: Capitec 1893275807 | Withdraw: Capitec/WALT R350/$20 | Airtime/Data 110 Coins=R1 NO LIMIT
-// VIP: 20 Levels, 30 Days, KING $0.025 MAX PROFIT, KING 2000 Stars | Topup: First DOUBLE
+// DAILY POST = YOUR EXACT CODE BELOW - NOT EDITED
+// FIX: web_ IDs + No ?? + || mix + KING $0.025 + R350 lock + Topup DOUBLE
 const express = require('express');
 const path = require('path');
 const { Telegraf } = require('telegraf');
@@ -107,7 +105,6 @@ function parseTopupCallback(data, prefix){
   if(lastUnd === -1) return { userId: rest, packageId: '' };
   return { userId: rest.slice(0, lastUnd), packageId: rest.slice(lastUnd+1) };
 }
-function safeCoins(v, fallback){ if(v === undefined || v === null) return fallback; return v; }
 async function sbGetUser(id){
   if(!supabase) return null;
   try{
@@ -181,7 +178,7 @@ function getPerAd(u){ const lvl=getLevel(u); return { cash: u.region==='SA'? lvl
 let bot = null;
 if(BOT_TOKEN){ try{ bot = new Telegraf(BOT_TOKEN); console.log('Bot created - Shaya Watch Bot'); }catch(e){ console.log('Bot create failed', e.message); } }
 app.get('/health', function(req,res){ res.json({ok:true, bot:'Shaya Watch Bot', time:new Date().toISOString()}); });
-app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-bot-fixed-v1', giga:'9114', onclicka:'472254', minSA:'R350', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', king:'$0.025'}); });
+app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-bot-exact-daily-block-v1', giga:'9114', onclicka:'472254', minSA:'R350', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', king:'$0.025', groupPost:'ON'}); });
 app.get('/', function(req,res){ res.sendFile(path.join(__dirname, 'index.html')); });
 app.get('/api/rate', async function(req,res){ const r = await refreshRate(); res.json({usdtToZar:r, usdt:1, zar:r}); });
 app.get('/api/convert-usdt', async function(req,res){ const usdt=parseFloat(req.query.usdt || 0); const r=await refreshRate(); res.json({usdt:usdt, zar:(usdt*r).toFixed(2), rate:r}); });
@@ -225,7 +222,7 @@ app.post('/api/earn', async function(req,res){
   if(b.action==='offerwall'){
     const task=OFFERWALL.find(function(t){ return t.id===b.taskId; });
     if(!task) return res.json({coins:u.coins, msg:'Task not found'});
-    if((u.tasksDone||[]).includes(b.taskId)) return res.json({coins:u.coins, msg:'Already claimed'});
+    if((u.tasksDone||[]).indexOf(b.taskId)!==-1) return res.json({coins:u.coins, msg:'Already claimed'});
     if(b.taskId==='ads_10' && (u.total_ads||0)<10) return res.json({coins:u.coins, msg:'Watch 10 ads first. You have '+u.total_ads});
     if(b.taskId==='ads_50' && (u.total_ads||0)<50) return res.json({coins:u.coins, msg:'Watch 50 ads first. You have '+u.total_ads});
     if(b.taskId==='invite_1' && (u.referrals||0)<1) return res.json({coins:u.coins, msg:'Invite 1 friend first'});
@@ -423,6 +420,30 @@ app.get('/api/videos/trending', async function(req,res){ res.json(await fetchYou
 app.get('/api/videos/music', async function(req,res){ res.json(await fetchYouTube(req.query.region==='SA'?'Amapiano Kabza De Small DJ Maphorisa':'Hip Hop Music Videos 2026', req.query.region||'SA')); });
 app.get('/api/videos/search', async function(req,res){ res.json(await fetchYouTube(req.query.q||'Amapiano', req.query.region||'SA')); });
 app.get('/api/admin/pending', function(req,res){ res.json({withdrawals:withdrawals.filter(function(w){ return w.status==='pending'; }), vipRequests:vipRequests.filter(function(v){ return v.status==='pending'; })}); });
+
+// ===== DAILY AUTO-POST TO GROUP =====
+const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID || ''; // e.g. -1001234567890
+const DAILY_POSTS = [
+  "🔥 GOOD MORNING SHAYA FAMILY!\n\n📺 Watch Ads = Cash + Coins\n🧠 Quiz = +Coins (after 10 ads)\n🏦 Topup Capitec 1893275807 = Coins + Points — FIRST TOPUP DOUBLE!\n👑 VIP: FREE $0.01/ad • KING $0.025/ad\n💸 Withdraw: Capitec R350 / WALT R350 / Airtime NO LIMIT (110 Coins=R1)\n\n👉 Open @ShayaWatchAllBot → OPEN SHAYA WATCH BOT",
+  "💰 WHO HAS WITHDRAWN TODAY?\n\nShow proof in group! Topup R29 today → Get 1000 Coins + 1000 Points (DOUBLE!)\n\nCapitec: 1893275807\nRef: Your Name\n\nInvite 3 friends = +50 Coins + Cash!\n👉 @ShayaWatchAllBot",
+  "🏆 LEADERBOARD UPDATE!\n\nTop earners today get featured!\nWatch 20 ads (VIP) = Max earnings!\nNot VIP yet? Buy with Coins / Points / Stars in app!\n\n👉 Open @ShayaWatchAllBot",
+  "⏰ EVENING REMINDER!\n\nDon't waste your 10 FREE ads today!\nClaim Daily Bonus + Quiz before midnight!\nTopup before you sleep — Admin approves in morning!\n\nCapitec: 1893275807\n👉 @ShayaWatchAllBot",
+];
+let dailyPostIndex = 0;
+async function sendDailyPost(){
+  if(!bot || !GROUP_CHAT_ID) return;
+  try{
+    const msg = DAILY_POSTS[dailyPostIndex % DAILY_POSTS.length];
+    dailyPostIndex++;
+    await bot.telegram.sendMessage(GROUP_CHAT_ID, msg);
+    console.log('Daily post sent to group');
+  }catch(e){ console.log('Daily post failed', e.message); }
+}
+// Post every 6 hours (4x per day). Change to 24*60*60*1000 for 1x per day
+setInterval(sendDailyPost, 6*60*60*1000);
+// Also post 1 min after restart so you know it works
+setTimeout(sendDailyPost, 60*1000);
+
 if(bot){
   bot.start(async function(ctx){
     const user_id=ctx.from.id; const payload=ctx.startPayload||''; let referred_by=null;
@@ -431,6 +452,16 @@ if(bot){
     let u=await getUser(user_id); if(!u) u=await createUser(user_id, {username:ctx.from.username||'', first_name:ctx.from.first_name||'', referred_by:referred_by?String(referred_by):null});
     const rate=await refreshRate();
     await ctx.replyWithMarkdown('Welcome to *SHAYA WATCH BOT* '+u.first_name+'!\n\nEARN\nWatch Ad = Cash + Coins\nQuiz = +Coins (Unlock after 10 ads)\nTopup Capitec '+TOPUP_ACCOUNT+' = Coins + Points - FIRST TOPUP DOUBLE!\nOfferwall (Giga 9114) = Coins\nInvite = +50 Coins\nTasks = Cash + Coins\n\nVIP - 20 Levels, 30 Days\nFREE: $0.01/ad - 10/day - R350 / $20 Min\nKING: $0.025/ad - 20/day - R350 / $20 Min\n\nWithdraw: Capitec R350 / WALT R350 / Airtime NO LIMIT (110 Coins=R1)\n1 USDT = R'+rate.toFixed(2)+' LIVE\n\nTap below', {reply_markup:{inline_keyboard:[[{text:'OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}],[{text:'Join Shaya Earn Network', url:GROUP_URL}]]}});
+  });
+  bot.command('getgroupid', async function(ctx){
+    const chatId = ctx.chat && ctx.chat.id;
+    const chatType = ctx.chat && ctx.chat.type;
+    await ctx.reply('Group Chat ID:\n'+chatId+'\nType: '+chatType+'\n\nCopy this number into Render -> GROUP_CHAT_ID\nExample: GROUP_CHAT_ID = '+chatId);
+  });
+  bot.command('postnow', async function(ctx){
+    if(ctx.from.id!==ADMIN_ID) return ctx.reply('Admin only');
+    await sendDailyPost();
+    await ctx.reply('Posted to group! Group ID: '+(GROUP_CHAT_ID || 'NOT SET - Add GROUP_CHAT_ID in Render'));
   });
   bot.command('balance', async function(ctx){ let u=await getUser(ctx.from.id); if(!u) return ctx.reply('Send /start first'); const f=formatUserForFrontend(u); ctx.reply('Balance: '+f.currency+f.balance.toFixed(2)+' = $'+f.usdtBalance+' USDT\nCoins: '+f.coins+' | Points: '+u.points+'\nAds Today: '+f.dailyAds+'/'+f.dailyLimit+'\nVIP: '+f.vip_level+' ('+u.level+'/20)\nMin: '+(u.region==='SA'?'R350':'$20')+' | Airtime 110 Coins=R1'); });
   bot.command('tasks', async function(ctx){
@@ -458,7 +489,6 @@ if(bot){
     if(pkgId==='R29'||pkgId==='29') pkgId='p29'; if(pkgId==='R79'||pkgId==='79') pkgId='p79'; if(pkgId==='R179'||pkgId==='179') pkgId='p179'; if(pkgId==='R349'||pkgId==='349') pkgId='p349'; if(pkgId==='R699'||pkgId==='699') pkgId='p699';
     let target=await getUser(targetId); if(!target){ for(let kv of users){ if(String(kv[1].user_id)===String(targetId)||String(kv[1].id)===String(targetId)){ target=kv[1]; break; } } }
     const pkg=ALL_BUY_PACKAGES.find(function(p){ return p.id===pkgId; }); if(!target||!pkg) return ctx.reply('User or package not found\nTried ID: '+targetId+'\nTried Package: '+pkgId);
-    // FIXED: no ?? + || mix, use || only
     const giveCoins = (target.pendingTopup && target.pendingTopup.coins) || pkg.coins || 0;
     const givePoints = (target.pendingTopup && target.pendingTopup.points) || pkg.points || 0;
     await updateUser(target.id, {coins:target.coins+giveCoins, total_earned:target.total_earned+giveCoins, points:(target.points||0)+givePoints, pendingTopup:null});
@@ -486,7 +516,6 @@ if(bot){
       try{
         const pkgInfo=u.pendingTopup; if(!pkgInfo) continue;
         const pkg=ALL_BUY_PACKAGES.find(function(p){ return p.id===pkgInfo.packageId; }); if(!pkg){ failed.push(u.name+' ('+u.id+') - package '+pkgInfo.packageId+' not found'); continue; }
-        // FIXED: no ?? + || mix
         const giveCoins = pkgInfo.coins || pkg.coins || 0; const givePoints = pkgInfo.points || pkg.points || 0;
         await updateUser(u.id, {coins:(u.coins||0)+giveCoins, total_earned:(u.total_earned||0)+giveCoins, points:(u.points||0)+givePoints, pendingTopup:null});
         report+='OK '+u.name+' (@'+u.username+') ID:'+u.id+' - +'+giveCoins+' Coins +'+givePoints+' Points (R'+pkg.price+')\n'; approved++;
@@ -520,7 +549,17 @@ if(bot){
     w.status='paid'; ctx.reply('Marked withdraw #'+id+' as PAID');
     try{ await ctx.telegram.sendMessage(w.user_id, 'Your withdraw of $'+w.usdtAmount+' USDT has been PAID!'); }catch(e){}
   });
-  bot.command('stats', async function(ctx){ if(ctx.from.id!==ADMIN_ID) return; ctx.reply('STATS\nUsers: '+users.size+'\nWithdraws Paid: '+withdrawals.filter(function(w){ return w.status==='paid'; }).length+'\nPending: '+withdrawals.filter(function(w){ return w.status==='pending'; }).length+'\nRate: 1 USDT = R'+USDT_TO_ZAR.toFixed(2)); });
+  bot.command('stats', async function(ctx){ if(ctx.from.id!==ADMIN_ID) return; ctx.reply('STATS\nUsers: '+users.size+'\nWithdraws Paid: '+withdrawals.filter(function(w){ return w.status==='paid'; }).length+'\nPending: '+withdrawals.filter(function(w){ return w.status==='pending'; }).length+'\nRate: 1 USDT = R'+USDT_TO_ZAR.toFixed(2)+'\nGroup Post: '+(GROUP_CHAT_ID ? 'ON - '+GROUP_CHAT_ID : 'OFF - Add GROUP_CHAT_ID in Render')); });
+  bot.on('new_chat_members', async function(ctx){
+    try{
+      const members = ctx.message.new_chat_members || [];
+      for(let m of members){
+        if(m.is_bot) continue;
+        const name = m.first_name || 'friend';
+        await ctx.reply('Welcome '+name+' to Shaya Earn Network!\n\nWatch Ads = Cash + Coins\nTopup Capitec 1893275807 - FIRST TOPUP DOUBLE!\nVIP: FREE $0.01/ad - KING $0.025/ad\nWithdraw: R350 / Airtime NO LIMIT\n\nOpen @ShayaWatchAllBot - OPEN SHAYA WATCH BOT\n\nIntroduce yourself - Where are you from?');
+      }
+    }catch(e){ console.log('Welcome failed', e.message); }
+  });
   bot.on('pre_checkout_query', async function(ctx){ try{ await ctx.answerPreCheckoutQuery(true); }catch(e){} });
   bot.on('successful_payment', async function(ctx){
     const pay=ctx.message.successful_payment; const payload=pay.invoice_payload||'';
@@ -555,7 +594,6 @@ if(bot){
       const userId = parsed.userId; const packageId = parsed.packageId;
       const target=await getUser(userId); const pkg=ALL_BUY_PACKAGES.find(function(p){ return p.id===packageId; });
       if(!target||!pkg){ try{ await ctx.answerCbQuery('User or package not found: '+userId+' / '+packageId); }catch(e){} return; }
-      // FIXED: no ?? + || mix
       const giveCoins = (target.pendingTopup && target.pendingTopup.coins) || pkg.coins || 0;
       const givePoints = (target.pendingTopup && target.pendingTopup.points) || pkg.points || 0;
       await updateUser(target.id, {coins:(target.coins||0)+giveCoins, total_earned:(target.total_earned||0)+giveCoins, points:(target.points||0)+givePoints, pendingTopup:null});
@@ -597,7 +635,7 @@ if(bot){
       return;
     }
   });
-  bot.launch().then(function(){ console.log('Bot launched @ShayaWatchAllBot - FIXED'); }).catch(function(e){ console.log('Bot launch failed', e.message); });
+  bot.launch().then(function(){ console.log('Bot launched @ShayaWatchAllBot - EXACT DAILY BLOCK ON'); }).catch(function(e){ console.log('Bot launch failed', e.message); });
   process.once('SIGINT', function(){ bot.stop('SIGINT'); }); process.once('SIGTERM', function(){ bot.stop('SIGTERM'); });
 } else console.log('BOT_TOKEN not set - bot disabled, API still works');
 app.listen(PORT, function(){ console.log('Shaya Watch Bot running on '+PORT); console.log('WebApp: '+WEBAPP_URL); });
