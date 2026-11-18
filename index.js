@@ -2,7 +2,7 @@
 // Bot: @ShayaWatchAllBot | Giga 9114 + Offerwall 9114 + OnclickA 472254
 // CHANGES: 1) NO First Topup Bonus / DOUBLE  2) Daily Bonus = $0.003 / R0.05  3) Group ID = -1003867683507  4) Withdraw History Approved/Declined
 // NEW 3 CHANGES: 1) Per ad FLAT R0.08 SA / $0.005 USA  2) 2-in-1 Ad (2 ads = 1 reward)  3) SA = everything R, USA = everything $, conversion kept in BOTH
-// NEW RULES: Coins = Buy Coins ONLY no extra, Ads +5 Coins, Coins = Cash or VIP. Points/Stars = VIP ONLY. Data = ONLY R2 1GB TikTok 24h
+// NEW RULES: Coins = Buy Coins ONLY no extra, Ads +5 Coins, Coins = Cash or VIP. Points/Stars = VIP ONLY. Data = ONLY R5 1GB TikTok 24h
 const express = require('express');
 const path = require('path');
 const { Telegraf } = require('telegraf');
@@ -186,7 +186,7 @@ function getPerAd(u){ const lvl=getLevel(u); return { cash: u.region==='SA'? lvl
 let bot = null;
 if(BOT_TOKEN){ try{ bot = new Telegraf(BOT_TOKEN); console.log('Bot created - Shaya Watch Bot'); }catch(e){ console.log('Bot create failed', e.message); } }
 app.get('/health', function(req,res){ res.json({ok:true, bot:'Shaya Watch Bot', time:new Date().toISOString()}); });
-app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-bot-final-no-topup-bonus-withdraw-history', giga:'9114', onclicka:'472254', minSA:'R350', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', data:'R2 1GB TikTok 24h ONLY - 220 Coins', perAdSA:'R0.08 per 2 ads + 5 Coins', perAdUSA:'$0.005 per 2 ads + 5 Coins', adMode:'2-in-1', groupPost:'ON', dailyBonusSA:'R0.05', dailyBonusUSA:'$0.003', coins:'Cash or VIP', pointsStars:'VIP ONLY'}); });
+app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-bot-final-no-topup-bonus-withdraw-history', giga:'9114', onclicka:'472254', minSA:'R350', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', data:'R5 1GB TikTok 24h ONLY - 550 Coins', perAdSA:'R0.08 per 2 ads + 5 Coins', perAdUSA:'$0.005 per 2 ads + 5 Coins', adMode:'2-in-1', groupPost:'ON', dailyBonusSA:'R0.05', dailyBonusUSA:'$0.003', coins:'Cash or VIP', pointsStars:'VIP ONLY'}); });
 app.get('/', function(req,res){ res.sendFile(path.join(__dirname, 'index.html')); });
 app.get('/api/rate', async function(req,res){ const r = await refreshRate(); res.json({usdtToZar:r, usdt:1, zar:r, usd:1}); });
 app.get('/api/convert-usdt', async function(req,res){ const usdt=parseFloat(req.query.usdt || 0); const r=await refreshRate(); res.json({usdt:usdt, zar:(usdt*r).toFixed(2), usd:usdt.toFixed(2), rate:r, usdtToZar:r}); });
@@ -330,15 +330,15 @@ app.post('/api/withdraw', async function(req,res){
   const isAirtime = cleanMethod.toLowerCase().indexOf('airtime')!==-1 || b.method==='airtime';
   const isData = cleanMethod.toLowerCase().indexOf('data')!==-1 || b.method==='data';
   if(isData){
-    const needCoins = 220;
-    if((u.coins||0) < needCoins) return res.json({error:'Need '+needCoins+' coins for R2 - 1GB TikTok Data (24h). Balance: '+u.coins+' coins.'});
-    await updateUser(u.id, {coins:u.coins-needCoins, pendingWithdraw:{method:'Data', detail: walletVal, network: b.network, amountLabel:'R2 - 1GB TikTok Data (24h)', need: needCoins, date: new Date().toISOString()}});
-    const whD = {id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, userKey:String(u.id), username:u.username, first_name:u.first_name, method:'Data', wallet:walletVal, detail:walletVal, network:b.network, amountCash:2, amountLabel:'R2 - 1GB TikTok Data (24h)', coinsUsed:needCoins, need:needCoins, region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
+    const needCoins = 550;
+    if((u.coins||0) < needCoins) return res.json({error:'Need '+needCoins+' coins for R5 - 1GB TikTok Data (24h). Balance: '+u.coins+' coins.'});
+    await updateUser(u.id, {coins:u.coins-needCoins, pendingWithdraw:{method:'Data', detail: walletVal, network: b.network, amountLabel:'R5 - 1GB TikTok Data (24h)', need: needCoins, date: new Date().toISOString()}});
+    const whD = {id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, userKey:String(u.id), username:u.username, first_name:u.first_name, method:'Data', wallet:walletVal, detail:walletVal, network:b.network, amountCash:5, amountLabel:'R5 - 1GB TikTok Data (24h)', coinsUsed:needCoins, need:needCoins, region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
     withdrawals.push(whD); await sbInsert('withdrawals', whD);
     if(ADMIN_ID && bot){
-      await bot.telegram.sendMessage(ADMIN_ID, 'WITHDRAW REQUEST - DATA ONLY\n\nUser: '+u.name+' (@'+u.username+') ID:'+u.id+'\nMethod: R2 - 1GB TikTok Data (24h) '+(b.network?'('+b.network+')':'')+'\nDetail: '+walletVal+'\nAmount: R2 - 220 Coins\nLevel: '+lvl.name+' | Coins Left: '+(u.coins-needCoins)+'\n\nPay them, then press Paid below.', { reply_markup: { inline_keyboard: [[{ text:'Paid', callback_data:'approve_withdraw_'+u.id }],[{ text:'Reject', callback_data:'reject_withdraw_'+u.id }]] } }).catch(function(){});
+      await bot.telegram.sendMessage(ADMIN_ID, 'WITHDRAW REQUEST - DATA ONLY\n\nUser: '+u.name+' (@'+u.username+') ID:'+u.id+'\nMethod: R5 - 1GB TikTok Data (24h) '+(b.network?'('+b.network+')':'')+'\nDetail: '+walletVal+'\nAmount: R5 - 550 Coins\nLevel: '+lvl.name+' | Coins Left: '+(u.coins-needCoins)+'\n\nPay them, then press Paid below.', { reply_markup: { inline_keyboard: [[{ text:'Paid', callback_data:'approve_withdraw_'+u.id }],[{ text:'Reject', callback_data:'reject_withdraw_'+u.id }]] } }).catch(function(){});
     }
-    return res.json({success:true, msg:'Request sent! R2 - 1GB TikTok Data (24h) to '+walletVal+'.'});
+    return res.json({success:true, msg:'Request sent! R5 - 1GB TikTok Data (24h) to '+walletVal+'.'});
   }
   if(isAirtime){
     const randAmount = parseInt(b.amount) || 5;
@@ -409,6 +409,9 @@ app.post('/api/complete-task', async function(req,res){
   if(!task) return res.json({error:'Task not found'});
   const completed = u.completedTasks || u.tasksDone || [];
   if(completed.indexOf(tid)!==-1 || completed.indexOf(String(tid))!==-1) return res.json({error:'Already claimed this task!'});
+  if(task.type==='invite_Continuing `index.js` from where it stopped — paste this directly after the cut-off line:
+
+```js
   if(task.type==='invite_3' && (u.referrals||0)<3) return res.json({error:'Need 3 friends. You have '+(u.referrals||0)+'/3.'});
   const cashValue = u.region==='SA' ? task.reward_cash * USDT_TO_ZAR : task.reward_cash;
   const updated = await updateUser(u.id, { balance: parseFloat((u.balance + cashValue).toFixed(2)), coins: (u.coins||0) + task.reward_coins, total_earned: parseFloat(((u.total_earned||0)+cashValue).toFixed(2)), completedTasks: completed.concat([tid]), tasksDone: (u.tasksDone||[]).concat([tid]), });
@@ -437,7 +440,7 @@ app.get('/api/videos/search', async function(req,res){ res.json(await fetchYouTu
 app.get('/api/admin/pending', function(req,res){ res.json({withdrawals:withdrawals.filter(function(w){ return w.status==='pending'; }), vipRequests:vipRequests.filter(function(v){ return v.status==='pending'; })}); });
 const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID || '-1003867683507';
 const DAILY_POSTS = [
-  "🔥 GOOD MORNING SHAYA FAMILY!\n\n📺 Watch Ads = Cash + Coins — 2 Ads = 1 Reward\n🧠 Quiz = +Coins (after 10 ads)\n🏦 Topup Capitec 1893275807 = Buy Coins (Cash/VIP) OR Buy Points (VIP ONLY)\n👑 VIP: SA R0.08 / 2 ads + 5 Coins • USA $0.005 / 2 ads + 5 Coins\n💸 Withdraw: Capitec R350 / $20 • WALT R350 / $20 • Airtime NO LIMIT (110 Coins=R1) • Data R2 1GB TikTok 24h ONLY\n\n👉 Open @ShayaWatchAllBot → OPEN SHAYA WATCH BOT",
+  "🔥 GOOD MORNING SHAYA FAMILY!\n\n📺 Watch Ads = Cash + Coins — 2 Ads = 1 Reward\n🧠 Quiz = +Coins (after 10 ads)\n🏦 Topup Capitec 1893275807 = Buy Coins (Cash/VIP) OR Buy Points (VIP ONLY)\n👑 VIP: SA R0.08 / 2 ads + 5 Coins • USA $0.005 / 2 ads + 5 Coins\n💸 Withdraw: Capitec R350 / $20 • WALT R350 / $20 • Airtime NO LIMIT (110 Coins=R1) • Data R5 1GB TikTok 24h ONLY\n\n👉 Open @ShayaWatchAllBot → OPEN SHAYA WATCH BOT",
   "💰 WHO HAS WITHDRAWN TODAY?\n\nShow proof in group! Topup R29 today → Get 500 Coins ONLY (No extra Points)\n\nCapitec: 1893275807\nRef: Your Name\n\nInvite 3 friends = +50 Coins + Cash!\n👉 @ShayaWatchAllBot",
   "🏆 LEADERBOARD UPDATE!\n\nTop earners today get featured!\nWatch 20 ads (VIP) = Max earnings!\nNot VIP yet? Buy with Coins / Points / Stars in app! Points/Stars = VIP ONLY\n\n👉 Open @ShayaWatchAllBot",
   "⏰ EVENING REMINDER!\n\nDon't waste your 10 FREE ads today!\nClaim Daily Bonus + Quiz before midnight!\nTopup before you sleep — Admin approves in morning!\n\nCapitec: 1893275807\n👉 @ShayaWatchAllBot",
@@ -464,7 +467,7 @@ if(bot){
     const perAdTxt = u.region==='USA' ? '$0.005 / 2 ads + 5 Coins' : 'R0.08 / 2 ads + 5 Coins';
     const minTxt = u.region==='USA' ? '$20 Min' : 'R350 Min';
     const rateTxt = u.region==='USA' ? '1 USDT = $1.00' : '1 USDT = R'+rate.toFixed(2);
-    await ctx.replyWithMarkdown('Welcome to *SHAYA WATCH BOT* '+u.first_name+'!\n\nEARN\nWatch 2 Ads = '+perAdTxt+'\nQuiz = +Coins (Unlock after 10 ads)\nTopup Capitec '+TOPUP_ACCOUNT+' = Buy Coins (Cash or VIP) OR Buy Points (VIP ONLY)\nOfferwall (Giga 9114) = Coins\nInvite = +50 Coins\nTasks = Cash + Coins\n\nCoins = Convert to Cash OR Buy VIP\nPoints / Stars = Buy VIP ONLY\n\nVIP - 20 Levels, 30 Days\nFREE: '+perAdTxt+' - 10/day - '+minTxt+'\nKING: '+perAdTxt+' - 20/day - '+minTxt+'\n\nWithdraw: Capitec '+minTxt+' / WALT '+minTxt+' / Airtime NO LIMIT (110 Coins='+(u.region==='USA'?'$1':'R1')+') / Data R2 1GB TikTok 24h ONLY\n'+rateTxt+' LIVE\n\nTap below', {reply_markup:{inline_keyboard:[[{text:'OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}],[{text:'Join Shaya Earn Network', url:GROUP_URL}]]}});
+    await ctx.replyWithMarkdown('Welcome to *SHAYA WATCH BOT* '+u.first_name+'!\n\nEARN\nWatch 2 Ads = '+perAdTxt+'\nQuiz = +Coins (Unlock after 10 ads)\nTopup Capitec '+TOPUP_ACCOUNT+' = Buy Coins (Cash or VIP) OR Buy Points (VIP ONLY)\nOfferwall (Giga 9114) = Coins\nInvite = +50 Coins\nTasks = Cash + Coins\n\nCoins = Convert to Cash OR Buy VIP\nPoints / Stars = Buy VIP ONLY\n\nVIP - 20 Levels, 30 Days\nFREE: '+perAdTxt+' - 10/day - '+minTxt+'\nKING: '+perAdTxt+' - 20/day - '+minTxt+'\n\nWithdraw: Capitec '+minTxt+' / WALT '+minTxt+' / Airtime NO LIMIT (110 Coins='+(u.region==='USA'?'$1':'R1')+') / Data R5 1GB TikTok 24h ONLY\n'+rateTxt+' LIVE\n\nTap below', {reply_markup:{inline_keyboard:[[{text:'OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}],[{text:'Join Shaya Earn Network', url:GROUP_URL}]]}});
   });
   bot.command('getgroupid', async function(ctx){
     const chatId = ctx.chat && ctx.chat.id;
@@ -476,7 +479,7 @@ if(bot){
     await sendDailyPost();
     await ctx.reply('Posted to group! Group ID: '+(GROUP_CHAT_ID || 'NOT SET - Add GROUP_CHAT_ID in Render'));
   });
-  bot.command('balance', async function(ctx){ let u=await getUser(ctx.from.id); if(!u) return ctx.reply('Send /start first'); const f=formatUserForFrontend(u); ctx.reply('Balance: '+f.currency+f.balance.toFixed(2)+' = $'+f.usdtBalance+' USDT\nCoins: '+f.coins+' (Cash or VIP) | Points: '+u.points+' (VIP ONLY)\nAds Today: '+f.dailyAds+'/'+f.dailyLimit+'\nVIP: '+f.vip_level+' ('+u.level+'/20)\nMin: '+(u.region==='SA'?'R350':'$20')+' | Airtime 110 Coins='+(u.region==='SA'?'R1':'$1')+' | Data R2 1GB TikTok 24h | Per ad: '+perAdLabelFor(u)+' / 2 ads + 5 Coins'); });
+  bot.command('balance', async function(ctx){ let u=await getUser(ctx.from.id); if(!u) return ctx.reply('Send /start first'); const f=formatUserForFrontend(u); ctx.reply('Balance: '+f.currency+f.balance.toFixed(2)+' = $'+f.usdtBalance+' USDT\nCoins: '+f.coins+' (Cash or VIP) | Points: '+u.points+' (VIP ONLY)\nAds Today: '+f.dailyAds+'/'+f.dailyLimit+'\nVIP: '+f.vip_level+' ('+u.level+'/20)\nMin: '+(u.region==='SA'?'R350':'$20')+' | Airtime 110 Coins='+(u.region==='SA'?'R1':'$1')+' | Data R5 1GB TikTok 24h | Per ad: '+perAdLabelFor(u)+' / 2 ads + 5 Coins'); });
   bot.command('tasks', async function(ctx){
     let u=await getUserAsync(ctx.from.id, ctx.from.first_name);
     const completed = u.completedTasks||[]; let txt = 'TASKS\n\n';
@@ -569,7 +572,7 @@ if(bot){
       for(let m of members){
         if(m.is_bot) continue;
         const name = m.first_name || 'friend';
-        await ctx.reply('Welcome '+name+' to Shaya Earn Network!\n\nWatch 2 Ads = Cash + Coins — SA R0.08 / USA $0.005 per 2 ads + 5 Coins\nTopup Capitec 1893275807 = Buy Coins (Cash/VIP) OR Buy Points (VIP ONLY)\nWithdraw: R350 / $20 • Airtime NO LIMIT • Data R2 1GB TikTok 24h ONLY\n\nOpen @ShayaWatchAllBot - OPEN SHAYA WATCH BOT\n\nIntroduce yourself - Where are you from?');
+        await ctx.reply('Welcome '+name+' to Shaya Earn Network!\n\nWatch 2 Ads = Cash + Coins — SA R0.08 / USA $0.005 per 2 ads + 5 Coins\nTopup Capitec 1893275807 = Buy Coins (Cash/VIP) OR Buy Points (VIP ONLY)\nWithdraw: R350 / $20 • Airtime NO LIMIT • Data R5 1GB TikTok 24h ONLY\n\nOpen @ShayaWatchAllBot - OPEN SHAYA WATCH BOT\n\nIntroduce yourself - Where are you from?');
       }
     }catch(e){ console.log('Welcome failed', e.message); }
   });
