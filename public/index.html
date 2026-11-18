@@ -42,7 +42,6 @@ function openOfferWall(){ if(window.gigaOfferWallSDK){ window.gigaOfferWallSDK.o
 function closeOfferWall(){ if(window.gigaOfferWallSDK) window.gigaOfferWallSDK.close(); }
 async function checkOffers(){ if(!window.gigaOfferWallSDK) return alert('Offerwall still loading...'); try{ var offers = await window.gigaOfferWallSDK.getOffers(); alert('Offers - Available: ' + offers.available + ' | Active: ' + offers.active); }catch(e){ alert('Could not fetch offers: ' + e.message); } }
 async function checkPendingRewards(){ if(!window.gigaOfferWallSDK) return; try{ var pending = await window.gigaOfferWallSDK.pending(); if(pending && pending.length){ alert('You have ' + pending.length + ' pending rewards! Claiming...'); for(var r of pending){ await creditUserReward(r.userId, r.amount); await window.gigaOfferWallSDK.confirmReward(r.rewardId, r.hash); } } else { alert('No pending rewards.'); } }catch(e){ console.log(e); } }
-// ===== 2-IN-1 AD — Ad 1 OnclickA + Ad 2 Giga = 1 Reward =====
 async function triggerAdNetworks(){
   adClickCount++;
   var statusEl = document.getElementById('adStatus');
@@ -100,7 +99,7 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <div style="display:flex;justify-content:space-between"><span>💰 Cash Balance</span><span id="vipBadge">FREE</span></div>
 <div class="balance" id="balance">Loading...</div>
 <div class="coins" id="coins">🪙 Loading...</div>
-<div class="coins" id="pointsLine" style="color:#FFD700">⭐ Points: 0 (For VIP)</div>
+<div class="coins" id="pointsLine" style="color:#FFD700">⭐ Points: 0 (VIP ONLY)</div>
 <div class="coins" id="usdtValue" style="color:#00ff88">💱 = R0.00</div>
 <div class="coins" id="statsLine">Ads: 0 | Referrals: 0 | Streak: 0 days</div>
 <div class="coins" id="vipUntilLine" style="color:#FFD700"></div>
@@ -109,12 +108,12 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <b id="dailyLabel">📺 Ads Today: 0 / 10</b>
 <div class="progress"><div id="dailyBar" style="width:0%"></div></div>
 <p id="dailyLeftLabel" style="font-size:12px;color:#aaa;margin-top:4px">10 left today</p>
-<p id="minWithdrawLabel" style="font-size:12px;color:#FFD700;margin-top:4px">Min: R350 HARD LOCK — Airtime/Data NO LIMIT (110 Coins=R1)</p>
+<p id="minWithdrawLabel" style="font-size:12px;color:#FFD700;margin-top:4px">Min: R350 HARD LOCK — Airtime NO LIMIT • Data: R2 1GB TikTok 24h</p>
 </div>
 <button class="bigbtn" id="watchBtn" onclick="watchAd()">▶️ WATCH 2 ADS & EARN</button>
-<p style="text-align:center;font-size:12px;color:#aaa;margin-top:8px" id="rateLine">You Earn: R0.08 per 2 ads</p>
+<p style="text-align:center;font-size:12px;color:#aaa;margin-top:8px" id="rateLine">You Earn: R0.08 per 2 ads + 5 Coins</p>
 <p id="adStatus" style="text-align:center;margin-top:6px;color:#0f0"></p>
-<p style="text-align:center;font-size:12px;color:#FFD700;margin-top:4px">2 Ads = 1 Reward</p>
+<p style="text-align:center;font-size:12px;color:#FFD700;margin-top:4px">2 Ads = 1 Reward • Coins: Cash or VIP • Points/Stars: VIP ONLY</p>
 </div>
 <div class="offerbox">
 <b>🎯 OFFERWALL - Earn More Coins</b>
@@ -144,22 +143,22 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 </div>
 <p style="font-size:11px;color:#aaa;margin-top:6px" id="usdtExamples">20 USDT = R331.80 • 50 USDT = R829.50</p>
 </div>
-<div class="vip"><h3>👑 VIP — 20 LEVELS - 30 DAYS - PAY WITH ⭐ STARS / COINS / POINTS</h3><p id="vipDesc">Upgrade to earn more • Can't jump, unlocked stays unlocked • Min: R350 HARD LOCK | Airtime/Data 110 Coins=R1 NO LIMIT • R0.08 per 2 ads</p><div id="vipPlansList"></div></div>
+<div class="vip"><h3>👑 VIP — 20 LEVELS - 30 DAYS - PAY WITH ⭐ STARS / COINS / POINTS</h3><p id="vipDesc">Points / Stars = VIP ONLY • Coins = Cash or VIP • Min: R350 HARD LOCK • R0.08 per 2 ads + 5 Coins</p><div id="vipPlansList"></div></div>
 <div class="card"><h3>🏦 Topup — Send Money To Capitec</h3>
 <div style="background:#000;padding:12px;border-radius:12px;margin:10px 0;font-size:15px;line-height:1.8;text-align:center">
 <b>🏦 Capitec Bank</b><br><span style="font-size:22px;letter-spacing:2px;color:#FFD700"><b>1893275807</b></span><br>Reference: <b id="bankRef">Your Name / ID</b>
 </div>
 <div id="packages"></div>
-<div class="card" style="margin-top:8px"><b>🪙 Buy Coins Separately</b><div id="buyCoinsBox" style="margin-top:8px">Loading coins packages...</div></div>
-<div class="card" style="margin-top:8px"><b>⭐ Buy Points Separately</b><div id="buyPointsBox" style="margin-top:8px">Loading points packages...</div><p style="font-size:12px;color:#aaa;margin-top:6px">Bank: Send to Capitec 1893275807 → Admin presses ✅ Approve<br>Stars: Instant, no bank needed</p></div>
+<div class="card" style="margin-top:8px"><b>🪙 Buy Coins Separately — Coins ONLY, No Extra</b><div id="buyCoinsBox" style="margin-top:8px">Loading coins packages...</div><p style="font-size:12px;color:#aaa">Coins = Convert to Cash OR Buy VIP. No extra Points.</p></div>
+<div class="card" style="margin-top:8px"><b>⭐ Buy Points Separately — VIP ONLY</b><div id="buyPointsBox" style="margin-top:8px">Loading points packages...</div><p style="font-size:12px;color:#aaa">Points = Buy VIP ONLY. Cannot convert / withdraw.<br>Stars = Buy VIP ONLY. Use Stars in VIP section, not here.<br>Bank: Send to Capitec 1893275807 → Admin presses ✅ Approve</p></div>
 <div style="margin-top:12px;border-top:1px solid #333;padding-top:12px">
-<h4>🪙 Buy Coins Separately</h4><div id="buyCoinsList"><p style="color:#aaa;font-size:12px">Loading coins packages...</p></div>
-<h4 style="margin-top:12px">⭐ Buy Points Separately</h4><div id="buyPointsList"><p style="color:#aaa;font-size:12px">Loading points packages...</p></div>
-<p style="font-size:11px;color:#aaa">Bank: Send to Capitec 1893275807 → Admin presses ✅ Approve<br>Stars: Instant, no bank needed</p>
+<h4>🪙 Buy Coins Separately — Coins ONLY</h4><div id="buyCoinsList"><p style="color:#aaa;font-size:12px">Loading coins packages...</p></div>
+<h4 style="margin-top:12px">⭐ Buy Points Separately — VIP ONLY</h4><div id="buyPointsList"><p style="color:#aaa;font-size:12px">Loading points packages...</p></div>
+<p style="font-size:11px;color:#aaa">Bank: Send to Capitec 1893275807 → Admin presses ✅ Approve<br>Stars: VIP ONLY — Buy VIP Level with Stars in VIP section</p>
 </div>
 <input id="proofInput" placeholder="Paste EFT ref / proof" />
 <button class="bigbtn" onclick="requestTopup()">📤 SEND TOPUP REQUEST</button>
-<p style="font-size:11px;margin-top:6px">You get Coins + Points. Coins can withdraw. Points buy VIP.</p>
+<p style="font-size:11px;margin-top:6px">Coins = Cash or VIP. Points = VIP ONLY.</p>
 </div>
 <div class="card">
 <b id="ytTitle">🔥 TRENDING ON YOUTUBE - SA</b>
@@ -177,18 +176,18 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 </div>
 <div id="page-invite" class="hidden"><div class="card"><h3>👥 INVITE FRIENDS</h3><p id="inviteReward" style="margin:8px 0">Reward per friend</p><p style="background:#222;padding:10px;border-radius:10px;word-break:break-all" id="inviteLink">Loading...</p><button class="bigbtn" onclick="copyLink()">📋 COPY LINK</button><button class="bigbtn" style="background:#25D366" onclick="shareWhatsApp()">📲 SHARE TO WHATSAPP</button></div></div>
 <div id="page-withdraw" class="hidden"><div class="card"><h3>💸 WITHDRAW</h3>
-<p style="font-size:12px;color:#FFD700" id="withdrawTopNote">Capitec / WALT: Min R350 HARD LOCK • Airtime / Data: NO LIMIT (110 Coins=R1)</p>
-<p id="withdrawInfo" style="margin:8px 0">Min: R350 HARD LOCK — Airtime/Data NO LIMIT</p>
+<p style="font-size:12px;color:#FFD700" id="withdrawTopNote">Capitec / WALT: Min R350 HARD LOCK • Airtime NO LIMIT • Data: R2 1GB TikTok 24h ONLY</p>
+<p id="withdrawInfo" style="margin:8px 0">Min: R350 HARD LOCK — Airtime NO LIMIT • Data R2 ONLY</p>
 <p id="withdrawUSDTInfo" style="font-size:13px;color:#00ff88">Your balance: R0 / R350 • Coins: 0</p>
 <select id="withdrawMethod" onchange="updateWithdrawInfo()">
 <option value="Dollars (USDT) - Walt">💵 Dollars (USDT) - Walt — Min R350</option>
 <option value="Gram - Walt">👛 Gram - Walt — Min R350</option>
 <option value="Capitec / Bank">🏦 Capitec / Bank — R350</option>
 <option value="Airtime">📱 Airtime — NO LIMIT (110 Coins=R1)</option>
-<option value="data">📶 Data — NO LIMIT (110 Coins=R1)</option>
+<option value="data">📶 Data — R2 1GB TikTok 24h ONLY (220 Coins)</option>
 </select>
 <div id="airtimeAmountBox" style="display:none;margin-top:8px">
-<label style="font-size:13px">Choose Amount (No Limit, 110 Coins=R1):</label>
+<label style="font-size:13px">Choose Airtime Amount (No Limit, 110 Coins=R1):</label>
 <select id="withdrawAmount">
 <option value="5">R5 — 550 Coins</option>
 <option value="10">R10 — 1100 Coins</option>
@@ -198,12 +197,18 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <option value="100">R100 — 11000 Coins</option>
 </select>
 </div>
+<div id="dataAmountBox" style="display:none;margin-top:8px">
+<label style="font-size:13px">Data — ONLY This Option:</label>
+<select id="withdrawDataAmount">
+<option value="2">R2 — 1GB TikTok — 24h — 220 Coins</option>
+</select>
+</div>
 <select id="withdrawNetwork" style="display:none"><option value="MTN">MTN</option><option value="Vodacom">Vodacom</option><option value="Cell C">Cell C</option><option value="Telkom">Telkom</option></select>
 <input id="walletInput" placeholder="Paste your Walt Dollars address - starts with UQ...">
 <div class="wallet-hint" id="withdrawHintBox"><b id="withdrawHintTitle">💵 Dollars (USDT) - Walt</b><p id="withdrawHint" style="margin-top:4px">In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted). WALT = Telegram Wallet @wallet.</p></div>
 <button class="bigbtn" onclick="requestWithdraw()">✅ REQUEST WITHDRAWAL</button>
 <p id="withdrawStatus" style="margin-top:8px;color:#0f0"></p>
-<p style="font-size:11px;color:#aaa;margin-top:8px" id="withdrawBottomNote">Airtime + Data = NO LIMIT, 110 Coins = R1.<br>Capitec + WALT = R350 HARD LOCK.</p>
+<p style="font-size:11px;color:#aaa;margin-top:8px" id="withdrawBottomNote">Airtime = NO LIMIT, 110 Coins = R1.<br>Data = R2 1GB TikTok 24h ONLY, 220 Coins.<br>Capitec + WALT = R350 HARD LOCK.</p>
 </div>
 <div class="card"><h3>📜 Withdraw History</h3><p style="font-size:12px;color:#aaa">Approved = Paid ✅ &nbsp; Declined = Rejected ❌ &nbsp; Pending = Waiting ⏳</p><div id="withdrawHistory" style="margin-top:8px">Loading history...</div><button class="bigbtn" style="background:#222;color:#fff;border:1px solid #FFD700" onclick="loadWithdrawHistory()">🔄 REFRESH HISTORY</button></div>
 </div>
@@ -300,48 +305,44 @@ async function loadUser(){
 }
 function updateUI(){
   if(!user) return;
-  const perAd = { cash: flatAdCash(), coins: (user.perAd&&user.perAd.coins)||5, usd: flatAdCash(), dailyLimit: (user.perAd&&user.perAd.dailyLimit)||10, minWithdrawUSDT: 20 };
+  const perAd = { cash: flatAdCash(), coins: 5, usd: flatAdCash(), dailyLimit: (user.perAd&&user.perAd.dailyLimit)||10, minWithdrawUSDT: 20 };
   const dailyLimit=user.dailyLimit||perAd.dailyLimit||10;
   const dailyAds=user.dailyAds||0;
   const dailyLeft=user.dailyLeft!==undefined?user.dailyLeft:dailyLimit-dailyAds;
   const minLabel = minLabelFor();
   const C = cur();
   document.getElementById('balance').innerText=C + user.balance.toFixed(2);
-  document.getElementById('coins').innerText='🪙 ' + user.coins + ' Coins (' + (region==='SA' ? 'R' + (user.coins/1000*USDT_TO_ZAR).toFixed(2) : '$' + (user.coins/1000).toFixed(2)) + ') • ' + coinsToCashLabel();
-  document.getElementById('pointsLine').innerText='⭐ Points: ' + (user.points||0) + ' (For VIP) • Level ' + (user.level||1) + '/20 • ' + (user.levelName||'Free');
+  document.getElementById('coins').innerText='🪙 ' + user.coins + ' Coins (' + (region==='SA' ? 'R' + (user.coins/1000*USDT_TO_ZAR).toFixed(2) : '$' + (user.coins/1000).toFixed(2)) + ') • ' + coinsToCashLabel() + ' • Coins = Cash or VIP';
+  document.getElementById('pointsLine').innerText='⭐ Points: ' + (user.points||0) + ' (VIP ONLY — Cannot Convert) • Level ' + (user.level||1) + '/20 • ' + (user.levelName||'Free');
   if(region==='SA'){ document.getElementById('usdtValue').innerText='💱 Balance = R' + user.balance.toFixed(2) + ' (1 USDT = R' + USDT_TO_ZAR.toFixed(2) + ' LIVE)'; }
   else { document.getElementById('usdtValue').innerText='💱 Balance = $' + user.balance.toFixed(2) + ' (1 USDT = $1.00 LIVE)'; }
   document.getElementById('statsLine').innerText='Ads: ' + user.total_ads + ' | Referrals: ' + user.referrals + ' | Streak: ' + user.streak + ' days';
   document.getElementById('vipBadge').innerText=user.vip_level;
-  document.getElementById('vipUntilLine').innerText=user.vip_until ? '👑 ' + user.vip_level + ' until ' + user.vip_until + ' • ' + flatAdLabel() + '/2 ads • ' + dailyLimit + '/day' : '👑 FREE • ' + flatAdLabel() + '/2 ads • 10/day • ' + minLabel + ' Min HARD LOCK | Airtime/Data 110 Coins=' + C + '1 NO LIMIT';
+  document.getElementById('vipUntilLine').innerText=user.vip_until ? '👑 ' + user.vip_level + ' until ' + user.vip_until + ' • ' + flatAdLabel() + '/2 ads + 5 Coins • ' + dailyLimit + '/day' : '👑 FREE • ' + flatAdLabel() + '/2 ads + 5 Coins • 10/day • ' + minLabel + ' Min HARD LOCK | Airtime 110 Coins=' + C + '1 NO LIMIT | Data R2 1GB TikTok 24h';
   document.getElementById('unlockedLine').innerText='Unlocked: ' + (user.unlockedLevels||[1]).join(', ') + (user.levelExpiresAt ? ' • Expires in ' + user.expiresInDays + ' days' : '');
-  document.getElementById('rateLine').innerText='You Earn: ' + flatAdLabel() + ' per 2 ads + ' + perAd.coins + ' Coins • ' + dailyLimit + '/day';
+  document.getElementById('rateLine').innerText='You Earn: ' + flatAdLabel() + ' per 2 ads + 5 Coins • ' + dailyLimit + '/day';
   document.getElementById('dailyLabel').innerText='📺 Ads Today: ' + dailyAds + ' / ' + dailyLimit + ' (' + user.vip_level + ')';
   document.getElementById('dailyBar').style.width=(dailyAds/dailyLimit*100) + '%';
   document.getElementById('dailyBar').style.background=dailyAds>=dailyLimit?'#ff4444':'#FFD700';
   document.getElementById('dailyLeftLabel').innerText=dailyAds>=dailyLimit ? '❌ Limit reached! ' + (user.vip_level==='FREE' ? 'Upgrade to VIP for 20/day' : 'Come back tomorrow.') : dailyLeft + ' left today • Max ' + C + (dailyLeft*flatAdCash()).toFixed(2) + ' more today';
-  document.getElementById('minWithdrawLabel').innerText='Min: ' + minLabel + ' HARD LOCK (Capitec/WALT) • Airtime/Data NO LIMIT (110 Coins=' + C + '1) • Coins: ' + user.withdrawMin + ' = ' + minLabel;
+  document.getElementById('minWithdrawLabel').innerText='Min: ' + minLabel + ' HARD LOCK (Capitec/WALT) • Airtime NO LIMIT (110 Coins=' + C + '1) • Data: R2 1GB TikTok 24h ONLY • Coins: ' + user.withdrawMin + ' = ' + minLabel;
   const btn=document.getElementById('watchBtn');
   if(dailyAds>=dailyLimit){ btn.disabled=true; btn.innerText='❌ DAILY LIMIT (' + dailyAds + '/' + dailyLimit + ')'; } else { btn.disabled=false; btn.innerText='▶️ WATCH 2 ADS & EARN'; }
   document.getElementById('inviteReward').innerText=region==='SA' ? 'Reward: R' + (0.50*USDT_TO_ZAR).toFixed(2) + ' + 50 Coins per friend' : 'Reward: $0.10 + 10 Coins per friend';
-  document.getElementById('withdrawInfo').innerText='Min: ' + minLabel + ' HARD LOCK (Capitec/WALT) • Airtime/Data NO LIMIT (110 Coins=' + C + '1) • Or ' + user.withdrawMin + ' Coins = ' + minLabel;
-  document.getElementById('withdrawUSDTInfo').innerText='Your balance: ' + C + user.balance.toFixed(2) + ' / ' + minLabel + ' needed • Coins: ' + user.coins + ' / ' + user.withdrawMin + ' for ' + minLabel + ' • Airtime/Data: 550 Coins = ' + C + '5 NO LIMIT (110 Coins=' + C + '1)';
+  document.getElementById('withdrawInfo').innerText='Min: ' + minLabel + ' HARD LOCK (Capitec/WALT) • Airtime NO LIMIT • Data R2 1GB TikTok 24h ONLY • Or ' + user.withdrawMin + ' Coins = ' + minLabel;
+  document.getElementById('withdrawUSDTInfo').innerText='Your balance: ' + C + user.balance.toFixed(2) + ' / ' + minLabel + ' needed • Coins: ' + user.coins + ' / ' + user.withdrawMin + ' for ' + minLabel + ' • Airtime: 550 Coins = ' + C + '5 NO LIMIT • Data: 220 Coins = R2 1GB TikTok 24h';
   if(region==='SA'){
     document.getElementById('usdtBoxTitle').innerText='💱 CONVERT USDT → RAND (LIVE)';
     document.getElementById('usdtRateLine').innerText='Rate: 1 USDT = R' + USDT_TO_ZAR.toFixed(2) + ' • LIVE';
-    document.getElementById('usdtExamples').innerText='20 USDT = R' + (20*USDT_TO_ZAR).toFixed(2) + ' • 50 USDT = R' + (50*USDT_TO_ZAR).toFixed(2) + ' • ' + flatAdLabel() + ' per 2 ads';
-    document.getElementById('usdtBtn20').innerText='20 USDT';
-    document.getElementById('usdtBtn50').innerText='50 USDT';
+    document.getElementById('usdtExamples').innerText='20 USDT = R' + (20*USDT_TO_ZAR).toFixed(2) + ' • 50 USDT = R' + (50*USDT_TO_ZAR).toFixed(2) + ' • ' + flatAdLabel() + ' per 2 ads + 5 Coins';
   } else {
     document.getElementById('usdtBoxTitle').innerText='💱 CONVERT USDT → DOLLARS (LIVE)';
     document.getElementById('usdtRateLine').innerText='Rate: 1 USDT = $1.00 • LIVE';
-    document.getElementById('usdtExamples').innerText='20 USDT = $20.00 • 50 USDT = $50.00 • ' + flatAdLabel() + ' per 2 ads';
-    document.getElementById('usdtBtn20').innerText='20 USDT';
-    document.getElementById('usdtBtn50').innerText='50 USDT';
+    document.getElementById('usdtExamples').innerText='20 USDT = $20.00 • 50 USDT = $50.00 • ' + flatAdLabel() + ' per 2 ads + 5 Coins';
   }
-  var wt=document.getElementById('withdrawTopNote'); if(wt) wt.innerText='Capitec / WALT: Min ' + minLabel + ' HARD LOCK • Airtime / Data: NO LIMIT (110 Coins=' + C + '1)';
-  var wb=document.getElementById('withdrawBottomNote'); if(wb) wb.innerHTML='Airtime + Data = NO LIMIT, 110 Coins = ' + C + '1.<br>Capitec + WALT = ' + minLabel + ' HARD LOCK.';
-  var vd=document.getElementById('vipDesc'); if(vd) vd.innerText='Upgrade to earn more • Can\'t jump, unlocked stays unlocked • Min: ' + minLabel + ' HARD LOCK | Airtime/Data 110 Coins=' + C + '1 NO LIMIT • ' + flatAdLabel() + ' per 2 ads';
+  var wt=document.getElementById('withdrawTopNote'); if(wt) wt.innerText='Capitec / WALT: Min ' + minLabel + ' HARD LOCK • Airtime NO LIMIT • Data: R2 1GB TikTok 24h ONLY';
+  var wb=document.getElementById('withdrawBottomNote'); if(wb) wb.innerHTML='Airtime = NO LIMIT, 110 Coins = ' + C + '1.<br>Data = R2 1GB TikTok 24h ONLY, 220 Coins.<br>Capitec + WALT = ' + minLabel + ' HARD LOCK.';
+  var vd=document.getElementById('vipDesc'); if(vd) vd.innerText='Points / Stars = VIP ONLY • Coins = Cash or VIP • Min: ' + minLabel + ' HARD LOCK • ' + flatAdLabel() + ' per 2 ads + 5 Coins';
   var od=document.getElementById('offerwallDesc'); if(od) od.innerText='Complete offers, install apps, surveys → Get Coins → Convert to Cash. ' + coinsToCashLabel();
   var wm=document.getElementById('withdrawMethod');
   if(wm){
@@ -349,15 +350,7 @@ function updateUI(){
     wm.options[1].text='👛 Gram - Walt — Min ' + minLabel;
     wm.options[2].text='🏦 Capitec / Bank — ' + minLabel;
     wm.options[3].text='📱 Airtime — NO LIMIT (110 Coins=' + C + '1)';
-    wm.options[4].text='📶 Data — NO LIMIT (110 Coins=' + C + '1)';
-    var wa=document.getElementById('withdrawAmount');
-    if(wa && region==='USA'){
-      wa.options[0].text='$5 — 550 Coins'; wa.options[1].text='$10 — 1100 Coins'; wa.options[2].text='$20 — 2200 Coins';
-      wa.options[3].text='$30 — 3300 Coins'; wa.options[4].text='$50 — 5500 Coins'; wa.options[5].text='$100 — 11000 Coins';
-    } else if(wa && region==='SA'){
-      wa.options[0].text='R5 — 550 Coins'; wa.options[1].text='R10 — 1100 Coins'; wa.options[2].text='R20 — 2200 Coins';
-      wa.options[3].text='R30 — 3300 Coins'; wa.options[4].text='R50 — 5500 Coins'; wa.options[5].text='R100 — 11000 Coins';
-    }
+    wm.options[4].text='📶 Data — R2 1GB TikTok 24h ONLY (220 Coins)';
   }
   document.getElementById('btnSA').className=region==='SA'?'active':'';
   document.getElementById('btnUSA').className=region==='USA'?'active':'';
@@ -369,29 +362,25 @@ function updateUI(){
 }
 function renderFallbackBuyButtons(){
   var coinsHtml = ''
-    + '<button class="bigbtn" onclick="buyCoinsBank(\'c500\')">🪙 500 Coins — R20 (Bank)</button>'
-    + '<button class="bigbtn" onclick="buyCoinsBank(\'c1500\')">🪙 1500 Coins — R50 (Bank)</button>'
-    + '<button class="bigbtn" onclick="buyCoinsBank(\'c5000\')">🪙 5000 Coins — R150 (Bank)</button>'
-    + '<button class="bigbtn" onclick="buyCoinsBank(\'c15000\')">🪙 15000 Coins — R400 (Bank)</button>'
-    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'c500s\')">🪙 500 Coins — 70 ⭐ (Instant)</button>'
-    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'c1500s\')">🪙 1500 Coins — 170 ⭐ (Instant)</button>'
-    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'c5000s\')">🪙 5000 Coins — 500 ⭐ (Instant)</button>';
+    + '<button class="bigbtn" onclick="buyCoinsBank(\'c500\')">🪙 500 Coins — R20 (Bank) — Coins ONLY</button>'
+    + '<button class="bigbtn" onclick="buyCoinsBank(\'c1500\')">🪙 1500 Coins — R50 (Bank) — Coins ONLY</button>'
+    + '<button class="bigbtn" onclick="buyCoinsBank(\'c5000\')">🪙 5000 Coins — R150 (Bank) — Coins ONLY</button>'
+    + '<button class="bigbtn" onclick="buyCoinsBank(\'c15000\')">🪙 15000 Coins — R400 (Bank) — Coins ONLY</button>'
+    + '<p style="font-size:12px;color:#aaa;margin-top:6px">⭐ Stars = VIP ONLY. Buy VIP Level with Stars in VIP section.</p>';
   var pointsHtml = ''
-    + '<button class="bigbtn" onclick="buyPointsBank(\'pt500\')">⭐ 500 Points — R20 (Bank)</button>'
-    + '<button class="bigbtn" onclick="buyPointsBank(\'pt1500\')">⭐ 1500 Points — R50 (Bank)</button>'
-    + '<button class="bigbtn" onclick="buyPointsBank(\'pt5000\')">⭐ 5000 Points — R150 (Bank)</button>'
-    + '<button class="bigbtn" onclick="buyPointsBank(\'pt15000\')">⭐ 15000 Points — R400 (Bank)</button>'
-    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'pt500s\')">⭐ 500 Points — 70 ⭐ (Instant)</button>'
-    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'pt1500s\')">⭐ 1500 Points — 170 ⭐ (Instant)</button>'
-    + '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'pt5000s\')">⭐ 5000 Points — 500 ⭐ (Instant)</button>';
+    + '<button class="bigbtn" onclick="buyPointsBank(\'pt500\')">⭐ 500 Points — R20 (Bank) — VIP ONLY</button>'
+    + '<button class="bigbtn" onclick="buyPointsBank(\'pt1500\')">⭐ 1500 Points — R50 (Bank) — VIP ONLY</button>'
+    + '<button class="bigbtn" onclick="buyPointsBank(\'pt5000\')">⭐ 5000 Points — R150 (Bank) — VIP ONLY</button>'
+    + '<button class="bigbtn" onclick="buyPointsBank(\'pt15000\')">⭐ 15000 Points — R400 (Bank) — VIP ONLY</button>'
+    + '<p style="font-size:12px;color:#aaa;margin-top:6px">Points = VIP ONLY. Cannot convert / withdraw.</p>';
   var c = document.getElementById('buyCoinsList');
   var p = document.getElementById('buyPointsList');
   if(c) c.innerHTML = coinsHtml;
   if(p) p.innerHTML = pointsHtml;
   var cb = document.getElementById('buyCoinsBox');
   var pb = document.getElementById('buyPointsBox');
-  if(cb) cb.innerHTML = FALLBACK_COINS.map(function(x){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+x.id+'\')">🪙 '+x.label+' (Bank)</button><button class="bigbtn" style="margin-top:4px;background:#7b2fff" onclick="buyWithStars(\'coins\',\''+x.id+'s\')">⭐ Buy with Stars</button>'; }).join('');
-  if(pb) pb.innerHTML = FALLBACK_POINTS.map(function(x){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+x.id+'\')">⭐ '+x.label+' (Bank)</button><button class="bigbtn" style="margin-top:4px;background:#7b2fff" onclick="buyWithStars(\'points\',\''+x.id+'s\')">⭐ Buy with Stars</button>'; }).join('');
+  if(cb) cb.innerHTML = FALLBACK_COINS.map(function(x){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+x.id+'\')">🪙 '+x.label+' (Bank) — Coins ONLY</button>'; }).join('');
+  if(pb) pb.innerHTML = FALLBACK_POINTS.map(function(x){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+x.id+'\')">⭐ '+x.label+' (Bank) — VIP ONLY</button>'; }).join('');
 }
 async function loadVipPlans(){
   renderFallbackBuyButtons();
@@ -408,13 +397,12 @@ async function loadVipPlans(){
       const canBuy = isNext || (isUnlocked && i>d.level);
       const isLocked=!isUnlocked && !isNext;
       const minLabel = minLabelFor();
-      const C = cur();
       let btnHtml = '';
       if(isCurrent){ btnHtml = '<div style="background:#000;color:#FFD700;padding:10px;border-radius:10px;text-align:center;margin-top:6px;font-weight:bold">✅ YOU ARE HERE</div>'; }
-      else if(canBuy){ btnHtml = '<div style="display:flex;gap:6px;margin-top:6px"><button onclick="buyVip(' + i + ',\'coins\')" style="flex:1">Buy Coins</button><button onclick="buyVip(' + i + ',\'points\')" style="flex:1;background:#25D366;color:#fff">Buy Points</button><button onclick="buyVip(' + i + ',\'stars\')" style="flex:1;background:#7b2fff;color:#fff">⭐ Stars</button></div><p style="font-size:11px;color:#FFD700;margin-top:4px">👆 Tap to buy Level ' + i + '</p>'; }
+      else if(canBuy){ btnHtml = '<div style="display:flex;gap:6px;margin-top:6px"><button onclick="buyVip(' + i + ',\'coins\')" style="flex:1">Buy Coins</button><button onclick="buyVip(' + i + ',\'points\')" style="flex:1;background:#25D366;color:#fff">Buy Points</button><button onclick="buyVip(' + i + ',\'stars\')" style="flex:1;background:#7b2fff;color:#fff">⭐ Stars</button></div><p style="font-size:11px;color:#FFD700;margin-top:4px">👆 Tap to buy Level ' + i + ' — Points/Stars = VIP ONLY</p>'; }
       else { btnHtml = '<div style="background:#555;color:#fff;padding:10px;border-radius:10px;text-align:center;margin-top:6px">🔒 Buy Level ' + d.level + ' first</div>'; }
       const lockText = isCurrent ? '✅ ACTIVE' : isNext ? '✅ NEXT - TAP TO BUY' : isLocked ? '🔒 LOCKED - Buy previous first' : '✅ UNLOCKED';
-      html+='<div class="vipcard ' + (isCurrent?'active':'') + '"><b>' + i + '. ' + lv.name + ' ' + (isCurrent?'✅ ACTIVE':'') + '</b><br><small>' + flatAdLabel() + '/2 ads • ' + lv.adLimit + '/day • ' + minLabel + ' Min HARD LOCK • 30 Days • Withdraw ' + lv.withdrawMin + ' Coins = ' + minLabel + '</small><br><b>' + lv.coinsCost + ' Coins / ' + lv.pointsCost + ' Points / ⭐ ' + lv.starsCost + ' Stars</b><br><small>' + lockText + '</small><br>' + btnHtml + '</div>';
+      html+='<div class="vipcard ' + (isCurrent?'active':'') + '"><b>' + i + '. ' + lv.name + ' ' + (isCurrent?'✅ ACTIVE':'') + '</b><br><small>' + flatAdLabel() + '/2 ads + 5 Coins • ' + lv.adLimit + '/day • ' + minLabel + ' Min HARD LOCK • 30 Days • Withdraw ' + lv.withdrawMin + ' Coins = ' + minLabel + '</small><br><b>' + lv.coinsCost + ' Coins / ' + lv.pointsCost + ' Points / ⭐ ' + lv.starsCost + ' Stars</b><br><small>' + lockText + '</small><br>' + btnHtml + '</div>';
     }
     document.getElementById('vipPlansList').innerHTML=html;
     if(d.packages) document.getElementById('packages').innerHTML=d.packages.map(p=>'<label style="display:block;background:#1E3A6E;padding:10px;border-radius:10px;margin:6px 0"><input type="radio" name="pkg" value="' + p.id + '" ' + (p.id==='p29'?'checked':'') + ' onchange="selectedPackage=\'' + p.id + '\'"> <b>' + p.label + '</b></label>').join('');
@@ -422,18 +410,18 @@ async function loadVipPlans(){
     const pointsList = d.buyPoints || FALLBACK_POINTS;
     var cb2 = document.getElementById('buyCoinsBox');
     var pb2 = document.getElementById('buyPointsBox');
-    if(cb2) cb2.innerHTML = coinsList.map(function(p){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+p.id+'\')">🪙 '+p.label+' (Bank)</button><button class="bigbtn" style="margin-top:4px;background:#7b2fff" onclick="buyWithStars(\'coins\',\''+p.id+'s\')">⭐ Buy with Stars</button>'; }).join('');
-    if(pb2) pb2.innerHTML = pointsList.map(function(p){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+p.id+'\')">⭐ '+p.label+' (Bank)</button><button class="bigbtn" style="margin-top:4px;background:#7b2fff" onclick="buyWithStars(\'points\',\''+p.id+'s\')">⭐ Buy with Stars</button>'; }).join('');
+    if(cb2) cb2.innerHTML = coinsList.map(function(p){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+p.id+'\')">🪙 '+p.label+' (Bank) — Coins ONLY</button>'; }).join('');
+    if(pb2) pb2.innerHTML = pointsList.map(function(p){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+p.id+'\')">⭐ '+p.label+' (Bank) — VIP ONLY</button>'; }).join('');
     if(d.buyCoins && d.buyPoints){
-      document.getElementById('buyCoinsList').innerHTML = d.buyCoins.map(function(p){ return '<button class="bigbtn" onclick="buyCoinsBank(\'' + p.id + '\')">🪙 ' + p.coins + ' Coins - R' + p.price + ' (Bank)</button>'; }).join('') + (d.buyCoinsStars||[]).map(function(p){ return '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'coins\',\'' + p.id + '\')">🪙 ' + p.coins + ' Coins - ' + p.stars + ' ⭐ (Instant)</button>'; }).join('');
-      document.getElementById('buyPointsList').innerHTML = d.buyPoints.map(function(p){ return '<button class="bigbtn" onclick="buyPointsBank(\'' + p.id + '\')">⭐ ' + p.points + ' Points - R' + p.price + ' (Bank)</button>'; }).join('') + (d.buyPointsStars||[]).map(function(p){ return '<button class="bigbtn" style="background:#7b2fff" onclick="buyWithStars(\'points\',\'' + p.id + '\')">⭐ ' + p.points + ' Points - ' + p.stars + ' ⭐ (Instant)</button>'; }).join('');
+      document.getElementById('buyCoinsList').innerHTML = d.buyCoins.map(function(p){ return '<button class="bigbtn" onclick="buyCoinsBank(\'' + p.id + '\')">🪙 ' + p.coins + ' Coins - R' + p.price + ' (Bank) — Coins ONLY</button>'; }).join('');
+      document.getElementById('buyPointsList').innerHTML = d.buyPoints.map(function(p){ return '<button class="bigbtn" onclick="buyPointsBank(\'' + p.id + '\')">⭐ ' + p.points + ' Points - R' + p.price + ' (Bank) — VIP ONLY</button>'; }).join('');
     }
   }catch(e){
     console.log('vip fallback', e);
     var v = document.getElementById('vipPlansList');
     if(v && !v.innerHTML) v.innerHTML='<p style="color:#FFD700">VIP loading failed - tap again. Showing offline list.</p>';
     var pk = document.getElementById('packages');
-    if(pk && !pk.innerHTML) pk.innerHTML='<label style="display:block;background:#1E3A6E;padding:10px;border-radius:10px"><input type="radio" name="pkg" value="p29" checked onchange="selectedPackage=\'p29\'"> <b>R29 - 500 Coins + 500 Points</b></label>';
+    if(pk && !pk.innerHTML) pk.innerHTML='<label style="display:block;background:#1E3A6E;padding:10px;border-radius:10px"><input type="radio" name="pkg" value="p29" checked onchange="selectedPackage=\'p29\'"> <b>R29 - 500 Coins ONLY</b></label>';
     renderFallbackBuyButtons();
   }
 }
@@ -458,7 +446,8 @@ function updateWithdrawInfo(){
   const isAirtime = m==='Airtime';
   const isData = m==='data';
   document.getElementById('withdrawNetwork').style.display = (isAirtime || isData) ? 'block' : 'none';
-  document.getElementById('airtimeAmountBox').style.display = (isAirtime || isData) ? 'block' : 'none';
+  document.getElementById('airtimeAmountBox').style.display = isAirtime ? 'block' : 'none';
+  document.getElementById('dataAmountBox').style.display = isData ? 'block' : 'none';
   document.getElementById('withdrawHintBox').style.display = (m.includes('Walt')) ? 'block' : 'none';
   if(m === 'Dollars (USDT) - Walt'){
     if(walletInput) walletInput.placeholder='Paste your Walt Dollars address - starts with UQ...';
@@ -478,8 +467,8 @@ function updateWithdrawInfo(){
     if(hintEl) hintEl.innerText='NO LIMIT! Choose ' + C + '5 / ' + C + '10 / ' + C + '20 etc. 110 Coins = ' + C + '1. You have ' + (user?.coins||0) + ' Coins.';
   } else if(isData){
     if(walletInput) walletInput.placeholder='Phone number for Data e.g. 071...';
-    if(hintTitle) hintTitle.innerText='📶 Data — NO LIMIT (110 Coins=' + C + '1)';
-    if(hintEl) hintEl.innerText='NO LIMIT! Choose ' + C + '5 / ' + C + '10 / ' + C + '20 etc. 110 Coins = ' + C + '1. Data valid 24h. You have ' + (user?.coins||0) + ' Coins.';
+    if(hintTitle) hintTitle.innerText='📶 Data — R2 1GB TikTok 24h ONLY (220 Coins)';
+    if(hintEl) hintEl.innerText='ONLY R2 — 1GB TikTok — 24h — 220 Coins. No other Data option. You have ' + (user?.coins||0) + ' Coins.';
   }
 }
 async function setRegion(newRegion){
@@ -508,7 +497,7 @@ async function watchAd(){
     const data=await res.json();
     if(data.success){
       const r2=await fetch('/api/user/' + userId); user=await r2.json(); if(user.usdtToZar) USDT_TO_ZAR=user.usdtToZar; updateUI(); loadVipPlans();
-      document.getElementById('adStatus').innerHTML='✅ +' + flatAdLabel() + ' + ' + data.earnedCoins + ' Coins! Ads: ' + data.dailyAds + '/' + data.dailyLimit + ' • ' + data.dailyLeft + ' left<br><span style="color:#FFD700;font-size:12px">💡 Want 10x faster? <b onclick="document.getElementById(\'proofInput\').scrollIntoView({behavior:\'smooth\'})" style="cursor:pointer;text-decoration:underline">Topup R29 → Get 500 Coins</b></span>';
+      document.getElementById('adStatus').innerHTML='✅ +' + flatAdLabel() + ' + 5 Coins! Ads: ' + data.dailyAds + '/' + data.dailyLimit + ' • ' + data.dailyLeft + ' left<br><span style="color:#FFD700;font-size:12px">💡 Want 10x faster? <b onclick="document.getElementById(\'proofInput\').scrollIntoView({behavior:\'smooth\'})" style="cursor:pointer;text-decoration:underline">Topup R29 → Get 500 Coins</b></span>';
     }
     else { document.getElementById('adStatus').innerText=data.error; if(data.dailyAds>=limit) updateUI(); }
     if(!user || (user.dailyAds||0)<limit){ btn.disabled=false; btn.innerText='▶️ WATCH 2 ADS & EARN'; }
@@ -525,7 +514,7 @@ async function finishQuiz(){ const res=await fetch('/api/earn',{method:'POST',he
 async function claimDaily(){ const res=await fetch('/api/daily',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})}); const d=await res.json(); alert(d.success ? '🎁 Daily: +' + cur() + d.bonusCash.toFixed(2) + ' + ' + d.bonusCoins + ' Coins | Streak: ' + d.streak : d.error); loadUser(); }
 async function convertCoins(){ const res=await fetch('/api/convert',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId})}); const d=await res.json(); alert(d.success ? '✅ Converted +' + cur() + d.converted.toFixed(2) : d.error); loadUser(); }
 function copyLink(){ navigator.clipboard.writeText(document.getElementById('inviteLink').innerText); alert('Link copied!'); }
-function shareWhatsApp(){ const link=document.getElementById('inviteLink').innerText; window.open('https://wa.me/?text=' + encodeURIComponent('Join Shaya Watch Bot! ' + flatAdLabel() + ' per 2 ads! ' + link)); }
+function shareWhatsApp(){ const link=document.getElementById('inviteLink').innerText; window.open('https://wa.me/?text=' + encodeURIComponent('Join Shaya Watch Bot! ' + flatAdLabel() + ' per 2 ads + 5 Coins! ' + link)); }
 async function requestTopup(){
   const proof=document.getElementById('proofInput').value.trim();
   if(!proof){ alert('Paste EFT proof first'); return; }
@@ -545,14 +534,14 @@ async function buyPointsBank(pkgId){
   const d = await res.json(); alert(d.msg);
 }
 async function buyWithStars(type, pkgId){
-  const res = await fetch('/api/buy-stars',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, type, packageId:pkgId})});
-  const d = await res.json(); alert(d.success ? '✅ Check Telegram chat for Stars invoice (' + d.stars + ' ⭐)' : d.error);
+  alert('⭐ Stars = VIP ONLY.\nBuy a VIP Level with Stars in the VIP section.');
+  return;
 }
 async function requestWithdraw(){
   const method=document.getElementById('withdrawMethod').value;
   const wallet=document.getElementById('walletInput').value.trim();
   const network=document.getElementById('withdrawNetwork').value;
-  const amount=document.getElementById('withdrawAmount') ? document.getElementById('withdrawAmount').value : 5;
+  const amount = (method==='data') ? 2 : (document.getElementById('withdrawAmount') ? document.getElementById('withdrawAmount').value : 5);
   if(!wallet) return alert('Enter your wallet / number first');
   if(method.toLowerCase().includes('paypal') || method.toLowerCase().includes('trc20')){ return alert('❌ PayPal and USDT TRC20 are REMOVED.'); }
   if(method === 'Dollars (USDT) - Walt' || method === 'Gram - Walt'){ if(!wallet.startsWith('UQ')){ return alert('❌ Wrong address! Walt addresses start with UQ...'); } }
