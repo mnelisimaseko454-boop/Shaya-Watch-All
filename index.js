@@ -1,8 +1,6 @@
-// ===== SHAYA WATCH BOT - FULL - FINAL - NO FIRST TOPUP BONUS + WITHDRAW HISTORY =====
+// ===== SHAYA WATCH BOT - FULL - FINAL - FIXED =====
 // Bot: @ShayaWatchAllBot | Giga 9114 + Offerwall 9114 + OnclickA 472254
-// CHANGES: 1) NO First Topup Bonus / DOUBLE  2) Daily Bonus = $0.003 / R0.05  3) Group ID = -1003867683507  4) Withdraw History Approved/Declined
-// NEW 3 CHANGES: 1) Per ad FLAT R0.08 SA / $0.005 USA  2) 2-in-1 Ad (2 ads = 1 reward)  3) SA = everything R, USA = everything $, conversion kept in BOTH
-// NEW RULES: Coins = Buy Coins ONLY no extra, Ads +5 Coins, Coins = Cash or VIP. Points/Stars = VIP ONLY. Data = ONLY R5 1GB TikTok 24h
+// RULES: Coins = Buy Coins ONLY, Ads +5 Coins, Coins = Cash or VIP. Points/Stars = VIP ONLY. Data = ONLY R5 1GB TikTok 24h - 550 Coins
 const express = require('express');
 const path = require('path');
 const { Telegraf } = require('telegraf');
@@ -186,7 +184,7 @@ function getPerAd(u){ const lvl=getLevel(u); return { cash: u.region==='SA'? lvl
 let bot = null;
 if(BOT_TOKEN){ try{ bot = new Telegraf(BOT_TOKEN); console.log('Bot created - Shaya Watch Bot'); }catch(e){ console.log('Bot create failed', e.message); } }
 app.get('/health', function(req,res){ res.json({ok:true, bot:'Shaya Watch Bot', time:new Date().toISOString()}); });
-app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-bot-final-no-topup-bonus-withdraw-history', giga:'9114', onclicka:'472254', minSA:'R350', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', data:'R5 1GB TikTok 24h ONLY - 550 Coins', perAdSA:'R0.08 per 2 ads + 5 Coins', perAdUSA:'$0.005 per 2 ads + 5 Coins', adMode:'2-in-1', groupPost:'ON', dailyBonusSA:'R0.05', dailyBonusUSA:'$0.003', coins:'Cash or VIP', pointsStars:'VIP ONLY'}); });
+app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-bot-fixed-r5-data', giga:'9114', onclicka:'472254', minSA:'R350', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', data:'R5 1GB TikTok 24h ONLY - 550 Coins', perAdSA:'R0.08 per 2 ads + 5 Coins', perAdUSA:'$0.005 per 2 ads + 5 Coins', adMode:'2-in-1', coins:'Cash or VIP', pointsStars:'VIP ONLY'}); });
 app.get('/', function(req,res){ res.sendFile(path.join(__dirname, 'index.html')); });
 app.get('/api/rate', async function(req,res){ const r = await refreshRate(); res.json({usdtToZar:r, usdt:1, zar:r, usd:1}); });
 app.get('/api/convert-usdt', async function(req,res){ const usdt=parseFloat(req.query.usdt || 0); const r=await refreshRate(); res.json({usdt:usdt, zar:(usdt*r).toFixed(2), usd:usdt.toFixed(2), rate:r, usdtToZar:r}); });
@@ -409,9 +407,6 @@ app.post('/api/complete-task', async function(req,res){
   if(!task) return res.json({error:'Task not found'});
   const completed = u.completedTasks || u.tasksDone || [];
   if(completed.indexOf(tid)!==-1 || completed.indexOf(String(tid))!==-1) return res.json({error:'Already claimed this task!'});
-  if(task.type==='invite_Continuing `index.js` from where it stopped — paste this directly after the cut-off line:
-
-```js
   if(task.type==='invite_3' && (u.referrals||0)<3) return res.json({error:'Need 3 friends. You have '+(u.referrals||0)+'/3.'});
   const cashValue = u.region==='SA' ? task.reward_cash * USDT_TO_ZAR : task.reward_cash;
   const updated = await updateUser(u.id, { balance: parseFloat((u.balance + cashValue).toFixed(2)), coins: (u.coins||0) + task.reward_coins, total_earned: parseFloat(((u.total_earned||0)+cashValue).toFixed(2)), completedTasks: completed.concat([tid]), tasksDone: (u.tasksDone||[]).concat([tid]), });
