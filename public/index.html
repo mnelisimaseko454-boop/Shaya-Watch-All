@@ -108,7 +108,7 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <b id="dailyLabel">📺 Ads Today: 0 / 10</b>
 <div class="progress"><div id="dailyBar" style="width:0%"></div></div>
 <p id="dailyLeftLabel" style="font-size:12px;color:#aaa;margin-top:4px">10 left today</p>
-<p id="minWithdrawLabel" style="font-size:12px;color:#FFD700;margin-top:4px">Min: R350 HARD LOCK — Airtime NO LIMIT • Data: R2 1GB TikTok 24h</p>
+<p id="minWithdrawLabel" style="font-size:12px;color:#FFD700;margin-top:4px">Min: R350 HARD LOCK — Airtime NO LIMIT • Data: R5 1GB TikTok 24h</p>
 </div>
 <button class="bigbtn" id="watchBtn" onclick="watchAd()">▶️ WATCH 2 ADS & EARN</button>
 <p style="text-align:center;font-size:12px;color:#aaa;margin-top:8px" id="rateLine">You Earn: R0.08 per 2 ads + 5 Coins</p>
@@ -176,15 +176,15 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 </div>
 <div id="page-invite" class="hidden"><div class="card"><h3>👥 INVITE FRIENDS</h3><p id="inviteReward" style="margin:8px 0">Reward per friend</p><p style="background:#222;padding:10px;border-radius:10px;word-break:break-all" id="inviteLink">Loading...</p><button class="bigbtn" onclick="copyLink()">📋 COPY LINK</button><button class="bigbtn" style="background:#25D366" onclick="shareWhatsApp()">📲 SHARE TO WHATSAPP</button></div></div>
 <div id="page-withdraw" class="hidden"><div class="card"><h3>💸 WITHDRAW</h3>
-<p style="font-size:12px;color:#FFD700" id="withdrawTopNote">Capitec / WALT: Min R350 HARD LOCK • Airtime NO LIMIT • Data: R2 1GB TikTok 24h ONLY</p>
-<p id="withdrawInfo" style="margin:8px 0">Min: R350 HARD LOCK — Airtime NO LIMIT • Data R2 ONLY</p>
+<p style="font-size:12px;color:#FFD700" id="withdrawTopNote">Capitec / WALT: Min R350 HARD LOCK • Airtime NO LIMIT • Data: R5 1GB TikTok 24h ONLY</p>
+<p id="withdrawInfo" style="margin:8px 0">Min: R350 HARD LOCK — Airtime NO LIMIT • Data R5 ONLY</p>
 <p id="withdrawUSDTInfo" style="font-size:13px;color:#00ff88">Your balance: R0 / R350 • Coins: 0</p>
 <select id="withdrawMethod" onchange="updateWithdrawInfo()">
 <option value="Dollars (USDT) - Walt">💵 Dollars (USDT) - Walt — Min R350</option>
 <option value="Gram - Walt">👛 Gram - Walt — Min R350</option>
 <option value="Capitec / Bank">🏦 Capitec / Bank — R350</option>
 <option value="Airtime">📱 Airtime — NO LIMIT (110 Coins=R1)</option>
-<option value="data">📶 Data — R2 1GB TikTok 24h ONLY (220 Coins)</option>
+<option value="data">📶 Data — R5 1GB TikTok 24h ONLY (550 Coins)</option>
 </select>
 <div id="airtimeAmountBox" style="display:none;margin-top:8px">
 <label style="font-size:13px">Choose Airtime Amount (No Limit, 110 Coins=R1):</label>
@@ -200,7 +200,7 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <div id="dataAmountBox" style="display:none;margin-top:8px">
 <label style="font-size:13px">Data — ONLY This Option:</label>
 <select id="withdrawDataAmount">
-<option value="2">R2 — 1GB TikTok — 24h — 220 Coins</option>
+<option value="5">R5 — 1GB TikTok — 24h — 550 Coins</option>
 </select>
 </div>
 <select id="withdrawNetwork" style="display:none"><option value="MTN">MTN</option><option value="Vodacom">Vodacom</option><option value="Cell C">Cell C</option><option value="Telkom">Telkom</option></select>
@@ -208,7 +208,7 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <div class="wallet-hint" id="withdrawHintBox"><b id="withdrawHintTitle">💵 Dollars (USDT) - Walt</b><p id="withdrawHint" style="margin-top:4px">In Walt: Tap Dollars > Deposit > Copy UQ... address. NOT T... (TRC20 NOT accepted). WALT = Telegram Wallet @wallet.</p></div>
 <button class="bigbtn" onclick="requestWithdraw()">✅ REQUEST WITHDRAWAL</button>
 <p id="withdrawStatus" style="margin-top:8px;color:#0f0"></p>
-<p style="font-size:11px;color:#aaa;margin-top:8px" id="withdrawBottomNote">Airtime = NO LIMIT, 110 Coins = R1.<br>Data = R2 1GB TikTok 24h ONLY, 220 Coins.<br>Capitec + WALT = R350 HARD LOCK.</p>
+<p style="font-size:11px;color:#aaa;margin-top:8px" id="withdrawBottomNote">Airtime = NO LIMIT, 110 Coins = R1.<br>Data = R5 1GB TikTok 24h ONLY, 550 Coins.<br>Capitec + WALT = R350 HARD LOCK.</p>
 </div>
 <div class="card"><h3>📜 Withdraw History</h3><p style="font-size:12px;color:#aaa">Approved = Paid ✅ &nbsp; Declined = Rejected ❌ &nbsp; Pending = Waiting ⏳</p><div id="withdrawHistory" style="margin-top:8px">Loading history...</div><button class="bigbtn" style="background:#222;color:#fff;border:1px solid #FFD700" onclick="loadWithdrawHistory()">🔄 REFRESH HISTORY</button></div>
 </div>
@@ -318,19 +318,19 @@ function updateUI(){
   else { document.getElementById('usdtValue').innerText='💱 Balance = $' + user.balance.toFixed(2) + ' (1 USDT = $1.00 LIVE)'; }
   document.getElementById('statsLine').innerText='Ads: ' + user.total_ads + ' | Referrals: ' + user.referrals + ' | Streak: ' + user.streak + ' days';
   document.getElementById('vipBadge').innerText=user.vip_level;
-  document.getElementById('vipUntilLine').innerText=user.vip_until ? '👑 ' + user.vip_level + ' until ' + user.vip_until + ' • ' + flatAdLabel() + '/2 ads + 5 Coins • ' + dailyLimit + '/day' : '👑 FREE • ' + flatAdLabel() + '/2 ads + 5 Coins • 10/day • ' + minLabel + ' Min HARD LOCK | Airtime 110 Coins=' + C + '1 NO LIMIT | Data R2 1GB TikTok 24h';
+  document.getElementById('vipUntilLine').innerText=user.vip_until ? '👑 ' + user.vip_level + ' until ' + user.vip_until + ' • ' + flatAdLabel() + '/2 ads + 5 Coins • ' + dailyLimit + '/day' : '👑 FREE • ' + flatAdLabel() + '/2 ads + 5 Coins • 10/day • ' + minLabel + ' Min HARD LOCK | Airtime 110 Coins=' + C + '1 NO LIMIT | Data R5 1GB TikTok 24h';
   document.getElementById('unlockedLine').innerText='Unlocked: ' + (user.unlockedLevels||[1]).join(', ') + (user.levelExpiresAt ? ' • Expires in ' + user.expiresInDays + ' days' : '');
   document.getElementById('rateLine').innerText='You Earn: ' + flatAdLabel() + ' per 2 ads + 5 Coins • ' + dailyLimit + '/day';
   document.getElementById('dailyLabel').innerText='📺 Ads Today: ' + dailyAds + ' / ' + dailyLimit + ' (' + user.vip_level + ')';
   document.getElementById('dailyBar').style.width=(dailyAds/dailyLimit*100) + '%';
   document.getElementById('dailyBar').style.background=dailyAds>=dailyLimit?'#ff4444':'#FFD700';
   document.getElementById('dailyLeftLabel').innerText=dailyAds>=dailyLimit ? '❌ Limit reached! ' + (user.vip_level==='FREE' ? 'Upgrade to VIP for 20/day' : 'Come back tomorrow.') : dailyLeft + ' left today • Max ' + C + (dailyLeft*flatAdCash()).toFixed(2) + ' more today';
-  document.getElementById('minWithdrawLabel').innerText='Min: ' + minLabel + ' HARD LOCK (Capitec/WALT) • Airtime NO LIMIT (110 Coins=' + C + '1) • Data: R2 1GB TikTok 24h ONLY • Coins: ' + user.withdrawMin + ' = ' + minLabel;
+  document.getElementById('minWithdrawLabel').innerText='Min: ' + minLabel + ' HARD LOCK (Capitec/WALT) • Airtime NO LIMIT (110 Coins=' + C + '1) • Data: R5 1GB TikTok 24h ONLY • Coins: ' + user.withdrawMin + ' = ' + minLabel;
   const btn=document.getElementById('watchBtn');
   if(dailyAds>=dailyLimit){ btn.disabled=true; btn.innerText='❌ DAILY LIMIT (' + dailyAds + '/' + dailyLimit + ')'; } else { btn.disabled=false; btn.innerText='▶️ WATCH 2 ADS & EARN'; }
   document.getElementById('inviteReward').innerText=region==='SA' ? 'Reward: R' + (0.50*USDT_TO_ZAR).toFixed(2) + ' + 50 Coins per friend' : 'Reward: $0.10 + 10 Coins per friend';
-  document.getElementById('withdrawInfo').innerText='Min: ' + minLabel + ' HARD LOCK (Capitec/WALT) • Airtime NO LIMIT • Data R2 1GB TikTok 24h ONLY • Or ' + user.withdrawMin + ' Coins = ' + minLabel;
-  document.getElementById('withdrawUSDTInfo').innerText='Your balance: ' + C + user.balance.toFixed(2) + ' / ' + minLabel + ' needed • Coins: ' + user.coins + ' / ' + user.withdrawMin + ' for ' + minLabel + ' • Airtime: 550 Coins = ' + C + '5 NO LIMIT • Data: 220 Coins = R2 1GB TikTok 24h';
+  document.getElementById('withdrawInfo').innerText='Min: ' + minLabel + ' HARD LOCK (Capitec/WALT) • Airtime NO LIMIT • Data R5 1GB TikTok 24h ONLY • Or ' + user.withdrawMin + ' Coins = ' + minLabel;
+  document.getElementById('withdrawUSDTInfo').innerText='Your balance: ' + C + user.balance.toFixed(2) + ' / ' + minLabel + ' needed • Coins: ' + user.coins + ' / ' + user.withdrawMin + ' for ' + minLabel + ' • Airtime: 550 Coins = ' + C + '5 NO LIMIT • Data: 550 Coins = R5 1GB TikTok 24h';
   if(region==='SA'){
     document.getElementById('usdtBoxTitle').innerText='💱 CONVERT USDT → RAND (LIVE)';
     document.getElementById('usdtRateLine').innerText='Rate: 1 USDT = R' + USDT_TO_ZAR.toFixed(2) + ' • LIVE';
@@ -340,8 +340,8 @@ function updateUI(){
     document.getElementById('usdtRateLine').innerText='Rate: 1 USDT = $1.00 • LIVE';
     document.getElementById('usdtExamples').innerText='20 USDT = $20.00 • 50 USDT = $50.00 • ' + flatAdLabel() + ' per 2 ads + 5 Coins';
   }
-  var wt=document.getElementById('withdrawTopNote'); if(wt) wt.innerText='Capitec / WALT: Min ' + minLabel + ' HARD LOCK • Airtime NO LIMIT • Data: R2 1GB TikTok 24h ONLY';
-  var wb=document.getElementById('withdrawBottomNote'); if(wb) wb.innerHTML='Airtime = NO LIMIT, 110 Coins = ' + C + '1.<br>Data = R2 1GB TikTok 24h ONLY, 220 Coins.<br>Capitec + WALT = ' + minLabel + ' HARD LOCK.';
+  var wt=document.getElementById('withdrawTopNote'); if(wt) wt.innerText='Capitec / WALT: Min ' + minLabel + ' HARD LOCK • Airtime NO LIMIT • Data: R5 1GB TikTok 24h ONLY';
+  var wb=document.getElementById('withdrawBottomNote'); if(wb) wb.innerHTML='Airtime = NO LIMIT, 110 Coins = ' + C + '1.<br>Data = R5 1GB TikTok 24h ONLY, 550 Coins.<br>Capitec + WALT = ' + minLabel + ' HARD LOCK.';
   var vd=document.getElementById('vipDesc'); if(vd) vd.innerText='Points / Stars = VIP ONLY • Coins = Cash or VIP • Min: ' + minLabel + ' HARD LOCK • ' + flatAdLabel() + ' per 2 ads + 5 Coins';
   var od=document.getElementById('offerwallDesc'); if(od) od.innerText='Complete offers, install apps, surveys → Get Coins → Convert to Cash. ' + coinsToCashLabel();
   var wm=document.getElementById('withdrawMethod');
@@ -350,7 +350,7 @@ function updateUI(){
     wm.options[1].text='👛 Gram - Walt — Min ' + minLabel;
     wm.options[2].text='🏦 Capitec / Bank — ' + minLabel;
     wm.options[3].text='📱 Airtime — NO LIMIT (110 Coins=' + C + '1)';
-    wm.options[4].text='📶 Data — R2 1GB TikTok 24h ONLY (220 Coins)';
+    wm.options[4].text='📶 Data — R5 1GB TikTok 24h ONLY (550 Coins)';
   }
   document.getElementById('btnSA').className=region==='SA'?'active':'';
   document.getElementById('btnUSA').className=region==='USA'?'active':'';
@@ -467,8 +467,8 @@ function updateWithdrawInfo(){
     if(hintEl) hintEl.innerText='NO LIMIT! Choose ' + C + '5 / ' + C + '10 / ' + C + '20 etc. 110 Coins = ' + C + '1. You have ' + (user?.coins||0) + ' Coins.';
   } else if(isData){
     if(walletInput) walletInput.placeholder='Phone number for Data e.g. 071...';
-    if(hintTitle) hintTitle.innerText='📶 Data — R2 1GB TikTok 24h ONLY (220 Coins)';
-    if(hintEl) hintEl.innerText='ONLY R2 — 1GB TikTok — 24h — 220 Coins. No other Data option. You have ' + (user?.coins||0) + ' Coins.';
+    if(hintTitle) hintTitle.innerText='📶 Data — R5 1GB TikTok 24h ONLY (550 Coins)';
+    if(hintEl) hintEl.innerText='ONLY R5 — 1GB TikTok — 24h — 550 Coins. No other Data option. You have ' + (user?.coins||0) + ' Coins.';
   }
 }
 async function setRegion(newRegion){
@@ -541,7 +541,7 @@ async function requestWithdraw(){
   const method=document.getElementById('withdrawMethod').value;
   const wallet=document.getElementById('walletInput').value.trim();
   const network=document.getElementById('withdrawNetwork').value;
-  const amount = (method==='data') ? 2 : (document.getElementById('withdrawAmount') ? document.getElementById('withdrawAmount').value : 5);
+  const amount = (method==='data') ? 5 : (document.getElementById('withdrawAmount') ? document.getElementById('withdrawAmount').value : 5);
   if(!wallet) return alert('Enter your wallet / number first');
   if(method.toLowerCase().includes('paypal') || method.toLowerCase().includes('trc20')){ return alert('❌ PayPal and USDT TRC20 are REMOVED.'); }
   if(method === 'Dollars (USDT) - Walt' || method === 'Gram - Walt'){ if(!wallet.startsWith('UQ')){ return alert('❌ Wrong address! Walt addresses start with UQ...'); } }
