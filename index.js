@@ -1,4 +1,4 @@
-// ===== SHAYA QUIZ BOT - FINAL - APPROVE TOPUP + DATA BACKUP ONLY - COPIED FROM SHAYA WATCH =====
+// ===== SHAYA QUIZ BOT - FINAL FULL - APPROVE TOPUP + DATA BACKUP + NO WIPE ON RELOAD =====
 const express = require('express');
 const path = require('path');
 const { Telegraf } = require('telegraf');
@@ -18,7 +18,6 @@ let supabase = null;
 try { if (SUPABASE_URL && SUPABASE_KEY) { supabase = createClient(SUPABASE_URL, SUPABASE_KEY); console.log('Supabase connected'); } } catch(e){ console.log('Supabase failed', e.message); }
 
 // ================= DATA BACKUP - COPIED FROM WATCH =================
-// Watch: users Map + sbGetUser + sbUpsertUser + getUser + createUser + getUserAsync + updateUser
 const users = new Map();
 async function sbGetUser(id){
   if(!supabase) return null;
@@ -29,15 +28,30 @@ async function sbGetUser(id){
     return null;
   }catch(e){ return null; }
 }
+// FIXED: tries upsert -> update id -> update user_id -> insert. Never silently fails.
 async function sbUpsertUser(u){
   if(!supabase) return;
-  try{ await supabase.from('quiz_users').upsert({
+  const row = {
     id: String(u.id), user_id: parseInt(u.id) || null,
     name: u.name || '', first_name: u.name || '',
     points: u.points||0, play_points: u.playPoints||0, daily_points: u.dailyPoints||0,
     q_index: u.qIndex||0, correct: u.correct||0, wrong: u.wrong||0,
     pending_topup: u.pendingTopup || null
-  }, { onConflict: 'id' }); }catch(e){ console.log('sb upsert failed', e.message); }
+  };
+  try{
+    const { error } = await supabase.from('quiz_users').upsert(row, { onConflict: 'id' });
+    if(!error) return;
+    console.log('upsert on id failed, trying update:', error.message);
+    const { data: upd, error: updErr } = await supabase.from('quiz_users').update(row).eq('id', String(u.id)).select();
+    if(!updErr && upd && upd.length>0) return;
+    if(row.user_id){
+      const { data: upd2, error: updErr2 } = await supabase.from('quiz_users').update(row).eq('user_id', row.user_id).select();
+      if(!updErr2 && upd2 && upd2.length>0) return;
+    }
+    const { error: insErr } = await supabase.from('quiz_users').insert(row);
+    if(insErr) console.log('INSERT ALSO FAILED - CHECK SUPABASE SQL + RLS:', insErr.message);
+    else console.log('Inserted new user', u.id);
+  }catch(e){ console.log('sbUpsert failed', e.message); }
 }
 async function getUser(id){
   const key = String(id);
@@ -75,29 +89,19 @@ function formatUser(u){
     points: u.points||0, playPoints: u.playPoints||0, dailyPoints: u.dailyPoints||0,
     qIndex: u.qIndex||0, correct: u.correct||0, wrong: u.wrong||0 };
 }
-function giveText(coins, points){
-  const parts = [];
-  if(coins) parts.push('+' + coins + ' Coins');
-  if(points) parts.push('+' + points + ' Points');
-  return parts.length ? parts.join(' ') : 'Nothing';
-}
-// ================= END DATA BACKUP =================
-
 const ALL_BUY_PACKAGES = [
-  { id:'p1000', coins:0, points:1000, price:1, label:'1000 PLAY = R1' },
-  { id:'p5000', coins:0, points:5000, price:5, label:'5000 PLAY = R5' },
-  { id:'p10000', coins:0, points:10000, price:10, label:'10000 PLAY = R10' },
-  { id:'p50000', coins:0, points:50000, price:50, label:'50000 PLAY = R50' },
-  { id:'p100000', coins:0, points:100000, price:100, label:'100000 PLAY = R100' },
+  { id:'p1000', points:1000, price:1, label:'1000 PLAY = R1' },
+  { id:'p5000', points:5000, price:5, label:'5000 PLAY = R5' },
+  { id:'p10000', points:10000, price:10, label:'10000 PLAY = R10' },
+  { id:'p50000', points:50000, price:50, label:'50000 PLAY = R50' },
+  { id:'p100000', points:100000, price:100, label:'100000 PLAY = R100' },
 ];
-// Watch helper for approve_topup callback
 function parseTopupCallback(data, prefix){
   const rest = data.replace(prefix, '');
   const lastUnd = rest.lastIndexOf('_');
   if(lastUnd === -1) return { userId: rest, packageId: '' };
   return { userId: rest.slice(0, lastUnd), packageId: rest.slice(lastUnd+1) };
 }
-
 app.get('/health', (req,res)=> res.json({ok:true}));
 app.get('/', (req,res)=> res.sendFile(path.join(__dirname, 'public', 'quiz.html')));
 app.get('/api/user/:id', async (req,res)=>{
@@ -137,9 +141,6 @@ app.post('/api/quiz-withdraw', async (req,res)=>{
   }).catch(()=>{});
   res.json({ok:true, remaining: updated.points});
 });
-
-// ================= APPROVE TOPUP - COPIED FROM WATCH =================
-// Watch: /api/vip action=topup_request -> saves pendingTopup -> sends Admin Approve button
 app.post('/api/quiz-topup', async (req,res)=>{
   const b = req.body;
   let u = await getUserAsync(b.user_id, b.name);
@@ -152,11 +153,8 @@ app.post('/api/quiz-topup', async (req,res)=>{
   }
   res.json({msg:'Topup request sent! +'+pkg.points+' PLAY. Admin will check Capitec '+TOPUP_ACCOUNT+'.'});
 });
-// ================= END APPROVE TOPUP API =================
-
 let bot = null;
 if(BOT_TOKEN){ try{ bot = new Telegraf(BOT_TOKEN); console.log('Bot created - Shaya Quiz Bot'); }catch(e){ console.log('Bot create failed', e.message); } }
-
 if(bot){
   bot.start(async (ctx)=>{
     const user_id = ctx.from.id;
@@ -170,21 +168,18 @@ if(bot){
     let u = await getUser(ctx.from.id); if(!u) return ctx.reply('Send /start first');
     ctx.reply(`💰 Balance:\n🎁 Daily: ${u.dailyPoints}\n🎮 Play: ${u.playPoints}\n🏆 Win: ${u.points} = R${(u.points/1000).toFixed(2)}`);
   });
-
-  // ================= APPROVE TOPUP - COPIED FROM WATCH - /approve =================
   bot.command('approve', async (ctx)=>{
     if(ctx.from.id!==ADMIN_ID) return ctx.reply('Admin only');
-    const text = ctx.message.text.trim(); const parts = text.split(/\s+/); const targetId = parts[1]; let pkgId = parts[2];
-    if(!targetId || !pkgId) return ctx.reply('Usage: /approve <ID> <package>\nExample:\n/approve 1159481047 p100000\n/approve web_ja1p2bcvr9 p5000');
+    const parts = ctx.message.text.trim().split(/\s+/); const targetId = parts[1]; let pkgId = parts[2];
+    if(!targetId || !pkgId) return ctx.reply('Usage: /approve <ID> <package>\nExample:\n/approve 1159481047 p100000');
     let target = await getUser(targetId);
     if(!target){ for(let kv of users){ if(String(kv[1].user_id)===String(targetId)||String(kv[1].id)===String(targetId)){ target=kv[1]; break; } } }
-    const pkg = ALL_BUY_PACKAGES.find(p=> p.id===pkgId); if(!target||!pkg) return ctx.reply('User or package not found\nTried ID: '+targetId+'\nTried Package: '+pkgId);
+    const pkg = ALL_BUY_PACKAGES.find(p=> p.id===pkgId); if(!target||!pkg) return ctx.reply('User or package not found');
     const givePoints = (target.pendingTopup && target.pendingTopup.points) || pkg.points || 0;
     await updateUser(target.id, { playPoints: target.playPoints + givePoints, pendingTopup: null });
     ctx.reply('Approved! +'+givePoints+' PLAY to '+target.name+' (ID: '+target.id+')');
-    try{ const chatId = parseInt(target.id)||target.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, 'TOPUP APPROVED! +'+givePoints+' PLAY!'); }catch(e){ console.log('Web user - approved in DB, no Telegram DM'); }
+    try{ const chatId = parseInt(target.id)||target.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, 'TOPUP APPROVED! +'+givePoints+' PLAY!'); }catch(e){}
   });
-  // Watch: /pending
   bot.command('pending', async (ctx)=>{
     if(ctx.from.id!==ADMIN_ID) return ctx.reply('Admin only');
     let pendingList = [];
@@ -196,7 +191,6 @@ if(bot){
     txt += '\nPress Approve on the request message, or type:\n/approveall';
     await ctx.reply(txt);
   });
-  // Watch: /approveall
   bot.command('approveall', async (ctx)=>{
     if(ctx.from.id!==ADMIN_ID) return ctx.reply('Admin only');
     let pendingList = [];
@@ -219,7 +213,6 @@ if(bot){
     report += '\n\nTotal Approved: '+approved+'/'+pendingList.length;
     await ctx.reply(report);
   });
-  // Watch: /reject
   bot.command('reject', async (ctx)=>{
     if(ctx.from.id!==ADMIN_ID) return ctx.reply('Admin only');
     const parts = ctx.message.text.trim().split(/\s+/); const targetId = parts[1]; if(!targetId) return ctx.reply('Usage: /reject <ID>');
@@ -227,9 +220,6 @@ if(bot){
     await updateUser(target.id, { pendingTopup: null }); await ctx.reply('Rejected topup for '+target.name+' ('+target.id+')');
     try{ const chatId = parseInt(target.id)||target.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, 'Your topup request was rejected. No payment found for Capitec '+TOPUP_ACCOUNT+'.'); }catch(e){}
   });
-  // ================= END APPROVE TOPUP COMMANDS =================
-
-  // ================= APPROVE TOPUP - COPIED FROM WATCH - callback_query =================
   bot.on('callback_query', async (ctx)=>{
     const data = ctx.callbackQuery && ctx.callbackQuery.data || '';
     const fromId = ctx.from && ctx.from.id;
@@ -240,12 +230,12 @@ if(bot){
       const parsed = parseTopupCallback(data, 'approve_topup_');
       const userId = parsed.userId; const packageId = parsed.packageId;
       const target = await getUser(userId); const pkg = ALL_BUY_PACKAGES.find(p=> p.id===packageId);
-      if(!target||!pkg){ try{ await ctx.answerCbQuery('User or package not found: '+userId+' / '+packageId); }catch(e){} return; }
+      if(!target||!pkg){ try{ await ctx.answerCbQuery('User or package not found'); }catch(e){} return; }
       const givePoints = (target.pendingTopup && target.pendingTopup.points) || pkg.points || 0;
       await updateUser(target.id, { playPoints: (target.playPoints||0)+givePoints, pendingTopup: null });
       try{ await ctx.answerCbQuery('Approved!'); }catch(e){}
       try{ await ctx.editMessageText('APPROVED - TOPUP\n\n'+target.name+' ID:'+target.id+'\n'+pkg.label+'\n+'+givePoints+' PLAY\n\nPaid via Capitec '+TOPUP_ACCOUNT); }catch(e){}
-      try{ const chatId = parseInt(target.id)||target.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, 'TOPUP APPROVED!\n\n+'+givePoints+' PLAY!'); }catch(e){ console.log('Web user - approved in DB only'); }
+      try{ const chatId = parseInt(target.id)||target.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, 'TOPUP APPROVED!\n\n+'+givePoints+' PLAY!'); }catch(e){}
       return;
     }
     if(data.indexOf('reject_topup_')===0){
@@ -253,8 +243,7 @@ if(bot){
       const target = await getUser(userId);
       if(target) await updateUser(target.id, { pendingTopup: null });
       try{ await ctx.answerCbQuery('Rejected'); }catch(e){}
-      try{ await ctx.editMessageText('REJECTED - TOPUP\n\n'+(target && target.name || '')+' ID:'+userId+'\nReason: No payment found in Capitec '+TOPUP_ACCOUNT); }catch(e){}
-      try{ const chatId = parseInt(userId); if(chatId) await ctx.telegram.sendMessage(chatId, 'Your topup was rejected. No payment found in Capitec '+TOPUP_ACCOUNT+'.'); }catch(e){}
+      try{ await ctx.editMessageText('REJECTED - TOPUP\n\n'+(target && target.name || '')+' ID:'+userId); }catch(e){}
       return;
     }
     if(data.indexOf('withdraw_paid_')===0){
@@ -271,8 +260,6 @@ if(bot){
       return;
     }
   });
-  // ================= END APPROVE TOPUP CALLBACK =================
-
   bot.launch().then(()=> console.log('Bot launched - Quiz - Approve Topup + Backup ON')).catch(e=> console.log('Bot launch failed', e.message));
   process.once('SIGINT', ()=> bot.stop('SIGINT')); process.once('SIGTERM', ()=> bot.stop('SIGTERM'));
 } else console.log('BOT_TOKEN not set');
