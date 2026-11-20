@@ -57,7 +57,6 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <script>
 let tmaReady=false;
 window.initCdTma?.({id:'6155603'}).then(s=>{window.show=s; tmaReady=true;}).catch(e=>console.log(e));
-// ===== DATA BACKUP - COPIED FROM WATCH - ID LOGIC =====
 let userId = new URLSearchParams(window.location.search).get('start') || (window.Telegram?.WebApp?.initDataUnsafe?.user?.id) || new URLSearchParams(window.location.search).get('user_id');
 let deviceId = null; let userName = 'Player';
 let isTelegram = !!(window.Telegram?.WebApp?.initDataUnsafe?.user?.id);
@@ -79,7 +78,6 @@ function saveWebsiteUser(){
 }
 if(userId) document.getElementById('bankRef').textContent=userName+' - '+userId;
 if(window.Telegram?.WebApp){ Telegram.WebApp.ready(); Telegram.WebApp.expand(); }
-// ===== DATA BACKUP - COPIED FROM WATCH - saveToPhone / getPhoneBackup =====
 const DAILY=200, QUESTION_TIME=15, FEEDBACK_TIME=2000;
 let dailyPoints=0, playPoints=0, points=0, qIndex=0, correct=0, wrong=0, qInRound=0, currentQ=null, timer=null, timeLeft=15, playing=false, lastClaim='';
 let inAd=false, serverReady=false, adShowing=false, adClosed=false, answered=false, entryAdDone=false;
@@ -96,18 +94,34 @@ function updateUI(){
   document.getElementById('progressLabel').innerText=`Q ${qInRound+1}/5 • Correct ${correct} • Wrong ${wrong}`;
   if(userId) document.getElementById('bankRef').textContent=userName+' - '+userId;
 }
+// FIXED: MAX MERGE - server can NEVER lower your points on reload
 async function loadUser(){
   if(!userId) return;
-  const backup=getPhoneBackup();
-  if(backup){ dailyPoints=backup.dailyPoints||0; playPoints=backup.playPoints||0; points=backup.points||0; qIndex=backup.qIndex||0; updateUI(); }
+  const backup = getPhoneBackup();
+  if(backup){
+    dailyPoints = backup.dailyPoints||0; playPoints = backup.playPoints||0; points = backup.points||0;
+    qIndex = backup.qIndex||0; correct = backup.correct||0; wrong = backup.wrong||0;
+    updateUI();
+  }
   try{
-    const res=await fetch('/api/user/'+encodeURIComponent(userId)); user=await res.json(); if(user.error) throw new Error(user.error);
-    dailyPoints=Math.max(dailyPoints, user.dailyPoints||0); playPoints=user.playPoints||0; points=user.points||0; qIndex=Math.max(qIndex, user.qIndex||0);
+    const res = await fetch('/api/user/'+encodeURIComponent(userId));
+    user = await res.json(); if(user.error) throw new Error(user.error);
+    let serverPoints = user.points||0; let serverPlay = user.playPoints||0; let serverDaily = user.dailyPoints||0;
+    let needsPushBack = (serverPoints < points) || (serverPlay < playPoints) || (serverDaily < dailyPoints);
+    dailyPoints = Math.max(dailyPoints, serverDaily);
+    playPoints = Math.max(playPoints, serverPlay);
+    points = Math.max(points, serverPoints);
+    qIndex = Math.max(qIndex, user.qIndex||0);
+    correct = Math.max(correct, user.correct||0);
+    wrong = Math.max(wrong, user.wrong||0);
     updateUI(); saveToPhone();
-  }catch(e){ console.log('loadUser failed', e); }
-  serverReady=true; updateUI();
+    if(needsPushBack){
+      fetch('/api/sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, points, playPoints, dailyPoints, qIndex, correct, wrong})}).catch(()=>{});
+    }
+  }catch(e){ console.log('loadUser failed, keeping phone backup', e); }
+  serverReady = true; updateUI();
 }
-setInterval(()=>{ if(!playing && serverReady) loadUser(); }, 5000);
+setInterval(()=>{ if(!playing && serverReady && document.visibilityState==='visible') loadUser(); }, 10000);
 document.addEventListener('visibilitychange', ()=>{ if(!document.hidden && !playing) loadUser(); });
 function claimDaily(){ const today=new Date().toDateString(); if(lastClaim===today){ document.getElementById('claimMsg').innerText='✅ Already claimed today.'; return; } dailyPoints+=DAILY; lastClaim=today; save(); document.getElementById('claimMsg').innerText='✅ +'+DAILY+' Daily claimed!'; }
 function makeQ(i){
@@ -185,7 +199,6 @@ async function doWithdraw(){
   const d=await r.json(); if(d.error){ document.getElementById('wMsg').innerText='❌ '+d.error; return; }
   points=d.remaining!==undefined?d.remaining:points-pts; save(); document.getElementById('wMsg').innerText='✅ Withdraw sent! '+pts+' WIN = R'+rand;
 }
-// ===== APPROVE TOPUP - FRONTEND - sends pendingTopup like Watch =====
 async function doTopup(){
   const pkgId=document.getElementById('tPackage').value;
   const pkgMap={p1000:{points:1000,price:1},p5000:{points:5000,price:5},p10000:{points:10000,price:10},p50000:{points:50000,price:50},p100000:{points:100000,price:100}};
