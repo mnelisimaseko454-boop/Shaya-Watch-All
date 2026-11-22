@@ -1,6 +1,6 @@
 // ===== SHAYA WATCH BOT - FULL - FINAL - FIXED =====
 // Bot: @ShayaWatchAllBot | Giga 9114 + Offerwall 9114 + OnclickA 472254
-// RULES: Coins = Buy Coins ONLY, Ads R0.05 + 5 Coins, Coins = Cash or VIP. VIP = Coins / Stars ONLY. Data = ONLY R5 1GB TikTok 24h - 550 Coins
+// RULES: Ads R0.05 + 5 Coins, Coins = Cash or VIP. VIP = Coins / Stars ONLY. WITHDRAW = CASH BALANCE ONLY. Data = R5 Cash - 1GB TikTok 24h
 const express = require('express');
 const path = require('path');
 const { Telegraf } = require('telegraf');
@@ -41,7 +41,6 @@ const LEVEL_AD_USD = [0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.00
 const LEVEL_AD_CASH_SA = [0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05];
 const LEVEL_AD_COINS = [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5];
 const LEVEL_QUIZ = [25,25,25,30,30,35,35,40,40,50,50,60,60,70,70,80,80,90,90,100];
-// ===== LEVELS ONLY - DO NOT CHANGE ANYTHING ELSE =====
 function levelAds(level){ return 20 * Math.max(1, level||1); }
 function levelMinCoins(level){ return Math.max(2000, 21000 - (Math.max(1,level||1)-1)*1000); }
 function levelMinRand(level){ return Math.floor(levelMinCoins(level)/60); }
@@ -171,7 +170,7 @@ function getPerAd(u){ const lvl=getLevel(u); return { cash: u.region==='SA'? lvl
 let bot = null;
 if(BOT_TOKEN){ try{ bot = new Telegraf(BOT_TOKEN); console.log('Bot created - Shaya Watch Bot'); }catch(e){ console.log('Bot create failed', e.message); } }
 app.get('/health', function(req,res){ res.json({ok:true, bot:'Shaya Watch Bot', time:new Date().toISOString()}); });
-app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-bot-fixed-0.05-no-points', giga:'9114', onclicka:'472254', minSA:'Dynamic R350->R33', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', data:'R5 1GB TikTok 24h ONLY - 550 Coins', perAdSA:'R0.05 per 2 ads + 5 Coins', perAdUSA:'$0.005 per 2 ads + 5 Coins', adMode:'2-in-1', coins:'Cash or VIP', vip:'Coins / Stars ONLY'}); });
+app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-bot-fixed-cash-only', giga:'9114', onclicka:'472254', minSA:'Dynamic R350->R33', minUSA:'$20', withdraw:'CASH BALANCE ONLY', airtime:'CASH ONLY', data:'R5 Cash 1GB TikTok 24h ONLY', perAdSA:'R0.05 per 2 ads + 5 Coins', perAdUSA:'$0.005 per 2 ads + 5 Coins', adMode:'2-in-1', coins:'Cash or VIP', vip:'Coins / Stars ONLY'}); });
 app.get('/', function(req,res){ res.sendFile(path.join(__dirname, 'index.html')); });
 app.get('/api/rate', async function(req,res){ const r = await refreshRate(); res.json({usdtToZar:r, usdt:1, zar:r, usd:1}); });
 app.get('/api/convert-usdt', async function(req,res){ const usdt=parseFloat(req.query.usdt || 0); const r=await refreshRate(); res.json({usdt:usdt, zar:(usdt*r).toFixed(2), usd:usdt.toFixed(2), rate:r, usdtToZar:r}); });
@@ -254,7 +253,7 @@ app.post('/api/vip', async function(req,res){
     else return res.json({msg:'Choose Coins. Stars = pay in Telegram with /vip'});
     const newUnlocked=[]; const allUnlock=(u.unlockedLevels||[1]).concat([target, target<20?target+1:target]); allUnlock.forEach(function(x){ if(newUnlocked.indexOf(x)===-1) newUnlocked.push(x); });
     const upd=await updateUser(u.id, {level:target, vip_level:lvl.name.toUpperCase(), vip_until:new Date(Date.now()+30*24*60*60*1000).toISOString().slice(0,10), levelExpiresAt:Date.now()+30*24*60*60*1000, unlockedLevels:newUnlocked});
-    return res.json({msg:'LEVEL UP! You are now '+lvl.name+'! Expires in 30 days. Next level '+(target+1)+' unlocked! Ads: '+levelAds(target)+'/day • Min R'+levelMinRand(target), level:upd.level, points:0, coins:upd.coins});
+    return res.json({msg:'LEVEL UP! You are now '+lvl.name+'! Expires in 30 days. Next level '+(target+1)+' unlocked! Ads: '+levelAds(target)+'/day • Min R'+levelMinRand(target)+' CASH ONLY', level:upd.level, points:0, coins:upd.coins});
   }
   if(b.action==='topup_request'){
     const pkg=ALL_BUY_PACKAGES.find(function(p){ return p.id===b.packageId; }); if(!pkg) return res.json({msg:'Package not found'});
@@ -281,7 +280,7 @@ app.post('/api/vip-stars-invoice', async function(req,res){
     if(!lvl) return res.json({error:'Invalid level'});
     const stars = Math.floor(Number(lvl.starsCost||250));
     const payload = 'vip_'+lvl.name+'_'+u.id+'_'+Date.now();
-    const bodyToSend = { chat_id: parseInt(u.id) || u.user_id, title: 'Shaya Watch '+lvl.name, description: lvl.name+' - 30 Days - '+perAdLabelFor(u)+'/2 ads - '+lvl.adLimit+'/day - '+minLabelFor(u)+' Min', payload: payload, provider_token:'', currency:'XTR', prices:[{label:lvl.name+' - 30 Days', amount:stars}], start_parameter:'vip_'+lvl.name };
+    const bodyToSend = { chat_id: parseInt(u.id) || u.user_id, title: 'Shaya Watch '+lvl.name, description: lvl.name+' - 30 Days - '+perAdLabelFor(u)+'/2 ads - '+lvl.adLimit+'/day - '+minLabelFor(u)+' Min CASH ONLY', payload: payload, provider_token:'', currency:'XTR', prices:[{label:lvl.name+' - 30 Days', amount:stars}], start_parameter:'vip_'+lvl.name };
     if(!parseInt(u.id)) return res.json({error:'Stars only in Telegram. Open @ShayaWatchAllBot, type /vip, then pay with Stars.'});
     const tgRes = await fetch('https://api.telegram.org/bot'+BOT_TOKEN+'/sendInvoice', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(bodyToSend)});
     const tgData = await tgRes.json();
@@ -313,45 +312,43 @@ app.post('/api/withdraw', async function(req,res){
   const C = curFor(u); const minLabel = minLabelFor(u);
   const isAirtime = cleanMethod.toLowerCase().indexOf('airtime')!==-1 || b.method==='airtime';
   const isData = cleanMethod.toLowerCase().indexOf('data')!==-1 || b.method==='data';
+  // ===== WITHDRAW = CASH BALANCE ONLY - NO COINS =====
   if(isData){
-    const needCoins = 550;
-    if((u.coins||0) < needCoins) return res.json({error:'Need '+needCoins+' coins for R5 - 1GB TikTok Data (24h). Balance: '+u.coins+' coins.'});
-    await updateUser(u.id, {coins:u.coins-needCoins, pendingWithdraw:{method:'Data', detail: walletVal, network: b.network, amountLabel:'R5 - 1GB TikTok Data (24h)', need: needCoins, date: new Date().toISOString()}});
-    const whD = {id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, userKey:String(u.id), username:u.username, first_name:u.first_name, method:'Data', wallet:walletVal, detail:walletVal, network:b.network, amountCash:5, amountLabel:'R5 - 1GB TikTok Data (24h)', coinsUsed:needCoins, need:needCoins, region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
+    if((u.balance||0) < 5) return res.json({error:'Need R5 Cash Balance for R5 - 1GB TikTok Data (24h). Balance: R'+(u.balance||0).toFixed(2)+'. Convert Coins to Cash first.'});
+    await updateUser(u.id, {balance: parseFloat((u.balance-5).toFixed(2)), pendingWithdraw:{method:'Data', detail: walletVal, network: b.network, amountLabel:'R5 - 1GB TikTok Data (24h)', amountCash:5, need:0, date: new Date().toISOString()}});
+    const whD = {id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, userKey:String(u.id), username:u.username, first_name:u.first_name, method:'Data', wallet:walletVal, detail:walletVal, network:b.network, amountCash:5, amountLabel:'R5 - 1GB TikTok Data (24h)', coinsUsed:0, need:0, region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
     withdrawals.push(whD); await sbInsert('withdrawals', whD);
     if(ADMIN_ID && bot){
-      await bot.telegram.sendMessage(ADMIN_ID, 'WITHDRAW REQUEST - DATA ONLY\n\nUser: '+u.name+' (@'+u.username+') ID:'+u.id+'\nMethod: R5 - 1GB TikTok Data (24h) '+(b.network?'('+b.network+')':'')+'\nDetail: '+walletVal+'\nAmount: R5 - 550 Coins\nLevel: '+lvl.name+' | Coins Left: '+(u.coins-needCoins)+'\n\nPay them, then press Paid below.', { reply_markup: { inline_keyboard: [[{ text:'Paid', callback_data:'approve_withdraw_'+u.id }],[{ text:'Reject', callback_data:'reject_withdraw_'+u.id }]] } }).catch(function(){});
+      await bot.telegram.sendMessage(ADMIN_ID, 'WITHDRAW REQUEST - DATA ONLY - CASH\n\nUser: '+u.name+' (@'+u.username+') ID:'+u.id+'\nMethod: R5 - 1GB TikTok Data (24h) '+(b.network?'('+b.network+')':'')+'\nDetail: '+walletVal+'\nAmount: R5 Cash\nLevel: '+lvl.name+' | Balance Left: R'+(u.balance-5).toFixed(2)+'\n\nPay them, then press Paid below.', { reply_markup: { inline_keyboard: [[{ text:'Paid', callback_data:'approve_withdraw_'+u.id }],[{ text:'Reject', callback_data:'reject_withdraw_'+u.id }]] } }).catch(function(){});
     }
     return res.json({success:true, msg:'Request sent! R5 - 1GB TikTok Data (24h) to '+walletVal+'.'});
   }
   if(isAirtime){
     const randAmount = parseInt(b.amount) || 5;
     if(randAmount < 1) return res.json({error:'Choose amount '+C+'5 or more'});
-    const needCoins = randAmount * 110;
-    if((u.coins||0) < needCoins) return res.json({error:'Need '+needCoins+' coins for '+C+randAmount+' Airtime (110 Coins='+C+'1). Balance: '+u.coins+' coins.'});
-    await updateUser(u.id, {coins:u.coins-needCoins, pendingWithdraw:{method:'Airtime', detail: walletVal, network: b.network, amountLabel:C+randAmount+' Airtime', need: needCoins, date: new Date().toISOString()}});
-    const wh1 = {id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, userKey:String(u.id), username:u.username, first_name:u.first_name, method:'Airtime', wallet:walletVal, detail:walletVal, network:b.network, amountCash:randAmount, amountLabel:C+randAmount+' Airtime', coinsUsed:needCoins, need:needCoins, region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
+    if((u.balance||0) < randAmount) return res.json({error:'Need '+C+randAmount+' Cash Balance for Airtime. Balance: '+C+(u.balance||0).toFixed(2)+'. Convert Coins to Cash first.'});
+    await updateUser(u.id, {balance: parseFloat((u.balance-randAmount).toFixed(2)), pendingWithdraw:{method:'Airtime', detail: walletVal, network: b.network, amountLabel:C+randAmount+' Airtime', amountCash:randAmount, need:0, date: new Date().toISOString()}});
+    const wh1 = {id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, userKey:String(u.id), username:u.username, first_name:u.first_name, method:'Airtime', wallet:walletVal, detail:walletVal, network:b.network, amountCash:randAmount, amountLabel:C+randAmount+' Airtime', coinsUsed:0, need:0, region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
     withdrawals.push(wh1); await sbInsert('withdrawals', wh1);
     if(ADMIN_ID && bot){
-      await bot.telegram.sendMessage(ADMIN_ID, 'WITHDRAW REQUEST - NO LIMIT\n\nUser: '+u.name+' (@'+u.username+') ID:'+u.id+'\nMethod: '+C+randAmount+' Airtime '+(b.network?'('+b.network+')':'')+'\nDetail: '+walletVal+'\nAmount: '+C+randAmount+' - '+needCoins+' Coins (110 Coins='+C+'1)\nLevel: '+lvl.name+' | Coins Left: '+(u.coins-needCoins)+'\n\nPay them, then press Paid below.', { reply_markup: { inline_keyboard: [[{ text:'Paid', callback_data:'approve_withdraw_'+u.id }],[{ text:'Reject', callback_data:'reject_withdraw_'+u.id }]] } }).catch(function(){});
+      await bot.telegram.sendMessage(ADMIN_ID, 'WITHDRAW REQUEST - AIRTIME - CASH\n\nUser: '+u.name+' (@'+u.username+') ID:'+u.id+'\nMethod: '+C+randAmount+' Airtime '+(b.network?'('+b.network+')':'')+'\nDetail: '+walletVal+'\nAmount: '+C+randAmount+' Cash\nLevel: '+lvl.name+' | Balance Left: R'+(u.balance-randAmount).toFixed(2)+'\n\nPay them, then press Paid below.', { reply_markup: { inline_keyboard: [[{ text:'Paid', callback_data:'approve_withdraw_'+u.id }],[{ text:'Reject', callback_data:'reject_withdraw_'+u.id }]] } }).catch(function(){});
     }
-    return res.json({success:true, msg:'Request sent! '+C+randAmount+' Airtime to '+walletVal+'. NO LIMIT.'});
+    return res.json({success:true, msg:'Request sent! '+C+randAmount+' Airtime to '+walletVal+'.'});
   }
   const isEarnMethod = ['capitec'].indexOf(String(b.method).toLowerCase())!==-1 || cleanMethod==='Capitec / Bank';
   if(isEarnMethod || b.method==='capitec'){
-    const needFinal = lvl.withdrawMin;
-    const amountLabel = minLabel;
-    if((u.coins||0)<needFinal) return res.json({error:'Need '+needFinal+' coins for '+amountLabel+'. Balance: '+u.coins+' coins. Min is '+amountLabel+' - Level '+u.level+'!'});
-    await updateUser(u.id, {coins:u.coins-needFinal, pendingWithdraw:{method:'Capitec', detail: walletVal, network: b.network, amountLabel: amountLabel, need: needFinal, date: new Date().toISOString()}});
-    const wh2 = {id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, userKey:String(u.id), username:u.username, first_name:u.first_name, method:'Capitec / Bank', wallet:walletVal, detail:walletVal, network:b.network, amountCash:0, amountLabel:amountLabel, coinsUsed:needFinal, need:needFinal, region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
+    const needAmount = u.region==='SA' ? levelMinRand(u.level||1) : MIN_WITHDRAW_USA;
+    if((u.balance||0) < needAmount) return res.json({error:'Need '+minLabel+' Cash Balance. Balance: '+u.currency+(u.balance||0).toFixed(2)+'. Convert Coins to Cash first. Min is '+minLabel+' - Level '+u.level+'!'});
+    await updateUser(u.id, {balance: parseFloat((u.balance-needAmount).toFixed(2)), pendingWithdraw:{method:'Capitec', detail: walletVal, network: b.network, amountLabel: minLabel, amountCash:needAmount, need:0, date: new Date().toISOString()}});
+    const wh2 = {id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, userKey:String(u.id), username:u.username, first_name:u.first_name, method:'Capitec / Bank', wallet:walletVal, detail:walletVal, network:b.network, amountCash:needAmount, amountLabel:minLabel, coinsUsed:0, need:0, region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
     withdrawals.push(wh2); await sbInsert('withdrawals', wh2);
     if(ADMIN_ID && bot){
-      await bot.telegram.sendMessage(ADMIN_ID, 'WITHDRAW REQUEST\n\nUser: '+u.name+' (@'+u.username+') ID:'+u.id+'\nMethod: Capitec Bank\nDetail: '+walletVal+'\nAmount: '+amountLabel+'\nLevel: '+lvl.name+' | Coins Left: '+(u.coins-needFinal)+'\n\nPay them, then press Paid below.', { reply_markup: { inline_keyboard: [[{ text:'Paid', callback_data:'approve_withdraw_'+u.id }],[{ text:'Reject', callback_data:'reject_withdraw_'+u.id }]] } }).catch(function(){});
+      await bot.telegram.sendMessage(ADMIN_ID, 'WITHDRAW REQUEST - CAPITEC - CASH\n\nUser: '+u.name+' (@'+u.username+') ID:'+u.id+'\nMethod: Capitec Bank\nDetail: '+walletVal+'\nAmount: '+minLabel+' Cash\nLevel: '+lvl.name+' | Balance Left: '+(u.balance-needAmount).toFixed(2)+'\n\nPay them, then press Paid below.', { reply_markup: { inline_keyboard: [[{ text:'Paid', callback_data:'approve_withdraw_'+u.id }],[{ text:'Reject', callback_data:'reject_withdraw_'+u.id }]] } }).catch(function(){});
     }
-    return res.json({success:true, msg:'Withdraw request sent! '+amountLabel+' via Capitec to '+walletVal+'.'});
+    return res.json({success:true, msg:'Withdraw request sent! '+minLabel+' via Capitec to '+walletVal+'.'});
   }
   const minCash = u.region==='SA' ? levelMinRand(u.level||1) : MIN_WITHDRAW_USA;
-  if(u.balance<minCash) return res.json({error:'Min withdraw is '+minLabel+'. You have '+u.currency+u.balance.toFixed(2)+'.'});
+  if(u.balance<minCash) return res.json({error:'Min withdraw is '+minLabel+' CASH ONLY. You have '+u.currency+u.balance.toFixed(2)+'.'});
   if(cleanMethod==='Dollars (USDT) - Walt' || cleanMethod==='Gram - Walt'){
     if(walletVal.indexOf('UQ')!==0) return res.json({error:'Wrong address! Walt addresses start with UQ...'});
     if(walletVal.indexOf('T')===0) return res.json({error:'That is TRC20 (T...). Walt uses TON - must start with UQ...'});
@@ -360,15 +357,15 @@ app.post('/api/withdraw', async function(req,res){
   const zarAmount=u.region==='SA'?u.balance:u.balance*USDT_TO_ZAR;
   const w={id:withdrawals.length+1, user_id:parseInt(u.id)||u.id, userKey:String(u.id), username:u.username, first_name:u.first_name, method:cleanMethod, wallet:walletVal, detail:walletVal, amountCash:parseFloat(u.balance.toFixed(2)), amountLabel:u.currency+u.balance.toFixed(2)+' = $'+usdtAmount.toFixed(2)+' USDT', usdtAmount:parseFloat(usdtAmount.toFixed(2)), zarAmount:parseFloat(zarAmount.toFixed(2)), region:u.region, vip_level:getVipName(u), status:'pending', created_at:new Date().toISOString()};
   withdrawals.push(w); await sbInsert('withdrawals', w);
-  await updateUser(u.id, {balance:0, pendingWithdraw:{method:cleanMethod, detail:walletVal, network:b.network, amountLabel:u.currency+w.amountCash+' = $'+w.usdtAmount+' USDT', need:0, date:new Date().toISOString(), withdrawId:w.id}});
-  if(bot && ADMIN_ID) bot.telegram.sendMessage(ADMIN_ID, 'NEW WITHDRAW - WALT\n\nUser: '+u.first_name+' (@'+u.username+') ID: '+u.id+'\nAmount: '+u.currency+w.amountCash+' = $'+w.usdtAmount+' USDT'+(u.region==='SA'?' = R'+w.zarAmount:'')+'\nMethod: '+w.method+'\nWallet: '+walletVal+'\n\nPay them, then press Paid.', { reply_markup: { inline_keyboard: [[{ text:'Paid', callback_data:'approve_withdraw_'+u.id }],[{ text:'Reject', callback_data:'reject_withdraw_'+u.id }]] } }).catch(function(){});
+  await updateUser(u.id, {balance:0, pendingWithdraw:{method:cleanMethod, detail:walletVal, network:b.network, amountLabel:u.currency+w.amountCash+' = $'+w.usdtAmount+' USDT', amountCash:w.amountCash, need:0, date:new Date().toISOString(), withdrawId:w.id}});
+  if(bot && ADMIN_ID) bot.telegram.sendMessage(ADMIN_ID, 'NEW WITHDRAW - WALT - CASH\n\nUser: '+u.first_name+' (@'+u.username+') ID: '+u.id+'\nAmount: '+u.currency+w.amountCash+' = $'+w.usdtAmount+' USDT'+(u.region==='SA'?' = R'+w.zarAmount:'')+'\nMethod: '+w.method+'\nWallet: '+walletVal+'\n\nPay them, then press Paid.', { reply_markup: { inline_keyboard: [[{ text:'Paid', callback_data:'approve_withdraw_'+u.id }],[{ text:'Reject', callback_data:'reject_withdraw_'+u.id }]] } }).catch(function(){});
   res.json({success:true, usdtAmount:w.usdtAmount, zarAmount:w.zarAmount});
 });
 app.get('/api/withdraw-history', async function(req,res){
   const uid = String(req.query.user_id || req.query.userId || '');
   if(!uid) return res.json([]);
   const list = withdrawals.filter(function(w){ return String(w.user_id)===uid || String(w.user_id)===String(parseInt(uid)) || (w.userKey && String(w.userKey)===uid); }).slice().reverse();
-  res.json(list.map(function(w){ const wc = w.region==='USA' ? '$' : 'R'; return { id: w.id, method: w.method, detail: w.wallet || w.detail || '', amountCash: w.amountCash || 0, amountLabel: w.amountLabel || (w.amountCash ? (wc+w.amountCash) : ''), coinsUsed: w.coinsUsed || w.need || 0, usdtAmount: w.usdtAmount || 0, status: w.status || 'pending', created_at: w.created_at || w.date || new Date().toISOString() }; }));
+  res.json(list.map(function(w){ const wc = w.region==='USA' ? '$' : 'R'; return { id: w.id, method: w.method, detail: w.wallet || w.detail || '', amountCash: w.amountCash || 0, amountLabel: w.amountLabel || (w.amountCash ? (wc+w.amountCash) : ''), coinsUsed: w.coinsUsed || 0, usdtAmount: w.usdtAmount || 0, status: w.status || 'pending', created_at: w.created_at || w.date || new Date().toISOString() }; }));
 });
 app.get('/api/tasks', async function(req,res){
   const userId = req.query.user_id || req.query.userId;
@@ -421,7 +418,7 @@ app.get('/api/videos/search', async function(req,res){ res.json(await fetchYouTu
 app.get('/api/admin/pending', function(req,res){ res.json({withdrawals:withdrawals.filter(function(w){ return w.status==='pending'; }), vipRequests:vipRequests.filter(function(v){ return v.status==='pending'; })}); });
 const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID || '-1003867683507';
 const DAILY_POSTS = [
-  "🔥 GOOD MORNING SHAYA FAMILY!\n\n📺 Watch Ads = Cash + Coins — 2 Ads = 1 Reward\n🧠 Quiz = +Coins (after 10 ads)\n🏦 Topup Capitec 1893275807 = Buy Coins (Cash/VIP)\n👑 VIP: SA R0.05 / 2 ads + 5 Coins • USA $0.005 / 2 ads + 5 Coins • Ads = 20 x Level • Min Drops -1000 Per Level\n💸 Withdraw: Min Drops Per Level • Airtime NO LIMIT (110 Coins=R1) • Data R5 1GB TikTok 24h ONLY\n\n👉 Open @ShayaWatchAllBot → OPEN SHAYA WATCH BOT",
+  "🔥 GOOD MORNING SHAYA FAMILY!\n\n📺 Watch Ads = Cash + Coins — 2 Ads = 1 Reward\n🧠 Quiz = +Coins (after 10 ads)\n🏦 Topup Capitec 1893275807 = Buy Coins (Cash/VIP)\n👑 VIP: SA R0.05 / 2 ads + 5 Coins • USA $0.005 / 2 ads + 5 Coins • Ads = 20 x Level • Min Drops -1000 Per Level\n💸 Withdraw: CASH BALANCE ONLY • Convert Coins to Cash first • Airtime CASH • Data R5 Cash 1GB TikTok 24h ONLY\n\n👉 Open @ShayaWatchAllBot → OPEN SHAYA WATCH BOT",
   "💰 WHO HAS WITHDRAWN TODAY?\n\nShow proof in group! Topup R29 today → Get 500 Coins ONLY\n\nCapitec: 1893275807\nRef: Your Name\n\nInvite 3 friends = +50 Coins + Cash!\n👉 @ShayaWatchAllBot",
   "🏆 LEADERBOARD UPDATE!\n\nTop earners today get featured!\nWatch Ads (Level 1 = 20/day, Level 20 = 400/day) = Max earnings!\nNot VIP yet? Buy with Coins / Stars in app! VIP = Coins / Stars ONLY\n\n👉 Open @ShayaWatchAllBot",
   "⏰ EVENING REMINDER!\n\nDon't waste your ads today!\nClaim Daily Bonus + Quiz before midnight!\nTopup before you sleep — Admin approves in morning!\n\nCapitec: 1893275807\n👉 @ShayaWatchAllBot",
@@ -446,9 +443,9 @@ if(bot){
     let u=await getUser(user_id); if(!u) u=await createUser(user_id, {username:ctx.from.username||'', first_name:ctx.from.first_name||'', referred_by:referred_by?String(referred_by):null});
     const rate=await refreshRate();
     const perAdTxt = u.region==='USA' ? '$0.005 / 2 ads + 5 Coins' : 'R0.05 / 2 ads + 5 Coins';
-    const minTxt = u.region==='USA' ? '$20 Min' : 'R'+levelMinRand(u.level||1)+' Min (Level '+(u.level||1)+')';
+    const minTxt = u.region==='USA' ? '$20 Min CASH' : 'R'+levelMinRand(u.level||1)+' Min CASH (Level '+(u.level||1)+')';
     const rateTxt = u.region==='USA' ? '1 USDT = $1.00' : '1 USDT = R'+rate.toFixed(2);
-    await ctx.replyWithMarkdown('Welcome to *SHAYA WATCH BOT* '+u.first_name+'!\n\nEARN\nWatch 2 Ads = '+perAdTxt+'\nQuiz = +Coins (Unlock after 10 ads)\nTopup Capitec '+TOPUP_ACCOUNT+' = Buy Coins (Cash or VIP)\nOfferwall (Giga 9114) = Coins\nInvite = +50 Coins\nTasks = Cash + Coins\n\nCoins = Convert to Cash OR Buy VIP\nVIP = Coins / Stars ONLY\n\nVIP - 20 Levels, 30 Days\nFREE (Level 1): '+perAdTxt+' - 20/day - R350 Min\nKING (Level 20): '+perAdTxt+' - 400/day - R33 Min\nYour Level: '+levelAds(u.level||1)+'/day - '+minTxt+'\nAds = 20 x Level • Min Drops -1000 Coins Per Level\n\nWithdraw: Min Drops Per Level / Airtime NO LIMIT (110 Coins='+(u.region==='USA'?'$1':'R1')+') / Data R5 1GB TikTok 24h ONLY\n'+rateTxt+' LIVE\n\nTap below', {reply_markup:{inline_keyboard:[[{text:'OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}],[{text:'Join Shaya Earn Network', url:GROUP_URL}]]}});
+    await ctx.replyWithMarkdown('Welcome to *SHAYA WATCH BOT* '+u.first_name+'!\n\nEARN\nWatch 2 Ads = '+perAdTxt+'\nQuiz = +Coins (Unlock after 10 ads)\nTopup Capitec '+TOPUP_ACCOUNT+' = Buy Coins (Cash or VIP)\nOfferwall (Giga 9114) = Coins\nInvite = +50 Coins\nTasks = Cash + Coins\n\nCoins = Convert to Cash OR Buy VIP\nVIP = Coins / Stars ONLY\n\nVIP - 20 Levels, 30 Days\nFREE (Level 1): '+perAdTxt+' - 20/day - R350 Min CASH\nKING (Level 20): '+perAdTxt+' - 400/day - R33 Min CASH\nYour Level: '+levelAds(u.level||1)+'/day - '+minTxt+'\nAds = 20 x Level • Min Drops -1000 Per Level\n\nWithdraw: CASH BALANCE ONLY - Convert Coins to Cash first / Airtime CASH / Data R5 Cash 1GB TikTok 24h ONLY\n'+rateTxt+' LIVE\n\nTap below', {reply_markup:{inline_keyboard:[[{text:'OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}],[{text:'Join Shaya Earn Network', url:GROUP_URL}]]}});
   });
   bot.command('getgroupid', async function(ctx){
     const chatId = ctx.chat && ctx.chat.id;
@@ -460,7 +457,7 @@ if(bot){
     await sendDailyPost();
     await ctx.reply('Posted to group! Group ID: '+(GROUP_CHAT_ID || 'NOT SET - Add GROUP_CHAT_ID in Render'));
   });
-  bot.command('balance', async function(ctx){ let u=await getUser(ctx.from.id); if(!u) return ctx.reply('Send /start first'); const f=formatUserForFrontend(u); ctx.reply('Balance: '+f.currency+f.balance.toFixed(2)+' = $'+f.usdtBalance+' USDT\nCoins: '+f.coins+' (Cash or VIP)\nAds Today: '+f.dailyAds+'/'+f.dailyLimit+' (Level '+(u.level||1)+')\nVIP: '+f.vip_level+' ('+u.level+'/20)\nMin: '+(u.region==='SA'?'R'+levelMinRand(u.level||1):'$20')+' | Airtime 110 Coins='+(u.region==='SA'?'R1':'$1')+' | Data R5 1GB TikTok 24h | Per ad: '+perAdLabelFor(u)+' / 2 ads + 5 Coins'); });
+  bot.command('balance', async function(ctx){ let u=await getUser(ctx.from.id); if(!u) return ctx.reply('Send /start first'); const f=formatUserForFrontend(u); ctx.reply('Balance: '+f.currency+f.balance.toFixed(2)+' = $'+f.usdtBalance+' USDT\nCoins: '+f.coins+' (Convert to Cash or VIP)\nAds Today: '+f.dailyAds+'/'+f.dailyLimit+' (Level '+(u.level||1)+')\nVIP: '+f.vip_level+' ('+u.level+'/20)\nMin: '+(u.region==='SA'?'R'+levelMinRand(u.level||1)+' CASH ONLY':'$20 CASH ONLY')+' | Withdraw = CASH ONLY | Data R5 Cash 1GB TikTok 24h | Per ad: '+perAdLabelFor(u)+' / 2 ads + 5 Coins'); });
   bot.command('tasks', async function(ctx){
     let u=await getUserAsync(ctx.from.id, ctx.from.first_name);
     const completed = u.completedTasks||[]; let txt = 'TASKS\n\n';
@@ -471,12 +468,12 @@ if(bot){
   bot.command('vip', async function(ctx){
     let u=await getUserAsync(ctx.from.id, ctx.from.first_name);
     const next=Math.min(20,(u.level||1)+1); const lvl=LEVELS[next];
-    await ctx.reply('Your Level: '+getVipName(u)+' ('+u.level+'/20)\nCoins: '+u.coins+'\nAds: '+levelAds(u.level||1)+'/day • Min: R'+levelMinRand(u.level||1)+'\nNext: Level '+next+' '+lvl.name+'\nCost: '+lvl.coinsCost+' Coins OR '+lvl.starsCost+' Stars\nNext Ads: '+levelAds(next)+'/day • Min R'+levelMinRand(next), {reply_markup:{inline_keyboard:[[{text:'Buy '+lvl.name+' - '+lvl.starsCost+' Stars', callback_data:'buy_stars_'+next}],[{text:'OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}]]}});
+    await ctx.reply('Your Level: '+getVipName(u)+' ('+u.level+'/20)\nCoins: '+u.coins+'\nAds: '+levelAds(u.level||1)+'/day • Min: R'+levelMinRand(u.level||1)+' CASH ONLY\nNext: Level '+next+' '+lvl.name+'\nCost: '+lvl.coinsCost+' Coins OR '+lvl.starsCost+' Stars\nNext Ads: '+levelAds(next)+'/day • Min R'+levelMinRand(next)+' CASH', {reply_markup:{inline_keyboard:[[{text:'Buy '+lvl.name+' - '+lvl.starsCost+' Stars', callback_data:'buy_stars_'+next}],[{text:'OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}]]}});
   });
   bot.command('vipall', async function(ctx){
     let u=await getUserAsync(ctx.from.id, ctx.from.first_name);
     let txt='ALL 20 VIP\nYour Unlocked: '+(u.unlockedLevels||[1]).join(', ')+'\nPer ad (all levels): '+perAdLabelFor(u)+' / 2 ads + 5 Coins\n\n';
-    for(let i=1;i<=20;i++){ txt+=i+'. '+LEVELS[i].name+' - '+LEVELS[i].coinsCost+' Coins / '+LEVELS[i].starsCost+' Stars - '+perAdLabelFor(u)+'/2 ads + 5 Coins - '+LEVELS[i].adLimit+'/day - Min R'+levelMinRand(i)+'\n'; }
+    for(let i=1;i<=20;i++){ txt+=i+'. '+LEVELS[i].name+' - '+LEVELS[i].coinsCost+' Coins / '+LEVELS[i].starsCost+' Stars - '+perAdLabelFor(u)+'/2 ads + 5 Coins - '+LEVELS[i].adLimit+'/day - Min R'+levelMinRand(i)+' CASH\n'; }
     await ctx.reply(txt);
   });
   bot.command('approve', async function(ctx){
@@ -536,8 +533,8 @@ if(bot){
     const lvl=LEVELS[levelNum]; const until=new Date(Date.now()+30*24*60*60*1000).toISOString().slice(0,10);
     const newUnlocked=[]; const allU=(u.unlockedLevels||[1]).concat([levelNum, levelNum<20?levelNum+1:levelNum]); allU.forEach(function(x){ if(newUnlocked.indexOf(x)===-1) newUnlocked.push(x); });
     await updateUser(u.id, {level:levelNum, vip_level:lvl.name.toUpperCase(), vip_until:until, levelExpiresAt:Date.now()+30*24*60*60*1000, unlockedLevels:newUnlocked});
-    ctx.reply('Approved '+lvl.name+' for '+u.name+' ('+targetId+') until '+until+' - Ads '+levelAds(levelNum)+'/day - Min R'+levelMinRand(levelNum));
-    try{ await ctx.telegram.sendMessage(parseInt(u.id)||u.id, 'Your '+lvl.name+' is ACTIVE until '+until+'! Ads '+levelAds(levelNum)+'/day - Min R'+levelMinRand(levelNum)); }catch(e){}
+    ctx.reply('Approved '+lvl.name+' for '+u.name+' ('+targetId+') until '+until+' - Ads '+levelAds(levelNum)+'/day - Min R'+levelMinRand(levelNum)+' CASH');
+    try{ await ctx.telegram.sendMessage(parseInt(u.id)||u.id, 'Your '+lvl.name+' is ACTIVE until '+until+'! Ads '+levelAds(levelNum)+'/day - Min R'+levelMinRand(levelNum)+' CASH'); }catch(e){}
   });
   bot.command('paywithdraw', async function(ctx){
     if(ctx.from.id!==ADMIN_ID) return ctx.reply('Admin only');
@@ -552,7 +549,7 @@ if(bot){
       for(let m of members){
         if(m.is_bot) continue;
         const name = m.first_name || 'friend';
-        await ctx.reply('Welcome '+name+' to Shaya Earn Network!\n\nWatch 2 Ads = Cash + Coins — SA R0.05 / USA $0.005 per 2 ads + 5 Coins\nTopup Capitec 1893275807 = Buy Coins (Cash/VIP)\nWithdraw: Min Drops Per Level • Airtime NO LIMIT • Data R5 1GB TikTok 24h ONLY\n\nOpen @ShayaWatchAllBot - OPEN SHAYA WATCH BOT\n\nIntroduce yourself - Where are you from?');
+        await ctx.reply('Welcome '+name+' to Shaya Earn Network!\n\nWatch 2 Ads = Cash + Coins — SA R0.05 / USA $0.005 per 2 ads + 5 Coins\nTopup Capitec 1893275807 = Buy Coins (Cash/VIP)\nWithdraw: CASH BALANCE ONLY - Convert Coins to Cash first • Airtime CASH • Data R5 Cash 1GB TikTok 24h ONLY\n\nOpen @ShayaWatchAllBot - OPEN SHAYA WATCH BOT\n\nIntroduce yourself - Where are you from?');
       }
     }catch(e){ console.log('Welcome failed', e.message); }
   });
@@ -572,7 +569,7 @@ if(bot){
     let u=await getUser(user_id); if(!u) u=await createUser(user_id, {username:ctx.from.username||'', first_name:ctx.from.first_name||''});
     const newUnlocked=[]; const allU2=(u.unlockedLevels||[1]).concat([target, target<20?target+1:target]); allU2.forEach(function(x){ if(newUnlocked.indexOf(x)===-1) newUnlocked.push(x); });
     await updateUser(u.id, {level:target, vip_level:lvl.name.toUpperCase(), vip_until:until, levelExpiresAt:Date.now()+30*24*60*60*1000, unlockedLevels:newUnlocked});
-    await ctx.reply('VIP ACTIVATED!\n\nPlan: '+lvl.name+' (Level '+target+'/20)\nPaid: '+starsPaid+' Stars\nUntil: '+until+'\nAds: '+levelAds(target)+'/day • Min R'+levelMinRand(target), {reply_markup:{inline_keyboard:[[{text:'OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}]]}});
+    await ctx.reply('VIP ACTIVATED!\n\nPlan: '+lvl.name+' (Level '+target+'/20)\nPaid: '+starsPaid+' Stars\nUntil: '+until+'\nAds: '+levelAds(target)+'/day • Min R'+levelMinRand(target)+' CASH', {reply_markup:{inline_keyboard:[[{text:'OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}]]}});
     if(ADMIN_ID){ try{ await ctx.telegram.sendMessage(ADMIN_ID, 'STARS RECEIVED!\nUser: '+ctx.from.first_name+' (@'+ctx.from.username+') ID: '+user_id+'\nPlan: '+lvl.name+'\nStars: '+starsPaid); }catch(e){} }
   });
   bot.on('callback_query', async function(ctx){
@@ -615,16 +612,20 @@ if(bot){
       const userId = data.replace('reject_withdraw_','');
       for(let i=withdrawals.length-1;i>=0;i--){ if(String(withdrawals[i].user_id)===String(userId) || String(withdrawals[i].userKey)===String(userId)){ if(withdrawals[i].status==='pending'){ withdrawals[i].status='rejected'; break; } } }
       const target=await getUser(userId);
-      if(target && target.pendingWithdraw){ await updateUser(target.id, {coins:(target.coins||0)+(target.pendingWithdraw.need||0), pendingWithdraw:null}); }
-      try{ await ctx.answerCbQuery('Rejected & Refunded'); }catch(e){}
-      try{ await ctx.editMessageText('REJECTED - WITHDRAW\n\n'+(target && target.name || '')+' ID:'+userId+'\nRefunded coins.'); }catch(e){}
-      try{ const chatId=parseInt(userId); if(chatId) await ctx.telegram.sendMessage(chatId, 'Your withdraw was rejected. Coins refunded.'); }catch(e){}
+      if(target && target.pendingWithdraw){
+        const refundCash = target.pendingWithdraw.amountCash || 0;
+        if(refundCash>0) await updateUser(target.id, {balance: parseFloat(((target.balance||0)+refundCash).toFixed(2)), pendingWithdraw:null});
+        else await updateUser(target.id, {pendingWithdraw:null});
+      }
+      try{ await ctx.answerCbQuery('Rejected & Cash Refunded'); }catch(e){}
+      try{ await ctx.editMessageText('REJECTED - WITHDRAW\n\n'+(target && target.name || '')+' ID:'+userId+'\nCash refunded.'); }catch(e){}
+      try{ const chatId=parseInt(userId); if(chatId) await ctx.telegram.sendMessage(chatId, 'Your withdraw was rejected. Cash refunded.'); }catch(e){}
       return;
     }
     if(data.indexOf('buy_stars_')===0){
       const target=parseInt(data.split('_')[2]); const lvl=LEVELS[target];
       try{ await ctx.answerCbQuery(); }catch(e){}
-      try{ const _u = await getUser(ctx.from.id); const _label = _u ? perAdLabelFor(_u)+' / 2 ads' : 'R0.05 / 2 ads'; await ctx.telegram.sendInvoice(ctx.from.id, 'Shaya Watch '+lvl.name, lvl.name+' - 30 Days - '+_label+' - '+lvl.adLimit+'/day - Min R'+levelMinRand(target)+' / $20', 'vip_'+lvl.name+'_'+ctx.from.id+'_'+Date.now(), '', 'XTR', [{label:lvl.name+' - 30 Days', amount:lvl.starsCost}]); }catch(e){ await ctx.reply('Stars failed: '+e.message); }
+      try{ const _u = await getUser(ctx.from.id); const _label = _u ? perAdLabelFor(_u)+' / 2 ads' : 'R0.05 / 2 ads'; await ctx.telegram.sendInvoice(ctx.from.id, 'Shaya Watch '+lvl.name, lvl.name+' - 30 Days - '+_label+' - '+lvl.adLimit+'/day - Min R'+levelMinRand(target)+' CASH / $20', 'vip_'+lvl.name+'_'+ctx.from.id+'_'+Date.now(), '', 'XTR', [{label:lvl.name+' - 30 Days', amount:lvl.starsCost}]); }catch(e){ await ctx.reply('Stars failed: '+e.message); }
       return;
     }
   });
