@@ -1,6 +1,6 @@
 // ===== SHAYA WATCH BOT - FULL - FINAL - FIXED =====
 // Bot: @ShayaWatchAllBot | Giga 9114 + Offerwall 9114 + OnclickA 472254
-// RULES: Coins = Buy Coins ONLY, Ads +5 Coins, Coins = Cash or VIP. Points/Stars = VIP ONLY. Data = ONLY R5 1GB TikTok 24h - 550 Coins
+// RULES: Coins = Buy Coins ONLY, Ads R0.05 + 5 Coins, Coins = Cash or VIP. VIP = Coins / Stars ONLY. Data = ONLY R5 1GB TikTok 24h - 550 Coins
 const express = require('express');
 const path = require('path');
 const { Telegraf } = require('telegraf');
@@ -30,65 +30,46 @@ async function refreshRate(){
 }
 refreshRate(); setInterval(refreshRate, 30*60*1000);
 function todayStr(){ return new Date().toISOString().slice(0,10); }
-function giveText(coins, points){
-  const parts = [];
-  if(coins) parts.push('+' + coins + ' Coins');
-  if(points) parts.push('+' + points + ' Points');
-  return parts.length ? parts.join(' ') : 'Nothing';
-}
-function giveLine(coins, points){
-  const parts = [];
-  if(coins) parts.push(coins + ' Coins');
-  if(points) parts.push(points + ' Points');
-  return parts.length ? parts.join(' + ') : 'Nothing';
-}
+function giveText(coins){ return coins ? '+'+coins+' Coins' : 'Nothing'; }
+function giveLine(coins){ return coins ? coins+' Coins' : 'Nothing'; }
 const MIN_WITHDRAW_SA = 350;
 const MIN_WITHDRAW_USA = 20;
 const LEVEL_NAMES = ['Free','Starter','Bronze','Bronze+','Silver','Silver+','Gold','Gold+','Platinum','Platinum+','Diamond','Diamond+','Ruby','Ruby+','Emerald','Emerald+','Sapphire','Sapphire+','Master','KING'];
 const LEVEL_STARS = [0,10,20,35,50,75,100,130,170,210,260,320,380,450,550,650,800,1000,1300,2000];
-const LEVEL_POINTS = [0,100,200,350,500,750,1000,1300,1700,2100,2600,3200,3800,4500,5500,6500,8000,10000,13000,18000];
 const LEVEL_COINS = [0,100,200,350,500,750,1000,1300,1700,2100,2600,3200,3800,4500,5500,6500,8000,10000,13000,18000];
 const LEVEL_AD_USD = [0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005,0.005];
-const LEVEL_AD_CASH_SA = [0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08,0.08];
+const LEVEL_AD_CASH_SA = [0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05,0.05];
 const LEVEL_AD_COINS = [5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5];
 const LEVEL_QUIZ = [25,25,25,30,30,35,35,40,40,50,50,60,60,70,70,80,80,90,90,100];
-// ===== FIXED LEVELS - VERIFIED - NO MISTAKES =====
-function levelAds(level){ return 20 * level; }
-function levelMinCoins(level){ return Math.max(2000, 21000 - (level-1)*1000); }
+// ===== LEVELS ONLY - DO NOT CHANGE ANYTHING ELSE =====
+function levelAds(level){ return 20 * Math.max(1, level||1); }
+function levelMinCoins(level){ return Math.max(2000, 21000 - (Math.max(1,level||1)-1)*1000); }
 function levelMinRand(level){ return Math.floor(levelMinCoins(level)/60); }
 const LEVELS = {};
-for(let i=0;i<20;i++){
-  const lvl = i+1;
-  LEVELS[lvl] = { name: LEVEL_NAMES[i], starsCost: LEVEL_STARS[i], pointsCost: LEVEL_POINTS[i], coinsCost: LEVEL_COINS[i], adReward: LEVEL_AD_COINS[i], adCashSA: LEVEL_AD_CASH_SA[i], adUSD: LEVEL_AD_USD[i], withdrawMin: levelMinCoins(lvl), quizReward: LEVEL_QUIZ[i], adLimit: levelAds(lvl), minWithdrawUSDT: 20, minWithdrawSA: levelMinRand(lvl), minWithdrawUSA: 20 };
-}
+for(let i=0;i<20;i++){ const lvl=i+1; LEVELS[lvl] = { name: LEVEL_NAMES[i], starsCost: LEVEL_STARS[i], coinsCost: LEVEL_COINS[i], adReward: LEVEL_AD_COINS[i], adCashSA: LEVEL_AD_CASH_SA[i], adUSD: LEVEL_AD_USD[i], withdrawMin: levelMinCoins(lvl), quizReward: LEVEL_QUIZ[i], adLimit: levelAds(lvl), minWithdrawUSDT: 20, minWithdrawSA: levelMinRand(lvl), minWithdrawUSA: 20 }; }
 function getLevel(u){ return LEVELS[u.level || 1]; }
 function getVipName(u){ return (LEVELS[u.level || 1] && LEVELS[u.level || 1].name || 'FREE').toUpperCase(); }
 function curFor(u){ return u && u.region==='USA' ? '$' : 'R'; }
 function minLabelFor(u){ if(u && u.region==='USA') return '$20'; return 'R'+levelMinRand(u?.level||1); }
-function perAdLabelFor(u){ return u && u.region==='USA' ? '$0.005' : 'R0.08'; }
+function perAdLabelFor(u){ return u && u.region==='USA' ? '$0.005' : 'R0.05'; }
 const QUIZ_UNLOCK_ADS = 10;
 const TOPUP_PACKAGES = [
-  { id:'p29', coins:500, points:0, price:29, label:'R29 - 500 Coins ONLY' },
-  { id:'p79', coins:1500, points:0, price:79, label:'R79 - 1500 Coins ONLY' },
-  { id:'p179', coins:4000, points:0, price:179, label:'R179 - 4000 Coins ONLY' },
-  { id:'p349', coins:9000, points:0, price:349, label:'R349 - 9000 Coins ONLY' },
-  { id:'p699', coins:20000, points:0, price:699, label:'R699 - 20000 Coins ONLY' },
+  { id:'p29', coins:500, price:29, label:'R29 - 500 Coins ONLY' },
+  { id:'p79', coins:1500, price:79, label:'R79 - 1500 Coins ONLY' },
+  { id:'p179', coins:4000, price:179, label:'R179 - 4000 Coins ONLY' },
+  { id:'p349', coins:9000, price:349, label:'R349 - 9000 Coins ONLY' },
+  { id:'p699', coins:20000, price:699, label:'R699 - 20000 Coins ONLY' },
 ];
 const BUY_COINS_PACKAGES = [
-  { id:'c500', coins:500, points:0, price:20, label:'500 Coins - R20' },
-  { id:'c1500', coins:1500, points:0, price:50, label:'1500 Coins - R50' },
-  { id:'c5000', coins:5000, points:0, price:150, label:'5000 Coins - R150' },
-  { id:'c15000', coins:15000, points:0, price:400, label:'15000 Coins - R400' },
+  { id:'c500', coins:500, price:20, label:'500 Coins - R20' },
+  { id:'c1500', coins:1500, price:50, label:'1500 Coins - R50' },
+  { id:'c5000', coins:5000, price:150, label:'5000 Coins - R150' },
+  { id:'c15000', coins:15000, price:400, label:'15000 Coins - R400' },
 ];
-const BUY_POINTS_PACKAGES = [
-  { id:'pt500', coins:0, points:500, price:20, label:'500 Points - R20' },
-  { id:'pt1500', coins:0, points:1500, price:50, label:'1500 Points - R50' },
-  { id:'pt5000', coins:0, points:5000, price:150, label:'5000 Points - R150' },
-  { id:'pt15000', coins:0, points:15000, price:400, label:'15000 Points - R400' },
-];
+const BUY_POINTS_PACKAGES = [];
 const BUY_COINS_STARS = [];
 const BUY_POINTS_STARS = [];
-const ALL_BUY_PACKAGES = TOPUP_PACKAGES.concat(BUY_COINS_PACKAGES, BUY_POINTS_PACKAGES);
+const ALL_BUY_PACKAGES = TOPUP_PACKAGES.concat(BUY_COINS_PACKAGES);
 const QUIZ = [
   {q:'What is the capital of South Africa?', options:['Cape Town','Pretoria','Durban','Joburg'], answer:1},
   {q:'Which currency does SA use?', options:['Dollar','Rand','Naira','Kwacha'], answer:1},
@@ -128,7 +109,7 @@ async function sbGetUser(id){
 }
 async function sbUpsertUser(u){
   if(!supabase) return;
-  try{ await supabase.from('users').upsert({ id: String(u.id), user_id: parseInt(u.id) || null, username: u.username || '', first_name: u.first_name || u.name || '', name: u.name || u.first_name || '', region: u.region, currency: u.currency, balance: u.balance, coins: u.coins, points: u.points || 0, level: u.level || 1, total_ads: u.total_ads || 0, referrals: u.referrals || 0, streak: u.streak || 0, total_earned: u.total_earned || 0, vip_level: getVipName(u), vip_until: u.vip_until || null, daily_ads: u.dailyAds || 0, daily_date: u.dailyDate || '', last_daily: u.lastDaily || null, last_quiz: u.lastQuiz || 0, last_ad: u.lastAd || 0, ads_today: u.adsToday || 0, last_ad_day: u.lastAdDay || '', tasks_done: u.tasksDone || [], completed_tasks: u.completedTasks || [], pending_topup: u.pendingTopup || null, pending_withdraw: u.pendingWithdraw || null, device_id: u.device_id || null, unlocked_levels: u.unlockedLevels || [1], level_expires_at: u.levelExpiresAt || 0, referred_by: u.referred_by || null }, { onConflict: 'id' }); }catch(e){ console.log('sb upsert failed', e.message); }
+  try{ await supabase.from('users').upsert({ id: String(u.id), user_id: parseInt(u.id) || null, username: u.username || '', first_name: u.first_name || u.name || '', name: u.name || u.first_name || '', region: u.region, currency: u.currency, balance: u.balance, coins: u.coins, points: 0, level: u.level || 1, total_ads: u.total_ads || 0, referrals: u.referrals || 0, streak: u.streak || 0, total_earned: u.total_earned || 0, vip_level: getVipName(u), vip_until: u.vip_until || null, daily_ads: u.dailyAds || 0, daily_date: u.dailyDate || '', last_daily: u.lastDaily || null, last_quiz: u.lastQuiz || 0, last_ad: u.lastAd || 0, ads_today: u.adsToday || 0, last_ad_day: u.lastAdDay || '', tasks_done: u.tasksDone || [], completed_tasks: u.completedTasks || [], pending_topup: u.pendingTopup || null, pending_withdraw: u.pendingWithdraw || null, device_id: u.device_id || null, unlocked_levels: u.unlockedLevels || [1], level_expires_at: u.levelExpiresAt || 0, referred_by: u.referred_by || null }, { onConflict: 'id' }); }catch(e){ console.log('sb upsert failed', e.message); }
 }
 async function sbInsert(table, row){ if(!supabase) return; try{ await supabase.from(table).insert(row); }catch(e){} }
 async function getUser(id){
@@ -136,7 +117,7 @@ async function getUser(id){
   if(users.has(key)) return users.get(key);
   const sb = await sbGetUser(key);
   if(sb){
-    const u = { id: key, user_id: sb.user_id || parseInt(key) || null, username: sb.username || '', first_name: sb.first_name || sb.name || 'friend', name: sb.first_name || sb.name || 'friend', region: sb.region || 'SA', currency: sb.region==='USA'?'$':'R', balance: parseFloat(sb.balance || 0), coins: parseInt(sb.coins || 0), points: parseInt(sb.points || 0), level: parseInt(sb.level || 1), total_ads: parseInt(sb.total_ads || 0), referrals: parseInt(sb.referrals || 0), streak: parseInt(sb.streak || 0), total_earned: parseFloat(sb.total_earned || 0), vip_level: sb.vip_level || 'FREE', vip_until: sb.vip_until || null, dailyAds: parseInt(sb.daily_ads || 0), dailyDate: sb.daily_date || todayStr(), lastDaily: sb.last_daily || null, lastQuiz: sb.last_quiz || 0, lastAd: sb.last_ad || 0, adsToday: sb.ads_today || 0, lastAdDay: sb.last_ad_day || '', tasksDone: sb.tasks_done || [], completedTasks: sb.completed_tasks || sb.tasks_done || [], pendingTopup: sb.pending_topup || null, pendingWithdraw: sb.pending_withdraw || null, device_id: sb.device_id || null, unlockedLevels: sb.unlocked_levels || [1], levelExpiresAt: sb.level_expires_at || 0, referred_by: sb.referred_by || null };
+    const u = { id: key, user_id: sb.user_id || parseInt(key) || null, username: sb.username || '', first_name: sb.first_name || sb.name || 'friend', name: sb.first_name || sb.name || 'friend', region: sb.region || 'SA', currency: sb.region==='USA'?'$':'R', balance: parseFloat(sb.balance || 0), coins: parseInt(sb.coins || 0), points: 0, level: parseInt(sb.level || 1), total_ads: parseInt(sb.total_ads || 0), referrals: parseInt(sb.referrals || 0), streak: parseInt(sb.streak || 0), total_earned: parseFloat(sb.total_earned || 0), vip_level: sb.vip_level || 'FREE', vip_until: sb.vip_until || null, dailyAds: parseInt(sb.daily_ads || 0), dailyDate: sb.daily_date || todayStr(), lastDaily: sb.last_daily || null, lastQuiz: sb.last_quiz || 0, lastAd: sb.last_ad || 0, adsToday: sb.ads_today || 0, lastAdDay: sb.last_ad_day || '', tasksDone: sb.tasks_done || [], completedTasks: sb.completed_tasks || sb.tasks_done || [], pendingTopup: sb.pending_topup || null, pendingWithdraw: sb.pending_withdraw || null, device_id: sb.device_id || null, unlockedLevels: sb.unlocked_levels || [1], levelExpiresAt: sb.level_expires_at || 0, referred_by: sb.referred_by || null };
     users.set(key, u); return u;
   }
   return null;
@@ -184,17 +165,17 @@ function formatUserForFrontend(u){
   const dailyLimit = perAd.dailyLimit, dailyAds = u.dailyAds || 0, dailyLeft = Math.max(0, dailyLimit-dailyAds);
   const usdtBal = u.region==='SA' ? (u.balance/USDT_TO_ZAR) : u.balance;
   const minCash = u.region==='SA' ? levelMinRand(u.level||1) : MIN_WITHDRAW_USA;
-  return { id: u.id, user_id: u.user_id || u.id, username: u.username, first_name: u.first_name, name: u.name, region: u.region, currency: u.currency, balance: u.balance, coins: u.coins, points: u.points || 0, level: u.level, total_ads: u.total_ads, referrals: u.referrals, streak: u.streak, total_earned: u.total_earned, vip_level: getVipName(u), vipBadge: getVipName(u), vip_until: u.vip_until, levelName: lvl.name, perAd: perAd, dailyLimit: dailyLimit, dailyAds: dailyAds, dailyLeft: dailyLeft, minWithdrawUSDT: 20, minCash: minCash, minLabel: u.region==='SA'?'R'+levelMinRand(u.level||1):'$20', usdtToZar: USDT_TO_ZAR, usdtBalance: parseFloat(usdtBal.toFixed(4)), unlockedLevels: u.unlockedLevels || [1], levelExpiresAt: u.levelExpiresAt || 0, expiresInDays: u.levelExpiresAt? Math.max(0, Math.ceil((u.levelExpiresAt-Date.now())/(1000*60*60*24))):0, withdrawMin: lvl.withdrawMin, quizUnlocked: (u.total_ads||0)>=QUIZ_UNLOCK_ADS, quizNeed: Math.max(0, QUIZ_UNLOCK_ADS-(u.total_ads||0)) };
+  return { id: u.id, user_id: u.user_id || u.id, username: u.username, first_name: u.first_name, name: u.name, region: u.region, currency: u.currency, balance: u.balance, coins: u.coins, points: 0, level: u.level, total_ads: u.total_ads, referrals: u.referrals, streak: u.streak, total_earned: u.total_earned, vip_level: getVipName(u), vipBadge: getVipName(u), vip_until: u.vip_until, levelName: lvl.name, perAd: perAd, dailyLimit: dailyLimit, dailyAds: dailyAds, dailyLeft: dailyLeft, minWithdrawUSDT: 20, minCash: minCash, minLabel: u.region==='SA'?'R'+levelMinRand(u.level||1):'$20', usdtToZar: USDT_TO_ZAR, usdtBalance: parseFloat(usdtBal.toFixed(4)), unlockedLevels: u.unlockedLevels || [1], levelExpiresAt: u.levelExpiresAt || 0, expiresInDays: u.levelExpiresAt? Math.max(0, Math.ceil((u.levelExpiresAt-Date.now())/(1000*60*60*24))):0, withdrawMin: lvl.withdrawMin, quizUnlocked: (u.total_ads||0)>=QUIZ_UNLOCK_ADS, quizNeed: Math.max(0, QUIZ_UNLOCK_ADS-(u.total_ads||0)) };
 }
 function getPerAd(u){ const lvl=getLevel(u); return { cash: u.region==='SA'? lvl.adCashSA : lvl.adUSD, coins: lvl.adReward, usd: u.region==='SA'? lvl.adCashSA : lvl.adUSD, dailyLimit: lvl.adLimit, minWithdrawUSDT: 20 }; }
 let bot = null;
 if(BOT_TOKEN){ try{ bot = new Telegraf(BOT_TOKEN); console.log('Bot created - Shaya Watch Bot'); }catch(e){ console.log('Bot create failed', e.message); } }
 app.get('/health', function(req,res){ res.json({ok:true, bot:'Shaya Watch Bot', time:new Date().toISOString()}); });
-app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-bot-fixed-levels', giga:'9114', onclicka:'472254', minSA:'Dynamic R350->R33', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', data:'R5 1GB TikTok 24h ONLY - 550 Coins', perAdSA:'R0.08 per 2 ads + 5 Coins', perAdUSA:'$0.005 per 2 ads + 5 Coins', adMode:'2-in-1', coins:'Cash or VIP', pointsStars:'VIP ONLY'}); });
+app.get('/api/version', function(req,res){ res.json({version:'shaya-watch-bot-fixed-0.05-no-points', giga:'9114', onclicka:'472254', minSA:'Dynamic R350->R33', minUSA:'$20', airtime:'110 Coins=R1 NO LIMIT', data:'R5 1GB TikTok 24h ONLY - 550 Coins', perAdSA:'R0.05 per 2 ads + 5 Coins', perAdUSA:'$0.005 per 2 ads + 5 Coins', adMode:'2-in-1', coins:'Cash or VIP', vip:'Coins / Stars ONLY'}); });
 app.get('/', function(req,res){ res.sendFile(path.join(__dirname, 'index.html')); });
 app.get('/api/rate', async function(req,res){ const r = await refreshRate(); res.json({usdtToZar:r, usdt:1, zar:r, usd:1}); });
 app.get('/api/convert-usdt', async function(req,res){ const usdt=parseFloat(req.query.usdt || 0); const r=await refreshRate(); res.json({usdt:usdt, zar:(usdt*r).toFixed(2), usd:usdt.toFixed(2), rate:r, usdtToZar:r}); });
-app.get('/api/vip-plans', async function(req,res){ const region=req.query.region || 'SA'; const out={}; for(let i=1;i<=20;i++){ const l=LEVELS[i]; out[l.name]= { name:l.name, level:i, perAdUSD:l.adUSD, perAdCash: region==='SA'? l.adCashSA:l.adUSD, perAdCoins:l.adReward, dailyLimit:l.adLimit, minWithdrawUSDT:20, days:30, stars:l.starsCost, coinsCost:l.coinsCost, pointsCost:l.pointsCost, withdrawMin:l.withdrawMin, minRand: levelMinRand(i) }; } res.json(out); });
+app.get('/api/vip-plans', async function(req,res){ const region=req.query.region || 'SA'; const out={}; for(let i=1;i<=20;i++){ const l=LEVELS[i]; out[l.name]= { name:l.name, level:i, perAdUSD:l.adUSD, perAdCash: region==='SA'? l.adCashSA:l.adUSD, perAdCoins:l.adReward, dailyLimit:l.adLimit, minWithdrawUSDT:20, days:30, stars:l.starsCost, coinsCost:l.coinsCost, withdrawMin:l.withdrawMin, minRand: levelMinRand(i) }; } res.json(out); });
 app.get('/api/user/:id', async function(req,res){ const u = await getUserAsync(req.params.id, null); if(!u) return res.json({error:'user not found - send /start in bot first'}); res.json(formatUserForFrontend(u)); });
 app.post('/api/sync', async function(req,res){ const b=req.body; let u = await getUserAsync(b.user_id, null); const patch={}; if(b.balance!==undefined) patch.balance=parseFloat(b.balance); if(b.coins!==undefined) patch.coins=parseInt(b.coins); if(b.total_ads!==undefined) patch.total_ads=parseInt(b.total_ads); if(b.referrals!==undefined) patch.referrals=parseInt(b.referrals); if(b.streak!==undefined) patch.streak=parseInt(b.streak); if(b.total_earned!==undefined) patch.total_earned=parseFloat(b.total_earned); if(b.region){ patch.region=b.region; patch.currency=b.region==='USA'?'$':'R'; } if(b.vip_level) patch.vip_level=b.vip_level; const updated = await updateUser(u.id, patch); res.json({success:true, user:formatUserForFrontend(updated)}); });
 app.post('/api/set-region', async function(req,res){ const b=req.body; if(b.region!=='SA' && b.region!=='USA') return res.json({error:'Invalid region'}); let u = await getUserAsync(b.user_id, null); if(u.region===b.region) return res.json({success:true, user:formatUserForFrontend(u)}); const rate=await refreshRate(); const oldRegion=u.region, oldBalance=u.balance; let newBalance=oldBalance; if(oldRegion==='SA'&&b.region==='USA') newBalance=oldBalance/rate; else if(oldRegion==='USA'&&b.region==='SA') newBalance=oldBalance*rate; const updated=await updateUser(u.id, {region:b.region, currency:b.region==='USA'?'$':'R', balance:parseFloat(newBalance.toFixed(2))}); res.json({success:true, user:formatUserForFrontend(updated)}); });
@@ -212,7 +193,7 @@ app.post('/api/earn', async function(req,res){
   const id = b.userId || b.user_id;
   const u = await getUserAsync(id, b.name, {device_id:b.device_id});
   const lvl=getLevel(u);
-  if(b.action==='balance') return res.json({coins:u.coins, totalEarned:u.total_earned, adsWatched:u.total_ads, level:u.level||1, levelName:lvl.name, points:u.points||0, tasks:OFFERWALL, tasksDone:u.tasksDone, quizUnlocked:(u.total_ads||0)>=QUIZ_UNLOCK_ADS, quizNeed:Math.max(0,QUIZ_UNLOCK_ADS-(u.total_ads||0)), withdrawMin:lvl.withdrawMin, unlockedLevels:u.unlockedLevels||[1], levelExpiresAt:u.levelExpiresAt||0, expiresInDays:u.levelExpiresAt?Math.max(0,Math.ceil((u.levelExpiresAt-Date.now())/(1000*60*60*24))):0});
+  if(b.action==='balance') return res.json({coins:u.coins, totalEarned:u.total_earned, adsWatched:u.total_ads, level:u.level||1, levelName:lvl.name, points:0, tasks:OFFERWALL, tasksDone:u.tasksDone, quizUnlocked:(u.total_ads||0)>=QUIZ_UNLOCK_ADS, quizNeed:Math.max(0,QUIZ_UNLOCK_ADS-(u.total_ads||0)), withdrawMin:lvl.withdrawMin, unlockedLevels:u.unlockedLevels||[1], levelExpiresAt:u.levelExpiresAt||0, expiresInDays:u.levelExpiresAt?Math.max(0,Math.ceil((u.levelExpiresAt-Date.now())/(1000*60*60*24))):0});
   if(b.action==='ad'){
     if(b.adCount!==undefined && parseInt(b.adCount)<2) return res.json({coins:u.coins, msg:'Watch 2 ads first! 2 Ads = 1 Reward.'});
     if(u.dailyDate!==todayStr()){ u.dailyAds=0; u.dailyDate=todayStr(); }
@@ -262,7 +243,7 @@ app.post('/api/convert', async function(req,res){
 app.post('/api/vip', async function(req,res){
   const b=req.body;
   const id=b.userId || b.user_id; const u=await getUserAsync(id, b.name, {device_id:b.device_id});
-  if(b.action==='info') return res.json({level:u.level||1, levelName:getLevel(u).name, vip_level:getVipName(u), points:u.points||0, coins:u.coins, balance:u.balance, levels:LEVELS, packages:TOPUP_PACKAGES, buyCoins:BUY_COINS_PACKAGES, buyPoints:BUY_POINTS_PACKAGES, buyCoinsStars:[], buyPointsStars:[], unlockedLevels:u.unlockedLevels||[1], levelExpiresAt:u.levelExpiresAt||0, expiresInDays:u.levelExpiresAt?Math.max(0,Math.ceil((u.levelExpiresAt-Date.now())/(1000*60*60*24))):0, topupAccount:TOPUP_ACCOUNT, minSA:levelMinRand(u.level||1), minUSA:MIN_WITHDRAW_USA});
+  if(b.action==='info') return res.json({level:u.level||1, levelName:getLevel(u).name, vip_level:getVipName(u), points:0, coins:u.coins, balance:u.balance, levels:LEVELS, packages:TOPUP_PACKAGES, buyCoins:BUY_COINS_PACKAGES, buyPoints:[], buyCoinsStars:[], buyPointsStars:[], unlockedLevels:u.unlockedLevels||[1], levelExpiresAt:u.levelExpiresAt||0, expiresInDays:u.levelExpiresAt?Math.max(0,Math.ceil((u.levelExpiresAt-Date.now())/(1000*60*60*24))):0, topupAccount:TOPUP_ACCOUNT, minSA:levelMinRand(u.level||1), minUSA:MIN_WITHDRAW_USA});
   if(b.action==='levelup'){
     const target=Number(b.targetLevel); const lvl=LEVELS[target];
     if(!lvl) return res.json({msg:'Invalid level'});
@@ -270,19 +251,18 @@ app.post('/api/vip', async function(req,res){
     if(!isNext && !isUnlocked) return res.json({msg:'Cant jump! Buy Level '+((u.level||1)+1)+' first. Unlocked: '+unlocked.join(', ')});
     if(target<=(u.level||1)) return res.json({msg:'Already this level or higher'});
     if(b.payWith==='coins'){ if((u.coins||0)<lvl.coinsCost) return res.json({msg:'Need '+lvl.coinsCost+' Coins. You have '+(u.coins||0)+'.'}); await updateUser(u.id, {coins:u.coins-lvl.coinsCost}); }
-    else if(b.payWith==='points'){ if((u.points||0)<lvl.pointsCost) return res.json({msg:'Need '+lvl.pointsCost+' Points. You have '+(u.points||0)+'. Topup!'}); await updateUser(u.id, {points:u.points-lvl.pointsCost}); }
-    else return res.json({msg:'Choose Coins or Points'});
+    else return res.json({msg:'Choose Coins. Stars = pay in Telegram with /vip'});
     const newUnlocked=[]; const allUnlock=(u.unlockedLevels||[1]).concat([target, target<20?target+1:target]); allUnlock.forEach(function(x){ if(newUnlocked.indexOf(x)===-1) newUnlocked.push(x); });
     const upd=await updateUser(u.id, {level:target, vip_level:lvl.name.toUpperCase(), vip_until:new Date(Date.now()+30*24*60*60*1000).toISOString().slice(0,10), levelExpiresAt:Date.now()+30*24*60*60*1000, unlockedLevels:newUnlocked});
-    return res.json({msg:'LEVEL UP! You are now '+lvl.name+'! Expires in 30 days. Next level '+(target+1)+' unlocked! Ads: '+levelAds(target)+'/day • Min R'+levelMinRand(target), level:upd.level, points:upd.points, coins:upd.coins});
+    return res.json({msg:'LEVEL UP! You are now '+lvl.name+'! Expires in 30 days. Next level '+(target+1)+' unlocked! Ads: '+levelAds(target)+'/day • Min R'+levelMinRand(target), level:upd.level, points:0, coins:upd.coins});
   }
   if(b.action==='topup_request'){
     const pkg=ALL_BUY_PACKAGES.find(function(p){ return p.id===b.packageId; }); if(!pkg) return res.json({msg:'Package not found'});
-    await updateUser(u.id, {pendingTopup:{packageId:b.packageId, coins:(pkg.coins||0), points:(pkg.points||0), price:pkg.price, proof:b.proof||'', date:new Date().toISOString(), label:pkg.label}});
+    await updateUser(u.id, {pendingTopup:{packageId:b.packageId, coins:(pkg.coins||0), price:pkg.price, proof:b.proof||'', date:new Date().toISOString(), label:pkg.label}});
     if(ADMIN_ID && bot){
-      await bot.telegram.sendMessage(ADMIN_ID, 'TOPUP REQUEST - Check Capitec '+TOPUP_ACCOUNT+'\n\nUser: '+u.name+' (@'+u.username+') ID:'+u.id+'\nPackage: '+pkg.label+' - R'+pkg.price+'\nGive: '+giveLine(pkg.coins||0, pkg.points||0)+'\nProof: '+b.proof+'\nBank: Capitec '+TOPUP_ACCOUNT+'\n\nCheck your bank, then press Approve below.', { reply_markup: { inline_keyboard: [[{ text:'Approve', callback_data:'approve_topup_'+u.id+'_'+b.packageId }],[{ text:'Reject', callback_data:'reject_topup_'+u.id }]] } }).catch(function(){});
+      await bot.telegram.sendMessage(ADMIN_ID, 'TOPUP REQUEST - Check Capitec '+TOPUP_ACCOUNT+'\n\nUser: '+u.name+' (@'+u.username+') ID:'+u.id+'\nPackage: '+pkg.label+' - R'+pkg.price+'\nGive: '+giveLine(pkg.coins||0)+'\nProof: '+b.proof+'\nBank: Capitec '+TOPUP_ACCOUNT+'\n\nCheck your bank, then press Approve below.', { reply_markup: { inline_keyboard: [[{ text:'Approve', callback_data:'approve_topup_'+u.id+'_'+b.packageId }],[{ text:'Reject', callback_data:'reject_topup_'+u.id }]] } }).catch(function(){});
     }
-    return res.json({msg:'Topup request sent! '+giveLine(pkg.coins||0, pkg.points||0)+'. Admin will check Capitec '+TOPUP_ACCOUNT+'.'});
+    return res.json({msg:'Topup request sent! '+giveLine(pkg.coins||0)+'. Admin will check Capitec '+TOPUP_ACCOUNT+'.'});
   }
   res.json({msg:'OK'});
 });
@@ -310,7 +290,7 @@ app.post('/api/vip-stars-invoice', async function(req,res){
   }catch(e){ res.json({error:'Could not send invoice. '+e.message}); }
 });
 app.post('/api/buy-stars', async function(req,res){
-  return res.json({error:'Stars = VIP ONLY. Buy a VIP Level with Stars in the VIP section. Stars do NOT buy Coins or Points.'});
+  return res.json({error:'Stars = VIP ONLY. Buy a VIP Level with Stars in the VIP section. Stars do NOT buy Coins.'});
 });
 app.post('/api/request-vip', async function(req,res){
   const b=req.body; let u=await getUserAsync(b.user_id, null);
@@ -441,9 +421,9 @@ app.get('/api/videos/search', async function(req,res){ res.json(await fetchYouTu
 app.get('/api/admin/pending', function(req,res){ res.json({withdrawals:withdrawals.filter(function(w){ return w.status==='pending'; }), vipRequests:vipRequests.filter(function(v){ return v.status==='pending'; })}); });
 const GROUP_CHAT_ID = process.env.GROUP_CHAT_ID || '-1003867683507';
 const DAILY_POSTS = [
-  "🔥 GOOD MORNING SHAYA FAMILY!\n\n📺 Watch Ads = Cash + Coins — 2 Ads = 1 Reward\n🧠 Quiz = +Coins (after 10 ads)\n🏦 Topup Capitec 1893275807 = Buy Coins (Cash/VIP) OR Buy Points (VIP ONLY)\n👑 VIP: SA R0.08 / 2 ads + 5 Coins • USA $0.005 / 2 ads + 5 Coins • Ads = 20 x Level • Min Drops -1000 Per Level\n💸 Withdraw: Min Drops Per Level • Airtime NO LIMIT (110 Coins=R1) • Data R5 1GB TikTok 24h ONLY\n\n👉 Open @ShayaWatchAllBot → OPEN SHAYA WATCH BOT",
-  "💰 WHO HAS WITHDRAWN TODAY?\n\nShow proof in group! Topup R29 today → Get 500 Coins ONLY (No extra Points)\n\nCapitec: 1893275807\nRef: Your Name\n\nInvite 3 friends = +50 Coins + Cash!\n👉 @ShayaWatchAllBot",
-  "🏆 LEADERBOARD UPDATE!\n\nTop earners today get featured!\nWatch Ads (Level 1 = 20/day, Level 20 = 400/day) = Max earnings!\nNot VIP yet? Buy with Coins / Points / Stars in app! Points/Stars = VIP ONLY\n\n👉 Open @ShayaWatchAllBot",
+  "🔥 GOOD MORNING SHAYA FAMILY!\n\n📺 Watch Ads = Cash + Coins — 2 Ads = 1 Reward\n🧠 Quiz = +Coins (after 10 ads)\n🏦 Topup Capitec 1893275807 = Buy Coins (Cash/VIP)\n👑 VIP: SA R0.05 / 2 ads + 5 Coins • USA $0.005 / 2 ads + 5 Coins • Ads = 20 x Level • Min Drops -1000 Per Level\n💸 Withdraw: Min Drops Per Level • Airtime NO LIMIT (110 Coins=R1) • Data R5 1GB TikTok 24h ONLY\n\n👉 Open @ShayaWatchAllBot → OPEN SHAYA WATCH BOT",
+  "💰 WHO HAS WITHDRAWN TODAY?\n\nShow proof in group! Topup R29 today → Get 500 Coins ONLY\n\nCapitec: 1893275807\nRef: Your Name\n\nInvite 3 friends = +50 Coins + Cash!\n👉 @ShayaWatchAllBot",
+  "🏆 LEADERBOARD UPDATE!\n\nTop earners today get featured!\nWatch Ads (Level 1 = 20/day, Level 20 = 400/day) = Max earnings!\nNot VIP yet? Buy with Coins / Stars in app! VIP = Coins / Stars ONLY\n\n👉 Open @ShayaWatchAllBot",
   "⏰ EVENING REMINDER!\n\nDon't waste your ads today!\nClaim Daily Bonus + Quiz before midnight!\nTopup before you sleep — Admin approves in morning!\n\nCapitec: 1893275807\n👉 @ShayaWatchAllBot",
 ];
 let dailyPostIndex = 0;
@@ -465,10 +445,10 @@ if(bot){
     else if(payload && (/^\d+$/.test(payload) || payload.indexOf('web_')===0)) referred_by=payload;
     let u=await getUser(user_id); if(!u) u=await createUser(user_id, {username:ctx.from.username||'', first_name:ctx.from.first_name||'', referred_by:referred_by?String(referred_by):null});
     const rate=await refreshRate();
-    const perAdTxt = u.region==='USA' ? '$0.005 / 2 ads + 5 Coins' : 'R0.08 / 2 ads + 5 Coins';
+    const perAdTxt = u.region==='USA' ? '$0.005 / 2 ads + 5 Coins' : 'R0.05 / 2 ads + 5 Coins';
     const minTxt = u.region==='USA' ? '$20 Min' : 'R'+levelMinRand(u.level||1)+' Min (Level '+(u.level||1)+')';
     const rateTxt = u.region==='USA' ? '1 USDT = $1.00' : '1 USDT = R'+rate.toFixed(2);
-    await ctx.replyWithMarkdown('Welcome to *SHAYA WATCH BOT* '+u.first_name+'!\n\nEARN\nWatch 2 Ads = '+perAdTxt+'\nQuiz = +Coins (Unlock after 10 ads)\nTopup Capitec '+TOPUP_ACCOUNT+' = Buy Coins (Cash or VIP) OR Buy Points (VIP ONLY)\nOfferwall (Giga 9114) = Coins\nInvite = +50 Coins\nTasks = Cash + Coins\n\nCoins = Convert to Cash OR Buy VIP\nPoints / Stars = Buy VIP ONLY\n\nVIP - 20 Levels, 30 Days\nFREE (Level 1): '+perAdTxt+' - 20/day - R350 Min\nKING (Level 20): '+perAdTxt+' - 400/day - R33 Min\nYour Level: '+levelAds(u.level||1)+'/day - '+minTxt+'\nAds = 20 x Level • Min Drops -1000 Coins Per Level\n\nWithdraw: Min Drops Per Level / Airtime NO LIMIT (110 Coins='+(u.region==='USA'?'$1':'R1')+') / Data R5 1GB TikTok 24h ONLY\n'+rateTxt+' LIVE\n\nTap below', {reply_markup:{inline_keyboard:[[{text:'OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}],[{text:'Join Shaya Earn Network', url:GROUP_URL}]]}});
+    await ctx.replyWithMarkdown('Welcome to *SHAYA WATCH BOT* '+u.first_name+'!\n\nEARN\nWatch 2 Ads = '+perAdTxt+'\nQuiz = +Coins (Unlock after 10 ads)\nTopup Capitec '+TOPUP_ACCOUNT+' = Buy Coins (Cash or VIP)\nOfferwall (Giga 9114) = Coins\nInvite = +50 Coins\nTasks = Cash + Coins\n\nCoins = Convert to Cash OR Buy VIP\nVIP = Coins / Stars ONLY\n\nVIP - 20 Levels, 30 Days\nFREE (Level 1): '+perAdTxt+' - 20/day - R350 Min\nKING (Level 20): '+perAdTxt+' - 400/day - R33 Min\nYour Level: '+levelAds(u.level||1)+'/day - '+minTxt+'\nAds = 20 x Level • Min Drops -1000 Coins Per Level\n\nWithdraw: Min Drops Per Level / Airtime NO LIMIT (110 Coins='+(u.region==='USA'?'$1':'R1')+') / Data R5 1GB TikTok 24h ONLY\n'+rateTxt+' LIVE\n\nTap below', {reply_markup:{inline_keyboard:[[{text:'OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}],[{text:'Join Shaya Earn Network', url:GROUP_URL}]]}});
   });
   bot.command('getgroupid', async function(ctx){
     const chatId = ctx.chat && ctx.chat.id;
@@ -480,7 +460,7 @@ if(bot){
     await sendDailyPost();
     await ctx.reply('Posted to group! Group ID: '+(GROUP_CHAT_ID || 'NOT SET - Add GROUP_CHAT_ID in Render'));
   });
-  bot.command('balance', async function(ctx){ let u=await getUser(ctx.from.id); if(!u) return ctx.reply('Send /start first'); const f=formatUserForFrontend(u); ctx.reply('Balance: '+f.currency+f.balance.toFixed(2)+' = $'+f.usdtBalance+' USDT\nCoins: '+f.coins+' (Cash or VIP) | Points: '+u.points+' (VIP ONLY)\nAds Today: '+f.dailyAds+'/'+f.dailyLimit+' (Level '+(u.level||1)+')\nVIP: '+f.vip_level+' ('+u.level+'/20)\nMin: '+(u.region==='SA'?'R'+levelMinRand(u.level||1):'$20')+' | Airtime 110 Coins='+(u.region==='SA'?'R1':'$1')+' | Data R5 1GB TikTok 24h | Per ad: '+perAdLabelFor(u)+' / 2 ads + 5 Coins'); });
+  bot.command('balance', async function(ctx){ let u=await getUser(ctx.from.id); if(!u) return ctx.reply('Send /start first'); const f=formatUserForFrontend(u); ctx.reply('Balance: '+f.currency+f.balance.toFixed(2)+' = $'+f.usdtBalance+' USDT\nCoins: '+f.coins+' (Cash or VIP)\nAds Today: '+f.dailyAds+'/'+f.dailyLimit+' (Level '+(u.level||1)+')\nVIP: '+f.vip_level+' ('+u.level+'/20)\nMin: '+(u.region==='SA'?'R'+levelMinRand(u.level||1):'$20')+' | Airtime 110 Coins='+(u.region==='SA'?'R1':'$1')+' | Data R5 1GB TikTok 24h | Per ad: '+perAdLabelFor(u)+' / 2 ads + 5 Coins'); });
   bot.command('tasks', async function(ctx){
     let u=await getUserAsync(ctx.from.id, ctx.from.first_name);
     const completed = u.completedTasks||[]; let txt = 'TASKS\n\n';
@@ -491,12 +471,12 @@ if(bot){
   bot.command('vip', async function(ctx){
     let u=await getUserAsync(ctx.from.id, ctx.from.first_name);
     const next=Math.min(20,(u.level||1)+1); const lvl=LEVELS[next];
-    await ctx.reply('Your Level: '+getVipName(u)+' ('+u.level+'/20)\nCoins: '+u.coins+' | Points: '+(u.points||0)+' (VIP ONLY)\nAds: '+levelAds(u.level||1)+'/day • Min: R'+levelMinRand(u.level||1)+'\nNext: Level '+next+' '+lvl.name+'\nCost: '+lvl.coinsCost+' Coins OR '+lvl.pointsCost+' Points OR '+lvl.starsCost+' Stars\nNext Ads: '+levelAds(next)+'/day • Min R'+levelMinRand(next), {reply_markup:{inline_keyboard:[[{text:'Buy '+lvl.name+' - '+lvl.starsCost+' Stars', callback_data:'buy_stars_'+next}],[{text:'OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}]]}});
+    await ctx.reply('Your Level: '+getVipName(u)+' ('+u.level+'/20)\nCoins: '+u.coins+'\nAds: '+levelAds(u.level||1)+'/day • Min: R'+levelMinRand(u.level||1)+'\nNext: Level '+next+' '+lvl.name+'\nCost: '+lvl.coinsCost+' Coins OR '+lvl.starsCost+' Stars\nNext Ads: '+levelAds(next)+'/day • Min R'+levelMinRand(next), {reply_markup:{inline_keyboard:[[{text:'Buy '+lvl.name+' - '+lvl.starsCost+' Stars', callback_data:'buy_stars_'+next}],[{text:'OPEN SHAYA WATCH BOT', web_app:{url:WEBAPP_URL}}]]}});
   });
   bot.command('vipall', async function(ctx){
     let u=await getUserAsync(ctx.from.id, ctx.from.first_name);
     let txt='ALL 20 VIP\nYour Unlocked: '+(u.unlockedLevels||[1]).join(', ')+'\nPer ad (all levels): '+perAdLabelFor(u)+' / 2 ads + 5 Coins\n\n';
-    for(let i=1;i<=20;i++){ txt+=i+'. '+LEVELS[i].name+' - '+LEVELS[i].coinsCost+' Coins / '+LEVELS[i].pointsCost+' Points / '+LEVELS[i].starsCost+' Stars - '+perAdLabelFor(u)+'/2 ads + 5 Coins - '+LEVELS[i].adLimit+'/day - Min R'+levelMinRand(i)+'\n'; }
+    for(let i=1;i<=20;i++){ txt+=i+'. '+LEVELS[i].name+' - '+LEVELS[i].coinsCost+' Coins / '+LEVELS[i].starsCost+' Stars - '+perAdLabelFor(u)+'/2 ads + 5 Coins - '+LEVELS[i].adLimit+'/day - Min R'+levelMinRand(i)+'\n'; }
     await ctx.reply(txt);
   });
   bot.command('approve', async function(ctx){
@@ -507,10 +487,9 @@ if(bot){
     let target=await getUser(targetId); if(!target){ for(let kv of users){ if(String(kv[1].user_id)===String(targetId)||String(kv[1].id)===String(targetId)){ target=kv[1]; break; } } }
     const pkg=ALL_BUY_PACKAGES.find(function(p){ return p.id===pkgId; }); if(!target||!pkg) return ctx.reply('User or package not found\nTried ID: '+targetId+'\nTried Package: '+pkgId);
     const giveCoins = (target.pendingTopup && target.pendingTopup.coins) || pkg.coins || 0;
-    const givePoints = (target.pendingTopup && target.pendingTopup.points) || pkg.points || 0;
-    await updateUser(target.id, {coins:target.coins+giveCoins, total_earned:target.total_earned+giveCoins, points:(target.points||0)+givePoints, pendingTopup:null});
-    ctx.reply('Approved! '+giveText(giveCoins, givePoints)+' to '+target.name+' (ID: '+target.id+')');
-    try{ const chatId=parseInt(target.id)||target.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, 'TOPUP APPROVED! '+giveText(giveCoins, givePoints)+'!'); }catch(e){ console.log('Web user - approved in DB, no Telegram DM'); }
+    await updateUser(target.id, {coins:target.coins+giveCoins, total_earned:target.total_earned+giveCoins, pendingTopup:null});
+    ctx.reply('Approved! '+giveText(giveCoins)+' to '+target.name+' (ID: '+target.id+')');
+    try{ const chatId=parseInt(target.id)||target.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, 'TOPUP APPROVED! '+giveText(giveCoins)+'!'); }catch(e){ console.log('Web user - approved in DB, no Telegram DM'); }
   });
   bot.command('pending', async function(ctx){
     if(ctx.from.id!==ADMIN_ID) return ctx.reply('Admin only');
@@ -518,7 +497,7 @@ if(bot){
     for(let kv of users){ const u=kv[1]; if(u.pendingTopup) pendingList.push({id:u.id, name:u.name||u.first_name||'friend', username:u.username||'', pending:u.pendingTopup}); }
     if(supabase){ try{ const res2=await supabase.from('users').select('id, name, first_name, username, pending_topup').not('pending_topup','is',null); const data=res2.data; if(data){ for(let row of data){ if(row.pending_topup && !pendingList.find(function(p){ return String(p.id)===String(row.id); })) pendingList.push({id:row.id, name:row.name||row.first_name||'friend', username:row.username||'', pending:row.pending_topup}); } } }catch(e){} }
     if(pendingList.length===0) return ctx.reply('No pending topups. All clear!');
-    let txt='PENDING TOPUPS ('+pendingList.length+')\n\n'; pendingList.forEach(function(p,i){ txt+=(i+1)+'. '+p.name+' (@'+p.username+') ID:'+p.id+'\n   Package: '+p.pending.packageId+' - R'+p.pending.price+' = '+giveLine(p.pending.coins||0, p.pending.points||0)+'\n   Proof: '+p.pending.proof+'\n\n'; }); txt+='\nPress Approve on the request message, or type:\n/approveall';
+    let txt='PENDING TOPUPS ('+pendingList.length+')\n\n'; pendingList.forEach(function(p,i){ txt+=(i+1)+'. '+p.name+' (@'+p.username+') ID:'+p.id+'\n   Package: '+p.pending.packageId+' - R'+p.pending.price+' = '+giveLine(p.pending.coins||0)+'\n   Proof: '+p.pending.proof+'\n\n'; }); txt+='\nPress Approve on the request message, or type:\n/approveall';
     await ctx.reply(txt);
   });
   bot.command('approveall', async function(ctx){
@@ -533,10 +512,10 @@ if(bot){
       try{
         const pkgInfo=u.pendingTopup; if(!pkgInfo) continue;
         const pkg=ALL_BUY_PACKAGES.find(function(p){ return p.id===pkgInfo.packageId; }); if(!pkg){ failed.push(u.name+' ('+u.id+') - package '+pkgInfo.packageId+' not found'); continue; }
-        const giveCoins = pkgInfo.coins || pkg.coins || 0; const givePoints = pkgInfo.points || pkg.points || 0;
-        await updateUser(u.id, {coins:(u.coins||0)+giveCoins, total_earned:(u.total_earned||0)+giveCoins, points:(u.points||0)+givePoints, pendingTopup:null});
-        report+='OK '+u.name+' (@'+u.username+') ID:'+u.id+' - '+giveText(giveCoins, givePoints)+' (R'+pkg.price+')\n'; approved++;
-        try{ const chatId=parseInt(u.id)||u.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, 'TOPUP APPROVED! '+giveText(giveCoins, givePoints)+'!'); }catch(e){}
+        const giveCoins = pkgInfo.coins || pkg.coins || 0;
+        await updateUser(u.id, {coins:(u.coins||0)+giveCoins, total_earned:(u.total_earned||0)+giveCoins, pendingTopup:null});
+        report+='OK '+u.name+' (@'+u.username+') ID:'+u.id+' - '+giveText(giveCoins)+' (R'+pkg.price+')\n'; approved++;
+        try{ const chatId=parseInt(u.id)||u.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, 'TOPUP APPROVED! '+giveText(giveCoins)+'!'); }catch(e){}
       }catch(e){ failed.push(u.name+' ('+u.id+') - '+e.message); }
     }
     if(failed.length>0) report+='\nFAILED ('+failed.length+'):\n'+failed.join('\n');
@@ -573,15 +552,15 @@ if(bot){
       for(let m of members){
         if(m.is_bot) continue;
         const name = m.first_name || 'friend';
-        await ctx.reply('Welcome '+name+' to Shaya Earn Network!\n\nWatch 2 Ads = Cash + Coins — SA R0.08 / USA $0.005 per 2 ads + 5 Coins\nTopup Capitec 1893275807 = Buy Coins (Cash/VIP) OR Buy Points (VIP ONLY)\nWithdraw: Min Drops Per Level • Airtime NO LIMIT • Data R5 1GB TikTok 24h ONLY\n\nOpen @ShayaWatchAllBot - OPEN SHAYA WATCH BOT\n\nIntroduce yourself - Where are you from?');
+        await ctx.reply('Welcome '+name+' to Shaya Earn Network!\n\nWatch 2 Ads = Cash + Coins — SA R0.05 / USA $0.005 per 2 ads + 5 Coins\nTopup Capitec 1893275807 = Buy Coins (Cash/VIP)\nWithdraw: Min Drops Per Level • Airtime NO LIMIT • Data R5 1GB TikTok 24h ONLY\n\nOpen @ShayaWatchAllBot - OPEN SHAYA WATCH BOT\n\nIntroduce yourself - Where are you from?');
       }
     }catch(e){ console.log('Welcome failed', e.message); }
   });
   bot.on('pre_checkout_query', async function(ctx){ try{ await ctx.answerPreCheckoutQuery(true); }catch(e){} });
   bot.on('successful_payment', async function(ctx){
     const pay=ctx.message.successful_payment; const payload=pay.invoice_payload||'';
-    if(payload.indexOf('buy_coins_')===0 || payload.indexOf('buy_points_')===0){
-      await ctx.reply('Stars = VIP ONLY. Stars do NOT buy Coins or Points. Buy a VIP Level with Stars instead.');
+    if(payload.indexOf('buy_coins_')===0){
+      await ctx.reply('Stars = VIP ONLY. Stars do NOT buy Coins. Buy a VIP Level with Stars instead.');
       return;
     }
     let target=null;
@@ -608,11 +587,10 @@ if(bot){
       const target=await getUser(userId); const pkg=ALL_BUY_PACKAGES.find(function(p){ return p.id===packageId; });
       if(!target||!pkg){ try{ await ctx.answerCbQuery('User or package not found: '+userId+' / '+packageId); }catch(e){} return; }
       const giveCoins = (target.pendingTopup && target.pendingTopup.coins) || pkg.coins || 0;
-      const givePoints = (target.pendingTopup && target.pendingTopup.points) || pkg.points || 0;
-      await updateUser(target.id, {coins:(target.coins||0)+giveCoins, total_earned:(target.total_earned||0)+giveCoins, points:(target.points||0)+givePoints, pendingTopup:null});
+      await updateUser(target.id, {coins:(target.coins||0)+giveCoins, total_earned:(target.total_earned||0)+giveCoins, pendingTopup:null});
       try{ await ctx.answerCbQuery('Approved!'); }catch(e){}
-      try{ await ctx.editMessageText('APPROVED - TOPUP\n\n'+target.name+' ID:'+target.id+'\n'+pkg.label+'\n'+giveText(giveCoins, givePoints)+'\n\nPaid via Capitec '+TOPUP_ACCOUNT); }catch(e){}
-      try{ const chatId=parseInt(target.id)||target.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, 'TOPUP APPROVED!\n\n'+giveText(giveCoins, givePoints)+'!'); }catch(e){ console.log('Web user - approved in DB only'); }
+      try{ await ctx.editMessageText('APPROVED - TOPUP\n\n'+target.name+' ID:'+target.id+'\n'+pkg.label+'\n'+giveText(giveCoins)+'\n\nPaid via Capitec '+TOPUP_ACCOUNT); }catch(e){}
+      try{ const chatId=parseInt(target.id)||target.user_id; if(chatId) await ctx.telegram.sendMessage(chatId, 'TOPUP APPROVED!\n\n'+giveText(giveCoins)+'!'); }catch(e){ console.log('Web user - approved in DB only'); }
       return;
     }
     if(data.indexOf('reject_topup_')===0){
@@ -646,7 +624,7 @@ if(bot){
     if(data.indexOf('buy_stars_')===0){
       const target=parseInt(data.split('_')[2]); const lvl=LEVELS[target];
       try{ await ctx.answerCbQuery(); }catch(e){}
-      try{ const _u = await getUser(ctx.from.id); const _label = _u ? perAdLabelFor(_u)+' / 2 ads' : 'R0.08 / 2 ads'; await ctx.telegram.sendInvoice(ctx.from.id, 'Shaya Watch '+lvl.name, lvl.name+' - 30 Days - '+_label+' - '+lvl.adLimit+'/day - Min R'+levelMinRand(target)+' / $20', 'vip_'+lvl.name+'_'+ctx.from.id+'_'+Date.now(), '', 'XTR', [{label:lvl.name+' - 30 Days', amount:lvl.starsCost}]); }catch(e){ await ctx.reply('Stars failed: '+e.message); }
+      try{ const _u = await getUser(ctx.from.id); const _label = _u ? perAdLabelFor(_u)+' / 2 ads' : 'R0.05 / 2 ads'; await ctx.telegram.sendInvoice(ctx.from.id, 'Shaya Watch '+lvl.name, lvl.name+' - 30 Days - '+_label+' - '+lvl.adLimit+'/day - Min R'+levelMinRand(target)+' / $20', 'vip_'+lvl.name+'_'+ctx.from.id+'_'+Date.now(), '', 'XTR', [{label:lvl.name+' - 30 Days', amount:lvl.starsCost}]); }catch(e){ await ctx.reply('Stars failed: '+e.message); }
       return;
     }
   });
