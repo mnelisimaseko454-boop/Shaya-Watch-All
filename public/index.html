@@ -149,12 +149,8 @@ input,select{width:100%;padding:12px;border-radius:10px;border:1px solid #333;ba
 <b>🏦 Capitec Bank</b><br><span style="font-size:22px;letter-spacing:2px;color:#FFD700"><b>1893275807</b></span><br>Reference: <b id="bankRef">Your Name / ID</b>
 </div>
 <div id="packages"></div>
-<div class="card" style="margin-top:8px"><b>🪙 Buy Coins Separately — Coins ONLY, No Extra</b><div id="buyCoinsBox" style="margin-top:8px">Loading coins packages...</div><p style="font-size:12px;color:#aaa">Coins = Convert to Cash OR Buy VIP.</p></div>
-<div class="card" style="margin-top:8px;display:none"><b>⭐ Buy Points Separately — VIP ONLY</b><div id="buyPointsBox" style="margin-top:8px">Loading points packages...</div></div>
 <div style="margin-top:12px;border-top:1px solid #333;padding-top:12px">
-<h4>🪙 Buy Coins Separately — Coins ONLY</h4><div id="buyCoinsList"><p style="color:#aaa;font-size:12px">Loading coins packages...</p></div>
-<h4 style="margin-top:12px;display:none">⭐ Buy Points Separately — VIP ONLY</h4><div id="buyPointsList" style="display:none"><p style="color:#aaa;font-size:12px">Loading points packages...</p></div>
-<p style="font-size:11px;color:#aaa">Bank: Send to Capitec 1893275807 → Admin presses ✅ Approve<br>Stars: VIP ONLY — Buy VIP Level with Stars in VIP section</p>
+<p style="font-size:11px;color:#aaa">Bank: Send to Capitec 1893275807 → Admin presses ✅ Approve<br>Stars: VIP ONLY — Buy VIP Level with Stars in VIP section<br>Coins = Cash or VIP. Convert Coins to Cash to withdraw.</p>
 </div>
 <input id="proofInput" placeholder="Paste EFT ref / proof" />
 <button class="bigbtn" onclick="requestTopup()">📤 SEND TOPUP REQUEST</button>
@@ -261,7 +257,6 @@ const FALLBACK_COINS = [
   {id:'c5000', coins:5000, label:'5000 Coins - R150'},
   {id:'c15000', coins:15000, label:'15000 Coins - R400'},
 ];
-const FALLBACK_POINTS = [];
 async function requestTopupSingle(pkgId){
   const proof=document.getElementById('proofInput').value.trim();
   if(!proof){ alert('Paste EFT proof first - same box below'); return; }
@@ -359,21 +354,8 @@ async function loadUser(){
   saveToPhone();
 }
 function renderFallbackBuyButtons(){
-  var coinsHtml = ''
-    + '<button class="bigbtn" onclick="buyCoinsBank(\'c500\')">🪙 500 Coins — R20 (Bank) — Coins ONLY</button>'
-    + '<button class="bigbtn" onclick="buyCoinsBank(\'c1500\')">🪙 1500 Coins — R50 (Bank) — Coins ONLY</button>'
-    + '<button class="bigbtn" onclick="buyCoinsBank(\'c5000\')">🪙 5000 Coins — R150 (Bank) — Coins ONLY</button>'
-    + '<button class="bigbtn" onclick="buyCoinsBank(\'c15000\')">🪙 15000 Coins — R400 (Bank) — Coins ONLY</button>'
-    + '<p style="font-size:12px;color:#aaa;margin-top:6px">⭐ Stars = VIP ONLY. Buy VIP Level with Stars in VIP section.</p>';
-  var pointsHtml = '';
-  var c = document.getElementById('buyCoinsList');
-  var p = document.getElementById('buyPointsList');
-  if(c) c.innerHTML = coinsHtml;
-  if(p) p.innerHTML = pointsHtml;
-  var cb = document.getElementById('buyCoinsBox');
-  var pb = document.getElementById('buyPointsBox');
-  if(cb) cb.innerHTML = FALLBACK_COINS.map(function(x){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+x.id+'\')">🪙 '+x.label+' (Bank) — Coins ONLY</button>'; }).join('');
-  if(pb) pb.innerHTML = '';
+  // Buy Coins Separately REMOVED - Blue Topup packages only (id=packages)
+  return;
 }
 async function loadVipPlans(){
   renderFallbackBuyButtons();
@@ -399,12 +381,7 @@ async function loadVipPlans(){
     }
     document.getElementById('vipPlansList').innerHTML=html;
     if(d.packages) document.getElementById('packages').innerHTML=d.packages.map(p=>'<label style="display:block;background:#1E3A6E;padding:10px;border-radius:10px;margin:6px 0"><input type="radio" name="pkg" value="' + p.id + '" ' + (p.id==='p29'?'checked':'') + ' onchange="selectedPackage=\'' + p.id + '\'"> <b>' + p.label + '</b></label>').join('');
-    const coinsList = d.buyCoins || FALLBACK_COINS;
-    var cb2 = document.getElementById('buyCoinsBox');
-    if(cb2) cb2.innerHTML = coinsList.map(function(p){ return '<button class="bigbtn" style="margin-top:6px;background:#222;color:#fff;border:1px solid #FFD700" onclick="requestTopupSingle(\''+p.id+'\')">🪙 '+p.label+' (Bank) — Coins ONLY</button>'; }).join('');
-    if(d.buyCoins){
-      document.getElementById('buyCoinsList').innerHTML = d.buyCoins.map(function(p){ return '<button class="bigbtn" onclick="buyCoinsBank(\'' + p.id + '\')">🪙 ' + p.coins + ' Coins - R' + p.price + ' (Bank) — Coins ONLY</button>'; }).join('');
-    }
+    // Buy Coins Separately REMOVED - Blue Topup packages only
   }catch(e){
     console.log('vip fallback', e);
     var v = document.getElementById('vipPlansList');
