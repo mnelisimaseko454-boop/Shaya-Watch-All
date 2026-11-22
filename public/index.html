@@ -302,8 +302,7 @@ async function loadUser(){
     updateUI(); saveToPhone(); refreshRate(); loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans();
   }catch(e){ console.log('loadUser failed', e); renderFallbackBuyButtons(); loadTasks(); loadLeaderboard(); loadVideos(currentYtType); loadVipPlans(); }
 }
- <script>
-function updateUI(){
+  function updateUI(){
   if(!user) return;
   const perAd = { cash: flatAdCash(), coins: 5, usd: flatAdCash(), dailyLimit: (user.perAd&&user.perAd.dailyLimit)||20, minWithdrawUSDT: 20 };
   const dailyLimit=levelAds(user.level||1); user.dailyLimit=dailyLimit; user.withdrawMin=levelMinCoins(user.level||1);
