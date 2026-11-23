@@ -14,8 +14,35 @@ var GIGA_OFFERWALL_PROJECT_ID = "9114";
 var adClickCount = 0;
 var onclickaShow = null;
 var gigaOfferWallSDK = null;
+var gigaLoading = false;
+var gigaReady = false;
 window.initCdTma?.({ id: '472254' }).then(show => { window.show = show; onclickaShow = show; }).catch(e => console.log('OnclickA init failed', e));
-// ===== GIGA OFFERWALL - NO SDK - NO IFRAME - DIRECT BROWSER - FIXED =====
+// ===== GIGA OFFERWALL - CORRECT SDK ONLY - NO DIRECT LINK - NO IFRAME =====
+// wall.giga.pub/?projectId=... DOES NOT EXIST - it returns {"error":"Not Found"}
+// Only this works: loader.js -> loadOfferWallSDK -> sdk.open()
+function loadGigaSDK(){
+  if(gigaReady && gigaOfferWallSDK) return Promise.resolve(gigaOfferWallSDK);
+  if(gigaLoading) return new Promise(function(r){ var t=setInterval(function(){ if(gigaReady){ clearInterval(t); r(gigaOfferWallSDK); } }, 500); });
+  gigaLoading = true;
+  return new Promise(function(resolve, reject){
+    function initSDK(){
+      if(!window.loadOfferWallSDK){ gigaLoading=false; reject(new Error('loader loaded but no SDK')); return; }
+      window.loadOfferWallSDK({ projectId: '9114', userId: String(typeof userId !== 'undefined' ? userId : 'guest') }).then(function(sdk){
+        gigaOfferWallSDK = sdk; window.gigaOfferWallSDK = sdk; gigaReady = true; gigaLoading = false;
+        try{ sdk.on('rewardClaim', async function(data){ await creditUserReward(data.userId, data.amount); try{ await sdk.confirmReward(data.rewardId, data.hash); }catch(e){} }); }catch(e){}
+        resolve(sdk);
+      }).catch(function(e){ gigaLoading=false; reject(e); });
+    }
+    if(window.loadOfferWallSDK){ initSDK(); return; }
+    var s = document.createElement('script');
+    s.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=9114';
+    s.async = true;
+    s.onload = initSDK;
+    s.onerror = function(){ gigaLoading=false; reject(new Error('loader blocked - AdBlock / slow net')); };
+    document.head.appendChild(s);
+    setTimeout(function(){ if(!gigaReady){ gigaLoading=false; reject(new Error('timeout 15s')); } }, 15000);
+  });
+}
 async function creditUserReward(gigaUserId, amount){
   try{
     var res = await fetch('/api/offerwall-credit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: userId, amount: amount, source: 'giga-offerwall-9114' }) });
@@ -25,26 +52,20 @@ async function creditUserReward(gigaUserId, amount){
     return true;
   }catch(e){ if(user){ user.coins = (user.coins||0) + Math.floor(amount); updateUI(); } return true; }
 }
-function openOfferWall(){
-  var url = 'https://wall.giga.pub/?projectId=9114&userId=' + encodeURIComponent(userId);
-  if(window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.openLink){
-    window.Telegram.WebApp.openLink(url);
-  } else {
-    window.open(url, '_blank');
+async function openOfferWall(){
+  try{
+    var st = document.getElementById('adStatus'); if(st) st.innerText = '⏳ Loading Offerwall...';
+    var sdk = await loadGigaSDK();
+    if(st) st.innerText = '';
+    sdk.open();
+  }catch(e){
+    var st2 = document.getElementById('adStatus'); if(st2) st2.innerText = '';
+    alert('Offerwall failed to load: ' + e.message + '\n\nTurn OFF AdBlock and try again in Chrome.');
   }
-  document.getElementById('adStatus').innerText = '✅ Offerwall opened in browser. Complete an offer, then come back and tap Pending Rewards.';
 }
-function closeOfferWall(){
-  alert('✅ Wall closed. Coins credit in 5-10 min. Tap Pending Rewards to refresh.');
-  if(typeof loadUser === 'function') loadUser();
-}
-async function checkOffers(){
-  alert('Tap OPEN OFFERS to see all offers.\n\nComplete an offer, then tap Pending Rewards after 5 min.');
-}
-async function checkPendingRewards(){
-  alert('Checking... Coins from Offerwall auto-credit in 5-10 min.\n\nIf you finished an offer and got no coins, send screenshot to Admin in @ShayaEarnNetwork');
-  if(typeof loadUser === 'function') loadUser();
-}
+function closeOfferWall(){ if(window.gigaOfferWallSDK) window.gigaOfferWallSDK.close(); else alert('Offerwall not open'); }
+async function checkOffers(){ try{ var sdk = await loadGigaSDK(); var offers = await sdk.getOffers(); alert('Offers - Available: ' + offers.available + ' | Active: ' + offers.active); }catch(e){ alert('Could not fetch offers: ' + e.message); } }
+async function checkPendingRewards(){ try{ var sdk = await loadGigaSDK(); var pending = await sdk.pending(); if(pending && pending.length){ alert('You have ' + pending.length + ' pending rewards! Claiming...'); for(var r of pending){ await creditUserReward(r.userId, r.amount); try{ await sdk.confirmReward(r.rewardId, r.hash); }catch(e){} } } else { alert('No pending rewards.'); } }catch(e){ console.log(e); alert('Could not check pending: ' + e.message); } }
 async function triggerAdNetworks(){
   adClickCount++;
   var statusEl = document.getElementById('adStatus');
