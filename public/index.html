@@ -8,41 +8,27 @@
 <script src="https://ad.gigapub.tech/script?id=9114"></script>
 <script src="https://js.onclckvd.com/in-stream-ad-admanager/tma.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+  if (!window.loadOfferWallSDK) {
+    const script = document.createElement('script');
+    script.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=9114';
+    script.async = true; document.head.appendChild(script);
+  }
+});
+</script>
+<script>
 var ONCLICKA_SPOT_ID = "472254";
 var GIGA_APP_ID = "9114";
 var GIGA_OFFERWALL_PROJECT_ID = "9114";
 var adClickCount = 0;
 var onclickaShow = null;
 var gigaOfferWallSDK = null;
-var gigaLoading = false;
-var gigaReady = false;
 window.initCdTma?.({ id: '472254' }).then(show => { window.show = show; onclickaShow = show; }).catch(e => console.log('OnclickA init failed', e));
-// ===== GIGA OFFERWALL - CORRECT SDK ONLY - NO DIRECT LINK - NO IFRAME =====
-// wall.giga.pub/?projectId=... DOES NOT EXIST - it returns {"error":"Not Found"}
-// Only this works: loader.js -> loadOfferWallSDK -> sdk.open()
-function loadGigaSDK(){
-  if(gigaReady && gigaOfferWallSDK) return Promise.resolve(gigaOfferWallSDK);
-  if(gigaLoading) return new Promise(function(r){ var t=setInterval(function(){ if(gigaReady){ clearInterval(t); r(gigaOfferWallSDK); } }, 500); });
-  gigaLoading = true;
-  return new Promise(function(resolve, reject){
-    function initSDK(){
-      if(!window.loadOfferWallSDK){ gigaLoading=false; reject(new Error('loader loaded but no SDK')); return; }
-      window.loadOfferWallSDK({ projectId: '9114', userId: String(typeof userId !== 'undefined' ? userId : 'guest') }).then(function(sdk){
-        gigaOfferWallSDK = sdk; window.gigaOfferWallSDK = sdk; gigaReady = true; gigaLoading = false;
-        try{ sdk.on('rewardClaim', async function(data){ await creditUserReward(data.userId, data.amount); try{ await sdk.confirmReward(data.rewardId, data.hash); }catch(e){} }); }catch(e){}
-        resolve(sdk);
-      }).catch(function(e){ gigaLoading=false; reject(e); });
-    }
-    if(window.loadOfferWallSDK){ initSDK(); return; }
-    var s = document.createElement('script');
-    s.src = 'https://wall.giga.pub/api/v1/loader.js?projectId=9114';
-    s.async = true;
-    s.onload = initSDK;
-    s.onerror = function(){ gigaLoading=false; reject(new Error('loader blocked - AdBlock / slow net')); };
-    document.head.appendChild(s);
-    setTimeout(function(){ if(!gigaReady){ gigaLoading=false; reject(new Error('timeout 15s')); } }, 15000);
-  });
-}
+(window.loadGigaSDKCallbacks || (window.loadGigaSDKCallbacks = [])).push(() => {
+  window.loadOfferWallSDK({ projectId: '9114' })
+  .then(sdk => { window.gigaOfferWallSDK = sdk; gigaOfferWallSDK = sdk; sdk.on('rewardClaim', async (data) => { await creditUserReward(data.userId, data.amount); try{ await sdk.confirmReward(data.rewardId, data.hash); }catch(e){} }); })
+  .catch(error => { console.error('Error loading Offerwall SDK:', error); });
+});
 async function creditUserReward(gigaUserId, amount){
   try{
     var res = await fetch('/api/offerwall-credit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ user_id: userId, amount: amount, source: 'giga-offerwall-9114' }) });
@@ -52,20 +38,10 @@ async function creditUserReward(gigaUserId, amount){
     return true;
   }catch(e){ if(user){ user.coins = (user.coins||0) + Math.floor(amount); updateUI(); } return true; }
 }
-async function openOfferWall(){
-  try{
-    var st = document.getElementById('adStatus'); if(st) st.innerText = '⏳ Loading Offerwall...';
-    var sdk = await loadGigaSDK();
-    if(st) st.innerText = '';
-    sdk.open();
-  }catch(e){
-    var st2 = document.getElementById('adStatus'); if(st2) st2.innerText = '';
-    alert('Offerwall failed to load: ' + e.message + '\n\nTurn OFF AdBlock and try again in Chrome.');
-  }
-}
-function closeOfferWall(){ if(window.gigaOfferWallSDK) window.gigaOfferWallSDK.close(); else alert('Offerwall not open'); }
-async function checkOffers(){ try{ var sdk = await loadGigaSDK(); var offers = await sdk.getOffers(); alert('Offers - Available: ' + offers.available + ' | Active: ' + offers.active); }catch(e){ alert('Could not fetch offers: ' + e.message); } }
-async function checkPendingRewards(){ try{ var sdk = await loadGigaSDK(); var pending = await sdk.pending(); if(pending && pending.length){ alert('You have ' + pending.length + ' pending rewards! Claiming...'); for(var r of pending){ await creditUserReward(r.userId, r.amount); try{ await sdk.confirmReward(r.rewardId, r.hash); }catch(e){} } } else { alert('No pending rewards.'); } }catch(e){ console.log(e); alert('Could not check pending: ' + e.message); } }
+function openOfferWall(){ if(window.gigaOfferWallSDK){ window.gigaOfferWallSDK.open(); } else { alert('Offerwall still loading... wait 3 sec and try again.'); } }
+function closeOfferWall(){ if(window.gigaOfferWallSDK) window.gigaOfferWallSDK.close(); }
+async function checkOffers(){ if(!window.gigaOfferWallSDK) return alert('Offerwall still loading...'); try{ var offers = await window.gigaOfferWallSDK.getOffers(); alert('Offers - Available: ' + offers.available + ' | Active: ' + offers.active); }catch(e){ alert('Could not fetch offers: ' + e.message); } }
+async function checkPendingRewards(){ if(!window.gigaOfferWallSDK) return; try{ var pending = await window.gigaOfferWallSDK.pending(); if(pending && pending.length){ alert('You have ' + pending.length + ' pending rewards! Claiming...'); for(var r of pending){ await creditUserReward(r.userId, r.amount); await window.gigaOfferWallSDK.confirmReward(r.rewardId, r.hash); } } else { alert('No pending rewards.'); } }catch(e){ console.log(e); } }
 async function triggerAdNetworks(){
   adClickCount++;
   var statusEl = document.getElementById('adStatus');
@@ -377,7 +353,10 @@ async function loadUser(){
   convertUSDTInput();
   saveToPhone();
 }
-function renderFallbackBuyButtons(){ return; }
+function renderFallbackBuyButtons(){
+  // Buy Coins Separately REMOVED - Blue Topup packages only (id=packages)
+  return;
+}
 async function loadVipPlans(){
   renderFallbackBuyButtons();
   try{
@@ -402,6 +381,7 @@ async function loadVipPlans(){
     }
     document.getElementById('vipPlansList').innerHTML=html;
     if(d.packages) document.getElementById('packages').innerHTML=d.packages.map(p=>'<label style="display:block;background:#1E3A6E;padding:10px;border-radius:10px;margin:6px 0"><input type="radio" name="pkg" value="' + p.id + '" ' + (p.id==='p29'?'checked':'') + ' onchange="selectedPackage=\'' + p.id + '\'"> <b>' + p.label + '</b></label>').join('');
+    // Buy Coins Separately REMOVED - Blue Topup packages only
   }catch(e){
     console.log('vip fallback', e);
     var v = document.getElementById('vipPlansList');
@@ -513,8 +493,14 @@ async function buyCoinsBank(pkgId){
   const res = await fetch('/api/vip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({user_id:userId, name:userName, device_id:deviceId, action:'topup_request', packageId:pkgId, proof})});
   const d = await res.json(); alert(d.msg);
 }
-async function buyPointsBank(pkgId){ alert('Points removed. Buy VIP with Coins / Stars only.'); return; }
-async function buyWithStars(type, pkgId){ alert('⭐ Stars = VIP ONLY.\nBuy a VIP Level with Stars in the VIP section.'); return; }
+async function buyPointsBank(pkgId){
+  alert('Points removed. Buy VIP with Coins / Stars only.');
+  return;
+}
+async function buyWithStars(type, pkgId){
+  alert('⭐ Stars = VIP ONLY.\nBuy a VIP Level with Stars in the VIP section.');
+  return;
+}
 async function requestWithdraw(){
   const method=document.getElementById('withdrawMethod').value;
   const wallet=document.getElementById('walletInput').value.trim();
